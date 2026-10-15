@@ -18,7 +18,7 @@ class PrimaryButton extends StatelessWidget {
     this.compact = false,
     this.pill = false,
     this.width,
-    this.glowStrength = 1.0,
+    this.glowStrength = 0.0,
   });
 
   final String label;
@@ -46,7 +46,9 @@ class PrimaryButton extends StatelessWidget {
                   colors: [Color(0xFF9DB4C8), Color(0xFFB9CBD9)],
                 ),
           borderRadius: BorderRadius.circular(radius),
-          boxShadow: enabled
+          // No halo by default (glowStrength 0) — flat normal button.
+          // Onboarding passes glowStrength 1.4 for its glowing pill CTA.
+          boxShadow: enabled && glowStrength > 0
               ? [
                   BoxShadow(
                     color: AppColors.primary.withValues(

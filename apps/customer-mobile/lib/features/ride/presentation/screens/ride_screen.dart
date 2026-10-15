@@ -50,7 +50,7 @@ class _RideScreenState extends ConsumerState<RideScreen> {
                           gradient: AppColors.brandGradient,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: AppColors.glowShadow,
+                          boxShadow: AppColors.cardShadow,
                         ),
                         alignment: Alignment.center,
                         child: const Text(

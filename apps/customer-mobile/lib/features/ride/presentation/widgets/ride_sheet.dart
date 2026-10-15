@@ -459,23 +459,23 @@ class _RouteInputs extends ConsumerWidget {
         border: Border.all(color: AppColors.divider),
         boxShadow: AppColors.cardShadow,
       ),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           const SizedBox(width: 6),
           Column(
             children: const [
               Icon(Icons.trip_origin_rounded,
-                  color: Color(0xFF34D17B), size: 20),
+                  color: Color(0xFF34D17B), size: 26),
               SizedBox(
-                height: 18,
+                height: 30,
                 child: VerticalDivider(width: 2, thickness: 2),
               ),
               Icon(Icons.location_on_rounded,
-                  color: Color(0xFFFF5A5A), size: 20),
+                  color: Color(0xFFFF5A5A), size: 26),
             ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               children: [
@@ -484,7 +484,7 @@ class _RouteInputs extends ConsumerWidget {
                   value: ride.pickup?.name,
                   onTap: onPickup,
                 ),
-                const Divider(height: 8),
+                const Divider(height: 12),
                 _InputRow(
                   hint: 'Where to?',
                   value: ride.destination?.name,
@@ -496,9 +496,10 @@ class _RouteInputs extends ConsumerWidget {
           if (showSwap)
             IconButton(
               onPressed: () => ref.read(rideProvider.notifier).swap(),
-              icon: const Icon(Icons.swap_vert_rounded),
+              icon: const Icon(Icons.swap_vert_rounded, size: 22),
               style: IconButton.styleFrom(
                 backgroundColor: AppColors.background,
+                minimumSize: const Size(48, 48),
               ),
             ),
         ],
@@ -517,7 +518,7 @@ class _InputRow extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(12),
     child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
       child: Row(
         children: [
           Expanded(
@@ -535,7 +536,7 @@ class _InputRow extends StatelessWidget {
             ),
           ),
           const Icon(Icons.search_rounded,
-              size: 18, color: AppColors.textSecondary),
+              size: 20, color: AppColors.textSecondary),
         ],
       ),
     ),
@@ -647,7 +648,7 @@ class _VehicleTile extends StatelessWidget {
           border: Border.all(
             color: selected ? Colors.transparent : AppColors.divider,
           ),
-          boxShadow: selected ? AppColors.glowShadow : AppColors.cardShadow,
+          boxShadow: AppColors.cardShadow,
         ),
         child: Row(
           children: [

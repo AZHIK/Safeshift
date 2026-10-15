@@ -54,16 +54,11 @@ class _ShinyMapViewState extends State<ShinyMapView>
                 painter: _MapGridPainter(),
               ),
             ),
-            // Soft tint orbs for depth on light gray.
+            // Soft blue tint orb for depth (no green tint).
             const Positioned(
               left: -70,
               top: -50,
               child: _GlowOrb(size: 230, color: Color(0x332E9BFF)),
-            ),
-            const Positioned(
-              right: -60,
-              top: 120,
-              child: _GlowOrb(size: 180, color: Color(0x22C6F135)),
             ),
             const Positioned(
               left: 40,

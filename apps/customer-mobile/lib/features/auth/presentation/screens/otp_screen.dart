@@ -118,7 +118,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final isComplete = _code.length == _codeLength;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -128,117 +128,206 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      const SizedBox(height: AppSizes.md),
-                      Center(
-                        child: Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.mark_chat_read_outlined,
-                            size: 34,
-                            color: AppColors.primary,
-                          ),
-                        ),
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFEAF3FD), Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.5],
+                ),
+              ),
+            ),
+          ),
+          const Positioned(
+            left: -60,
+            top: -40,
+            child: _TintOrb(size: 200, color: Color(0x222E9BFF)),
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.lg,
                       ),
-                      const SizedBox(height: AppSizes.lg),
-                      const Text(
-                        'Enter verification code',
-                        textAlign: TextAlign.center,
-                        style: TextStyles.headline,
-                      ),
-                      const SizedBox(height: AppSizes.sm),
-                      Text(
-                        'We sent a 6-digit code to $phoneLabel',
-                        textAlign: TextAlign.center,
-                        style: TextStyles.body.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.xs),
-                      GestureDetector(
-                        onTap: () => context.pop(),
-                        child: Text(
-                          'Change number',
-                          textAlign: TextAlign.center,
-                          style: TextStyles.body.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.xl),
-                      OtpBoxes(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        length: _codeLength,
-                        onChanged: _onCodeChanged,
-                        onCompleted: _onCodeCompleted,
-                      ),
-                      const SizedBox(height: AppSizes.lg),
-                      Center(
-                        child: _secondsLeft > 0
-                            ? Text(
-                                'Resend code in ${_secondsLeft}s',
-                                style: TextStyles.body.copyWith(
-                                  color: AppColors.textSecondary,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          const SizedBox(height: AppSizes.sm),
+                          Center(
+                            child: Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.brandGradient,
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(24),
                                 ),
-                              )
-                            : GestureDetector(
-                                onTap: _resend,
-                                child: Text(
-                                  'Resend code',
-                                  style: TextStyles.body.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                                boxShadow: AppColors.cardShadow,
+                              ),
+                              child: const Icon(
+                                Icons.mark_chat_read_rounded,
+                                size: 36,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          const Text(
+                            'Enter verification code',
+                            textAlign: TextAlign.center,
+                            style: TextStyles.headline,
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          Text(
+                            'We sent a 6-digit code to $phoneLabel',
+                            textAlign: TextAlign.center,
+                            style: TextStyles.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: Text(
+                              'Change number',
+                              textAlign: TextAlign.center,
+                              style: TextStyles.body.copyWith(
+                                color: AppColors.primaryDark,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.sm),
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: AppColors.divider,
                                 ),
                               ),
+                              child: const Text(
+                                'Step 2 of 2 · Code',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 18,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.divider,
+                              ),
+                              boxShadow: AppColors.cardShadow,
+                            ),
+                            child: Column(
+                              children: [
+                                OtpBoxes(
+                                  controller: _controller,
+                                  focusNode: _focusNode,
+                                  length: _codeLength,
+                                  onChanged: _onCodeChanged,
+                                  onCompleted: _onCodeCompleted,
+                                ),
+                                const SizedBox(height: AppSizes.md),
+                                _secondsLeft > 0
+                                    ? Text(
+                                        'Resend code in ${_secondsLeft}s',
+                                        style: TextStyles.body.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      )
+                                    : GestureDetector(
+                                        onTap: _resend,
+                                        child: Text(
+                                          'Resend code',
+                                          style:
+                                              TextStyles.body.copyWith(
+                                            color: AppColors.primaryDark,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          const SizedBox(height: AppSizes.lg),
+                          SizedBox(
+                            height: AppSizes.buttonHeight,
+                            width: double.infinity,
+                            child: PrimaryButton(
+                              label: 'Verify',
+                              icon: Icons.check_rounded,
+                              isLoading: authState.isLoading,
+                              onPressed: isComplete && !authState.isLoading
+                                  ? () => _verify(_code)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.sm),
+                          Text(
+                            'Demo build — any 6-digit code works',
+                            textAlign: TextAlign.center,
+                            style: TextStyles.caption.copyWith(
+                              color: AppColors.textDisabled,
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                        ],
                       ),
-                      const Spacer(),
-                      const SizedBox(height: AppSizes.lg),
-                      SizedBox(
-                        height: AppSizes.buttonHeight,
-                        width: double.infinity,
-                        child: PrimaryButton(
-                          label: 'Verify',
-                          isLoading: authState.isLoading,
-                          onPressed: isComplete && !authState.isLoading
-                              ? () => _verify(_code)
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.sm),
-                      Text(
-                        'Demo build — any 6-digit code works',
-                        textAlign: TextAlign.center,
-                        style: TextStyles.caption.copyWith(
-                          color: AppColors.textDisabled,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.md),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+class _TintOrb extends StatelessWidget {
+  const _TintOrb({required this.size, required this.color});
+  final double size;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(colors: [color, Colors.transparent]),
+    ),
+  );
 }

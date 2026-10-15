@@ -129,19 +129,22 @@ class MainScaffold extends StatelessWidget {
             onDestinationSelected: (index) => context.go(_tabs[index]),
             backgroundColor: Colors.transparent,
             elevation: 0,
+            height: 58,
+            labelBehavior:
+                NavigationDestinationLabelBehavior.alwaysShow,
             destinations: const <NavigationDestination>[
               NavigationDestination(
-                icon: Icon(Icons.bolt_outlined),
-                selectedIcon: Icon(Icons.bolt_rounded),
+                icon: Icon(Icons.bolt_outlined, size: 20),
+                selectedIcon: Icon(Icons.bolt_rounded, size: 20),
                 label: 'Ride',
               ),
               NavigationDestination(
-                icon: Icon(Icons.history_rounded),
+                icon: Icon(Icons.history_rounded, size: 20),
                 label: 'History',
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded),
+                icon: Icon(Icons.person_outline_rounded, size: 20),
+                selectedIcon: Icon(Icons.person_rounded, size: 20),
                 label: 'Profile',
               ),
             ],

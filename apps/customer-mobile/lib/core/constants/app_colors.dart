@@ -50,13 +50,8 @@ abstract final class AppColors {
   static List<BoxShadow> get cardShadow => const [
     BoxShadow(
       color: Color(0x144E5E73),
-      blurRadius: 24,
-      offset: Offset(0, 12),
-    ),
-    BoxShadow(
-      color: Color(0x082E9BFF),
-      blurRadius: 40,
-      offset: Offset(0, 4),
+      blurRadius: 16,
+      offset: Offset(0, 8),
     ),
   ];
 

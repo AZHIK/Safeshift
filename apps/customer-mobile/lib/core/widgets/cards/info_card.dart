@@ -29,7 +29,7 @@ class InfoCard extends StatelessWidget {
           color: selected ? AppColors.primary : AppColors.divider,
           width: selected ? 1.6 : 0.9,
         ),
-        boxShadow: selected ? AppColors.glowShadow : AppColors.cardShadow,
+        boxShadow: AppColors.cardShadow,
       ),
       child: child,
     );

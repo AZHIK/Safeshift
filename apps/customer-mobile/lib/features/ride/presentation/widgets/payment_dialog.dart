@@ -43,7 +43,7 @@ class _PaymentDialog extends ConsumerWidget {
                   decoration: BoxDecoration(
                     gradient: AppColors.brandGradient,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: AppColors.glowShadow,
+                    boxShadow: AppColors.cardShadow,
                   ),
                   child: const Icon(
                     Icons.wallet_rounded,

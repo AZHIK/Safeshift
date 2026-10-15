@@ -40,14 +40,17 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider);
+    // Bottom inset clears the translucent bottom nav (extendBody:true).
+    final bottomInset =
+        MediaQuery.paddingOf(context).bottom + kBottomNavigationBarHeight + 28;
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSizes.lg,
           AppSizes.md,
           AppSizes.lg,
-          AppSizes.xl,
+          bottomInset,
         ),
         children: <Widget>[
           ProfileHeader(
@@ -188,7 +191,14 @@ class _ProfileSection extends StatelessWidget {
                 onTap: items[i].onTap,
                 dense: true,
               ),
-              if (i < items.length - 1) const Divider(height: 1, indent: 56),
+              if (i < items.length - 1)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 12,
+                  endIndent: 12,
+                  color: AppColors.divider.withValues(alpha: 0.7),
+                ),
             ],
           ],
         ),

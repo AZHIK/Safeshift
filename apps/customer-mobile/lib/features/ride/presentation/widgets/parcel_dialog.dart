@@ -160,7 +160,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                     decoration: BoxDecoration(
                       gradient: AppColors.brandGradient,
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: AppColors.glowShadow,
+                      boxShadow: AppColors.cardShadow,
                     ),
                     child: const Icon(
                       Icons.inventory_2_rounded,

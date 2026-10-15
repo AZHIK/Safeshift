@@ -59,6 +59,14 @@ abstract final class AppTheme {
         backgroundColor: AppColors.surface.withValues(alpha: 0.92),
         indicatorColor: AppColors.primaryLight.withValues(alpha: 0.6),
         elevation: 12,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.primaryDark
+                : AppColors.textSecondary,
+            size: 20,
+          ),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyles.caption.copyWith(
             color: states.contains(WidgetState.selected)
