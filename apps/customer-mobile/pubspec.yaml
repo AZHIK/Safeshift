@@ -1,0 +1,79 @@
+name: safeshift_customer
+description: "SafeShift Customer — customer-facing mobile app for the SafeShift logistics marketplace (Dar es Salaam)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  riverpod_annotation: ^4.0.7
+  go_router: ^18.0.2
+  dio: ^5.11.1
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  flutter_hooks: ^0.21.3+1
+  cached_network_image: ^4.0.4
+  shimmer: ^4.0.0
+  flutter_secure_storage: ^11.2.0
+  lottie: ^3.6.1
+  # NOTE: held at <7.1.0 because 7.3.x pulls nm ^0.6.0 (dbus ^0.8.0), which
+  # conflicts with geolocator_linux's dbus ^0.7.3. Revisit on later releases.
+  connectivity_plus: '>=7.0.0 <7.1.0'
+  google_maps_flutter: ^2.18.2
+  geolocator: ^14.1.1
+  image_picker: ^1.2.4
+  camera: ^0.12.1
+  firebase_messaging: ^16.7.0
+  flutter_native_splash: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
+  intl: ^0.20.3
+  logger: ^2.8.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.16.2
+  freezed: ^4.0.2
+  json_serializable: ^6.14.1
+  riverpod_generator: ^4.0.9
+  # NOTE: custom_lint is intentionally omitted. custom_lint 0.8.x pins
+  # analyzer ^8.0.0, which conflicts with the analyzer-14 stack required by
+  # build_runner 2.16.x / freezed 4.x / riverpod_generator 4.x. Upstream
+  # custom_lint is discontinued; riverpod_lint 3.1.9+ is a native analyzer
+  # plugin (analyzer >=13 <15, fitting the codegen stack above) and does not
+  # need custom_lint. Revisit if custom_lint ships analyzer-14 support.
+  riverpod_lint: ^3.1.9
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logos/
+    - assets/images/placeholders/
+    - assets/lottie/
+  # NOTE: The Inter font files below do not exist yet. Download Inter
+  # (Regular/Medium/Bold) and place the .ttf files in assets/fonts/
+  # before the app will build with the bundled font.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+
+flutter_native_splash:
+  color: "#1565C0"
+  image: assets/images/logos/logo.png
+  android: true
+  ios: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/logos/logo.png

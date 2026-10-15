@@ -1,0 +1,58 @@
+import '../../features/tracking/domain/entities/driver.dart';
+
+const List<Driver> mockDrivers = <Driver>[
+  Driver(
+    id: 'driver-001',
+    name: 'Juma Hamisi',
+    vehicleClass: 'Pickup',
+    rating: 4.9,
+    phone: '+255 712 345 678',
+    completedTrips: 286,
+    verified: true,
+  ),
+  Driver(
+    id: 'driver-002',
+    name: 'Fatuma Salehe',
+    vehicleClass: 'Small Van',
+    rating: 4.8,
+    phone: '+255 754 221 908',
+    completedTrips: 194,
+    verified: true,
+  ),
+  Driver(
+    id: 'driver-003',
+    name: 'Baraka Mwita',
+    vehicleClass: 'Medium Truck',
+    rating: 4.7,
+    phone: '+255 682 903 114',
+    completedTrips: 351,
+    verified: true,
+  ),
+  Driver(
+    id: 'driver-004',
+    name: 'Zainabu Ally',
+    vehicleClass: 'Large Truck',
+    rating: 4.6,
+    phone: '+255 713 768 205',
+    completedTrips: 128,
+    verified: true,
+  ),
+  Driver(
+    id: 'driver-005',
+    name: 'Joseph Mkoba',
+    vehicleClass: 'Pickup',
+    rating: 4.5,
+    phone: '+255 765 334 812',
+    completedTrips: 209,
+    verified: true,
+  ),
+  Driver(
+    id: 'driver-006',
+    name: 'Halima Rajabu',
+    vehicleClass: 'Small Van',
+    rating: 4.3,
+    phone: '+255 624 105 773',
+    completedTrips: 96,
+    verified: true,
+  ),
+];

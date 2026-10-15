@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/otp_screen.dart';
+import '../../features/booking/presentation/screens/booking_screen.dart';
+import '../../features/booking/presentation/screens/matching_screen.dart';
+import '../../features/booking/presentation/screens/quote_screen.dart';
+import '../../features/delivery/presentation/screens/delivery_confirmation_screen.dart';
+import '../../features/history/presentation/screens/history_screen.dart';
+import '../../features/history/presentation/screens/history_detail_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/tracking/presentation/screens/tracking_screen.dart';
+
+/// Provides the app router. Authenticated route redirects are intentionally
+/// deferred; screens navigate directly through GoRouter.
+final routerInitialLocationProvider = Provider<String>((ref) => '/login');
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final initialLocation = ref.watch(routerInitialLocationProvider);
+  return GoRouter(
+    initialLocation: initialLocation,
+    routes: <RouteBase>[
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
+      ShellRoute(
+        builder: (context, state, child) => MainScaffold(child: child),
+        routes: <RouteBase>[
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/history',
+            builder: (context, state) => const HistoryScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/booking',
+        builder: (context, state) => const BookingScreen(),
+      ),
+      GoRoute(path: '/quote', builder: (context, state) => const QuoteScreen()),
+      GoRoute(
+        path: '/matching',
+        builder: (context, state) => const MatchingScreen(),
+      ),
+      GoRoute(
+        path: '/tracking',
+        builder: (context, state) => const TrackingScreen(),
+      ),
+      GoRoute(
+        path: '/delivery',
+        builder: (context, state) => const DeliveryConfirmationScreen(),
+      ),
+      GoRoute(
+        path: '/history/:id',
+        builder: (context, state) =>
+            HistoryDetailScreen(jobId: state.pathParameters['id']!),
+      ),
+    ],
+  );
+});
+
+/// Bottom-navigation shell for the main tabs.
+class MainScaffold extends StatelessWidget {
+  const MainScaffold({super.key, required this.child});
+
+  final Widget child;
+
+  static const List<String> _tabs = <String>['/home', '/history', '/profile'];
+
+  @override
+  Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    var currentIndex = 0;
+    for (var i = 0; i < _tabs.length; i++) {
+      if (location.startsWith(_tabs[i])) {
+        currentIndex = i;
+      }
+    }
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (index) => context.go(_tabs[index]),
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_rounded),
+            label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}

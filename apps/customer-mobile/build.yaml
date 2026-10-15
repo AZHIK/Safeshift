@@ -1,0 +1,12 @@
+# build_runner configuration: run freezed, json_serializable, and
+# riverpod_generator together. Invoke with:
+#   dart run build_runner build --delete-conflicting-outputs
+targets:
+  $default:
+    builders:
+      freezed:freezed:
+        enabled: true
+      json_serializable:json_serializable:
+        enabled: true
+      riverpod_generator:riverpod_generator:
+        enabled: true

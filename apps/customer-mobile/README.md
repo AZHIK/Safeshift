@@ -1,18 +1,41 @@
-# Flutter — SafeShift Customer App
+# SafeShift Customer App
 
-> **Sprint 1 placeholder.** No Flutter project is scaffolded yet.
+Customer-facing mobile app for **SafeShift** — a digital logistics marketplace
+connecting customers in Dar es Salaam with verified drivers and trucks for
+moves, deliveries, and commercial cargo.
 
-This folder will hold the customer-facing Flutter application:
+This app lives in the SafeShift monorepo at `apps/customer-mobile/` alongside
+the Driver app (`apps/driver-mobile/`) and web (`apps/web/`).
 
-- Job booking (pickup, destination, cargo details, scheduling)
-- Transparent quotes and mobile-money / card payment
-- Live GPS tracking of the matched driver
-- Push notifications (FCM), SMS/OTP via Beem Africa (server-sent)
-- Digital proof of delivery (photos, signature, OTP confirmation views)
-- Ratings, trip history, support
+> **Scaffold stage:** every screen is a placeholder, every model is a
+> placeholder, and every provider is a placeholder. No real business logic,
+> no backend connections, and no real UI yet. This skeleton prepares the
+> codebase for mock UI development.
 
-Shared code (design tokens, models, Supabase client) will live in
-`packages/shared-flutter/` and be consumed by path dependency.
+## Stack
 
-Scaffolding (`flutter create`, flavors for development / staging / production)
-happens in Sprint 2 or later — not in Sprint 1.
+Flutter (iOS + Android) with Riverpod, GoRouter, Dio, Freezed +
+json_serializable, flutter_hooks, cached_network_image, shimmer,
+flutter_secure_storage, connectivity_plus, google_maps_flutter, geolocator,
+image_picker, camera, firebase_messaging, flutter_native_splash,
+flutter_launcher_icons, intl, and logger.
+
+## Getting started
+
+```sh
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run
+```
+
+Copy `.env.example` to `.env` and fill in the keys (the real `.env` is
+gitignored and must never be committed).
+
+**Note:** download the Inter font files (Regular/Medium/Bold) into
+`assets/fonts/` before building — see the `fonts` section in `pubspec.yaml`.
+
+## Project layout
+
+Clean-architecture features under `lib/features/` (auth, home, booking,
+tracking, delivery, history, profile), shared primitives under `lib/core/`,
+mock data under `lib/shared/mock/`, and localization source in `lib/l10n/`.
