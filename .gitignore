@@ -6,8 +6,6 @@ build/
 .flutter-plugins-dependencies
 .packages
 pubspec.lock
-*.g.dart
-*.freezed.dart
 *.gr.dart
 *.mocks.dart
 *.gen.dart
