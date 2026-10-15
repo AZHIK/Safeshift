@@ -12,7 +12,7 @@ void main() {
   testWidgets('Unauthenticated app starts on the login screen', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: SafeShiftApp()));
     await tester.pumpAndSettle();
-    expect(find.text('SafeShift'), findsOneWidget);
+    expect(find.text('safeshift'), findsOneWidget);
     expect(find.text('Enter your phone number'), findsOneWidget);
     expect(find.text('Send OTP'), findsOneWidget);
   });

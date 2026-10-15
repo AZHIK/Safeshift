@@ -142,7 +142,7 @@ class _JobRouteRow extends StatelessWidget {
           title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyles.title.copyWith(fontSize: 14),
+          style: TextStyles.title.copyWith(fontSize: 12),
         ),
       ),
     ],

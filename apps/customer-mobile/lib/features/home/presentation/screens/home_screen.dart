@@ -146,7 +146,7 @@ class _HeroCard extends StatelessWidget {
                   'MOVING MADE SIMPLE',
                   style: TextStyle(
                     color: AppColors.primaryDark,
-                    fontSize: 10,
+                    fontSize: 9,
                     letterSpacing: .7,
                     fontWeight: FontWeight.w600,
                   ),
@@ -157,7 +157,7 @@ class _HeroCard extends StatelessWidget {
                 'Your next move,\nmade easy.',
                 style: TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 22,
+                  fontSize: 19,
                   height: 28 / 22,
                   fontWeight: FontWeight.w600,
                 ),
@@ -165,7 +165,7 @@ class _HeroCard extends StatelessWidget {
               const SizedBox(height: 6),
               const Text(
                 'Reliable transport for the things that matter.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
               const SizedBox(height: 14),
               FilledButton.icon(
@@ -243,7 +243,7 @@ class _ActiveMove extends StatelessWidget {
                         'Household delivery',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -251,7 +251,7 @@ class _ActiveMove extends StatelessWidget {
                         'SS-2048  ·  Today, 10:30 AM',
                         style: TextStyle(
                           color: AppColors.textSecondary,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -269,7 +269,7 @@ class _ActiveMove extends StatelessWidget {
                 const Text(
                   'Driver on the way',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -286,7 +286,7 @@ class _ActiveMove extends StatelessWidget {
                   child: const Text(
                     'IN PROGRESS',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 8,
                       color: Color(0xFF278B76),
                       fontWeight: FontWeight.w700,
                       letterSpacing: .5,
@@ -352,13 +352,13 @@ class _QuickAction extends StatelessWidget {
             const SizedBox(height: 13),
             Text(
               title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 3),
             Text(
               subtitle,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 color: AppColors.textSecondary,
               ),
             ),

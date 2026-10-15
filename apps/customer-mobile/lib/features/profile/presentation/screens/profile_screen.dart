@@ -170,7 +170,7 @@ class _ProfileSection extends StatelessWidget {
                 title: Text(
                   items[i].title,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

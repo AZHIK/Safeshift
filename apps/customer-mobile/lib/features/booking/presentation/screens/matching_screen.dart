@@ -76,7 +76,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                             Text(
                               'Finding nearby drivers…',
                               textAlign: TextAlign.center,
-                              style: TextStyles.title.copyWith(fontSize: 20),
+                              style: TextStyles.title.copyWith(fontSize: 18),
                             ),
                             const SizedBox(height: AppSizes.sm),
                             Text(
@@ -109,7 +109,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                             const SizedBox(height: AppSizes.md),
                             Text(
                               'Driver found',
-                              style: TextStyles.headline.copyWith(fontSize: 24),
+                              style: TextStyles.headline.copyWith(fontSize: 21),
                             ),
                             const SizedBox(height: AppSizes.md),
                             DriverAvatarCard(driver: driver),

@@ -70,7 +70,7 @@ class HistoryScreen extends ConsumerWidget {
                           const SizedBox(height: AppSizes.md),
                           Text(
                             'No trips yet',
-                            style: TextStyles.title.copyWith(fontSize: 20),
+                            style: TextStyles.title.copyWith(fontSize: 18),
                           ),
                           const SizedBox(height: AppSizes.md),
                           PrimaryButton(

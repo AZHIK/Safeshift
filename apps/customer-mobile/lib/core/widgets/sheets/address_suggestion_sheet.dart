@@ -64,7 +64,7 @@ class _AddressSuggestionSheetState extends State<AddressSuggestionSheet> {
             const SizedBox(height: AppSizes.lg),
             Text(
               'Choose a location',
-              style: TextStyles.title.copyWith(fontSize: 20),
+              style: TextStyles.title.copyWith(fontSize: 18),
             ),
             const SizedBox(height: AppSizes.md),
             TextField(

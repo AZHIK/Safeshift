@@ -45,7 +45,7 @@ class HistoryDetailScreen extends ConsumerWidget {
           Text(
             DateFormat('EEEE, d MMMM yyyy')
                 .format(job.createdAt ?? DateTime.now()),
-            style: TextStyles.title.copyWith(fontSize: 18),
+            style: TextStyles.title.copyWith(fontSize: 16),
           ),
           const SizedBox(height: AppSizes.md),
           DriverAvatarCard(driver: driver),

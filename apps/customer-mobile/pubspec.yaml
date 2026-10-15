@@ -55,16 +55,16 @@ flutter:
     - assets/images/logos/
     - assets/images/placeholders/
     - assets/lottie/
-  # NOTE: The Inter font files below do not exist yet. Download Inter
-  # (Regular/Medium/Bold) and place the .ttf files in assets/fonts/
-  # before the app will build with the bundled font.
   fonts:
-    - family: Inter
+    - family: Poppins
       fonts:
-        - asset: assets/fonts/Inter-Regular.ttf
-        - asset: assets/fonts/Inter-Medium.ttf
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Inter-Bold.ttf
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
 
 flutter_native_splash:

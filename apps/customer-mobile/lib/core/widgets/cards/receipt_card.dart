@@ -115,7 +115,7 @@ class _ReceiptRow extends StatelessWidget {
             textAlign: TextAlign.end,
             style: isTotal
                 ? TextStyles.title.copyWith(color: AppColors.textPrimary)
-                : const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                : const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ],

@@ -341,7 +341,7 @@ class _AddressCard extends StatelessWidget {
                     color: location == null
                         ? AppColors.textDisabled
                         : AppColors.textPrimary,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
                 if (location != null)
@@ -440,7 +440,7 @@ class _VehicleOption extends StatelessWidget {
               Text(
                 'TZS ${NumberFormat('#,##0').format(vehicle.basePriceTzs)}',
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),

@@ -55,7 +55,7 @@ class TripStatusStepper extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   style: TextStyle(
-                    fontSize: 9,
+                    fontSize: 8,
                     height: 1.15,
                     color: index <= currentStep
                         ? AppColors.textPrimary

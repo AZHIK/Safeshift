@@ -1,7 +1,7 @@
 // TODO: replace with generated localization via lib/l10n/app_en.arb in a
 // later sprint. All user-facing text must move to .arb files.
 abstract final class AppStrings {
-  static const String appName = 'SafeShift';
+  static const String appName = 'safeshift';
   static const String tagline = 'Safe moves, delivered.';
   static const String loginTitle = 'Log in';
   static const String otpTitle = 'Verify OTP';

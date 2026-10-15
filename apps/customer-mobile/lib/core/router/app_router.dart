@@ -10,7 +10,7 @@ import '../../features/booking/presentation/screens/quote_screen.dart';
 import '../../features/delivery/presentation/screens/delivery_confirmation_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/history/presentation/screens/history_detail_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/ride/presentation/screens/ride_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/tracking/presentation/screens/tracking_screen.dart';
@@ -35,7 +35,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: <RouteBase>[
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomeScreen(),
+            builder: (context, state) => const RideScreen(),
+          ),
+          GoRoute(
+            path: '/ride',
+            builder: (context, state) => const RideScreen(),
           ),
           GoRoute(
             path: '/history',
@@ -81,36 +85,68 @@ class MainScaffold extends StatelessWidget {
 
   static const List<String> _tabs = <String>['/home', '/history', '/profile'];
 
+  int _indexFor(String location) {
+    if (location.startsWith('/ride')) return 0;
+    for (var i = 0; i < _tabs.length; i++) {
+      if (location.startsWith(_tabs[i])) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    var currentIndex = 0;
-    for (var i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i])) {
-        currentIndex = i;
-      }
-    }
+    final currentIndex = _indexFor(location);
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) => context.go(_tabs[index]),
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+      // extendBody:true keeps the map + glass nav effect. The sheet
+      // compensates with extra bottom padding (see RideSheetBody)
+      // so the confirm CTA scrolls above the nav instead of under it.
+      extendBody: true,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          border: Border(
+            top: BorderSide(
+              color: const Color(0xFFE1EBF2),
+              width: 0.8,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.history_rounded),
-            label: 'History',
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A4E5E73),
+              blurRadius: 24,
+              offset: Offset(0, -8),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: (index) => context.go(_tabs[index]),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            destinations: const <NavigationDestination>[
+              NavigationDestination(
+                icon: Icon(Icons.bolt_outlined),
+                selectedIcon: Icon(Icons.bolt_rounded),
+                label: 'Ride',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_rounded),
+                label: 'History',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
+                label: 'Profile',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }

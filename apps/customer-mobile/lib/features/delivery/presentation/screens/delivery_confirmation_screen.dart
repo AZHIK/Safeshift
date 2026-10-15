@@ -95,7 +95,7 @@ class _DeliveryConfirmationScreenState
                   Text(
                     'Delivery Confirmed',
                     textAlign: TextAlign.center,
-                    style: TextStyles.headline.copyWith(fontSize: 24),
+                    style: TextStyles.headline.copyWith(fontSize: 21),
                   ),
                   const SizedBox(height: AppSizes.lg),
                   ReceiptCard(
@@ -130,7 +130,7 @@ class _DeliveryConfirmationScreenState
                   Text(
                     'Your delivery has arrived',
                     textAlign: TextAlign.center,
-                    style: TextStyles.headline.copyWith(fontSize: 24),
+                    style: TextStyles.headline.copyWith(fontSize: 21),
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Text(

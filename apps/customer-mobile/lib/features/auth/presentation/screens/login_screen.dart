@@ -93,9 +93,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: AppSizes.lg),
                       Text(
-                        'SafeShift',
+                        'safeshift',
                         textAlign: TextAlign.center,
-                        style: TextStyles.headline.copyWith(fontSize: 28),
+                        style: TextStyles.headline.copyWith(fontSize: 19),
                       ),
                       const SizedBox(height: AppSizes.xs),
                       Text(
@@ -108,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 30),
                       Text(
                         'Enter your phone number',
-                        style: TextStyles.title.copyWith(fontSize: 20),
+                        style: TextStyles.title.copyWith(fontSize: 18),
                       ),
                       const SizedBox(height: AppSizes.xs),
                       Text(

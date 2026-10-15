@@ -104,7 +104,7 @@ class _OtpBox extends StatelessWidget {
       digit,
       style: TextStyles.title.copyWith(
         color: AppColors.textPrimary,
-        fontSize: 22,
+        fontSize: 19,
       ),
     ),
   );

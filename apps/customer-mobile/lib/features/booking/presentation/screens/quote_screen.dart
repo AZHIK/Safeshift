@@ -230,7 +230,7 @@ class _RouteLine extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(label, style: TextStyles.title.copyWith(fontSize: 14)),
+            Text(label, style: TextStyles.title.copyWith(fontSize: 12)),
             Text(
               district,
               style: TextStyles.caption.copyWith(

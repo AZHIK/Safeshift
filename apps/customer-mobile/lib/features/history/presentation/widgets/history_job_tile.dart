@@ -47,7 +47,7 @@ class HistoryJobTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -65,7 +65,7 @@ class HistoryJobTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -77,7 +77,7 @@ class HistoryJobTile extends StatelessWidget {
                     DateFormat('d MMM yyyy')
                         .format(job.createdAt ?? DateTime.now()),
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: AppColors.textSecondary,
                     ),
                   ),
