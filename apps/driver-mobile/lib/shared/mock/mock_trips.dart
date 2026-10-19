@@ -1,0 +1,162 @@
+// Mock completed-trips history for the driver.
+
+class CompletedTrip {
+  const CompletedTrip({
+    required this.id,
+    required this.pickup,
+    required this.destination,
+    required this.distanceKm,
+    required this.fareTzs,
+    required this.paymentMethod,
+    required this.customerName,
+    required this.rating,
+    required this.date,
+    required this.status,
+  });
+
+  final String id;
+  final String pickup;
+  final String destination;
+  final double distanceKm;
+  final int fareTzs;
+  final String paymentMethod;
+  final String customerName;
+  final double rating;
+  final DateTime date;
+  final String status;
+}
+
+List<CompletedTrip> get mockTrips => <CompletedTrip>[
+  CompletedTrip(
+    id: 'TRIP-9011',
+    pickup: 'Kariakoo Market',
+    destination: 'Slipway, Masaki',
+    distanceKm: 12.4,
+    fareTzs: 62000,
+    paymentMethod: 'M-Pesa',
+    customerName: 'Neema Juma',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(hours: 3)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9010',
+    pickup: 'Sinza Mori',
+    destination: 'Posta, Kivukoni',
+    distanceKm: 11.1,
+    fareTzs: 54000,
+    paymentMethod: 'Cash',
+    customerName: 'David Lyimo',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(hours: 7)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9009',
+    pickup: 'Tabata Kimanga',
+    destination: 'Morocco Junction',
+    distanceKm: 9.6,
+    fareTzs: 45000,
+    paymentMethod: 'M-Pesa',
+    customerName: 'Zawadi Temba',
+    rating: 4,
+    date: DateTime.now().subtract(const Duration(days: 1)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9008',
+    pickup: 'Mlimani City Mall',
+    destination: 'Temeke Hospital',
+    distanceKm: 16.2,
+    fareTzs: 78000,
+    paymentMethod: 'Cash',
+    customerName: 'Juma Komba',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(days: 2)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9007',
+    pickup: 'Ubungo Bus Terminal',
+    destination: 'Kigamboni Ferry',
+    distanceKm: 21.5,
+    fareTzs: 89000,
+    paymentMethod: 'Tigo Pesa',
+    customerName: 'Asha Mziwanda',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(days: 4)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9006',
+    pickup: 'Temeke Hospital',
+    destination: 'Tabata Kimanga',
+    distanceKm: 8.2,
+    fareTzs: 40000,
+    paymentMethod: 'Cash',
+    customerName: 'Rehema Said',
+    rating: 4,
+    date: DateTime.now().subtract(const Duration(days: 5)),
+    status: 'cancelled',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9005',
+    pickup: 'Julius Nyerere International Airport',
+    destination: 'Mbezi Beach',
+    distanceKm: 24.8,
+    fareTzs: 105000,
+    paymentMethod: 'Airtel Money',
+    customerName: 'Kelvin Mushi',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(days: 8)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9004',
+    pickup: 'Kigamboni Ferry',
+    destination: 'Kariakoo Market',
+    distanceKm: 19.3,
+    fareTzs: 54000,
+    paymentMethod: 'Cash',
+    customerName: 'Ibrahim Haji',
+    rating: 4,
+    date: DateTime.now().subtract(const Duration(days: 12)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9003',
+    pickup: 'Mbezi Beach',
+    destination: 'Ubungo Bus Terminal',
+    distanceKm: 22.0,
+    fareTzs: 25000,
+    paymentMethod: 'M-Pesa',
+    customerName: 'Fatma Ally',
+    rating: 3,
+    date: DateTime.now().subtract(const Duration(days: 20)),
+    status: 'cancelled',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9002',
+    pickup: 'Morocco Junction',
+    destination: 'Mlimani City Mall',
+    distanceKm: 6.8,
+    fareTzs: 52000,
+    paymentMethod: 'M-Pesa',
+    customerName: 'Godfrey Masanja',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(days: 28)),
+    status: 'completed',
+  ),
+  CompletedTrip(
+    id: 'TRIP-9001',
+    pickup: 'Kariakoo Market',
+    destination: 'Julius Nyerere International Airport',
+    distanceKm: 14.5,
+    fareTzs: 67000,
+    paymentMethod: 'Airtel Money',
+    customerName: 'Neema Juma',
+    rating: 5,
+    date: DateTime.now().subtract(const Duration(days: 35)),
+    status: 'completed',
+  ),
+];

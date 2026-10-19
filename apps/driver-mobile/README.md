@@ -1,18 +1,28 @@
-# Flutter — SafeShift Driver App
+# SafeShift Driver App
 
-> **Sprint 1 placeholder.** No Flutter project is scaffolded yet.
+Driver-facing Flutter application for the SafeShift logistics marketplace (Dar es Salaam).
 
-This folder will hold the driver-facing Flutter application:
+> **Mock UI phase.** No backend. No Supabase. No real GPS. All state is local
+> and deterministic for demo purposes.
 
-- Availability toggle and operating-zone / service-hours management
-- Job offers, accept / decline, heading-to-pickup → delivered state advances
-- Navigation handoff (Google Maps Platform)
-- Foreground location updates during active jobs
-- Earnings views, verification status, document re-upload
-- Push notifications (FCM), SOS affordance (server-recorded `trip_alerts`)
+## Key design rule: single screen
 
-Shared code (design tokens, models, Supabase client) will live in
-`packages/shared-flutter/` and be consumed by path dependency.
+The driver job flow lives on ONE route (`/home`). The map stays fixed and a
+bottom sheet morphs in place through the states driven by `HomeNotifier`:
 
-Scaffolding (`flutter create`, flavors for development / staging / production)
-happens in Sprint 2 or later — not in Sprint 1.
+`offline → onlineIdle → onlineSearching → incomingJob → headingToPickup →
+arrivedAtPickup → loading → inTransit → arrivedAtDestination → tripCompleted`
+
+No `/job-request`, `/active-trip`, or `/trip-summary` routes exist. The bottom
+navigation (Home, Trips, Earnings, Profile) is visible only while idle and is
+hidden during an active job.
+
+## Getting started
+
+```sh
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze
+flutter test
+flutter run
+```
