@@ -423,17 +423,18 @@ select 15, 'Multi-country: 1 active + 2 inactive countries',
        (select string_agg(btrim(c.iso_code) || '=' || c.is_active::text, ', ' order by c.iso_code) from public.countries c);
 
 -- ----------------------------------------------------------------------------
--- 16. No Phase 3+ tables. Phase 2 deliberately adds vehicles and fleets.
+-- 16. No Phase 4+ tables. Phase 2 adds vehicles/fleets; Phase 3 legitimately
+--     adds pricing_plans, so the Phase 1 gate only guards later phases.
 -- ----------------------------------------------------------------------------
 insert into _phase1_verification (check_no, check_name, status, details)
-select 16, 'No Phase 3+ tables created',
+select 16, 'No Phase 4+ tables created',
        case when count(*) = 0 then 'PASS' else 'FAIL' end,
-       case when count(*) = 0 then 'no pricing_plans/jobs/payments/disputes/payouts'
+       case when count(*) = 0 then 'no jobs/payments/disputes/payouts/payment_methods'
             else string_agg(tablename, ', ') end
 from (
   select tablename from pg_tables
    where schemaname = 'public'
-     and tablename in ('pricing_plans', 'jobs', 'payments', 'disputes', 'payouts', 'payment_methods')
+     and tablename in ('jobs', 'payments', 'disputes', 'payouts', 'payment_methods', 'quote_history')
 ) x;
 
 -- ----------------------------------------------------------------------------

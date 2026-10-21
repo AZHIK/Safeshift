@@ -70,7 +70,8 @@ enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 # Phase 2 seed depends on Phase 1 identifiers and must run second.
-sql_paths = ["./seed.sql", "./seed-phase-2.sql"]
+# Phase 3 seed depends on Phase 1 and Phase 2 catalogues and runs third.
+sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
