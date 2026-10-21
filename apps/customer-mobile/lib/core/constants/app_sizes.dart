@@ -1,4 +1,5 @@
-// TODO: refine the spacing/type scale with the design team during mock UI phase.
+// Planned: refine the spacing/type scale with the design team during mock UI
+// phase.
 abstract final class AppSizes {
   static const double xs = 4;
   static const double sm = 8;

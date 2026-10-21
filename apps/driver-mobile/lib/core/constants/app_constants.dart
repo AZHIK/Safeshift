@@ -1,4 +1,5 @@
-// TODO: add environment-specific overrides (dev/staging/prod flavors) and read
+// Planned: add environment-specific overrides (dev/staging/prod flavors) and
+// read
 // secrets from .env instead of hardcoding placeholders.
 abstract final class AppConstants {
   static const String appName = 'safeshift';

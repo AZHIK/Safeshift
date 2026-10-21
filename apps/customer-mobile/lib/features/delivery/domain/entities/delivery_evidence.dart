@@ -1,4 +1,4 @@
-// TODO: add signature/photo receipt fields and value equality in a later
+// Planned: add signature/photo receipt fields and value equality in a later
 // sprint. Placeholder entity only.
 class DeliveryEvidence {
   const DeliveryEvidence({

@@ -1,4 +1,4 @@
-// TODO: add avatar, saved addresses, and payment methods in a later sprint.
+// Planned: add avatar, saved addresses, and payment methods in a later sprint.
 // Placeholder entity only.
 class Profile {
   const Profile({

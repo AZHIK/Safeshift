@@ -1,4 +1,4 @@
-// TODO: replace with pricing API data in a later sprint. Sample quotes only,
+// Planned: replace with pricing API data in a later sprint. Sample quotes only,
 // with amounts in TZS.
 import '../../features/booking/domain/entities/quote.dart';
 

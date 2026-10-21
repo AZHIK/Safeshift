@@ -1,4 +1,4 @@
-// TODO: replace with the authenticated Supabase user in a later sprint. One
+// Planned: replace with the authenticated Supabase user in a later sprint. One
 // sample customer profile only.
 
 /// Minimal mock user. Kept in shared code so features stay decoupled.

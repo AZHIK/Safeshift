@@ -1,4 +1,5 @@
-// TODO: add role-based and onboarding guards in a later sprint. Mock auth only.
+// Planned: add role-based and onboarding guards in a later sprint. Mock auth
+// only.
 
 /// Pure auth redirect decision used by the app router.
 ///

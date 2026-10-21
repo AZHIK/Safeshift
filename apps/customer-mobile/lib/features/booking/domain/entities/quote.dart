@@ -1,4 +1,4 @@
-// TODO: add copyWith, value equality, and currency handling (TZS) in a later
+// Planned: add copyWith, value equality, and currency handling (TZS) in a later
 // sprint. Placeholder entity only.
 class Quote {
   const Quote({

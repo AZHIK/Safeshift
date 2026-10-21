@@ -13,7 +13,7 @@ class DriverProfileState extends _$DriverProfileState {
   @override
   DriverProfile? build() {
     ref.keepAlive();
-    // TODO: replace with real profile fetch (Supabase) after OTP verify.
+    // Planned: replace with real profile fetch (Supabase) after OTP verify.
     // Null = no profile, so OTP success must route to /complete-profile.
     return null;
   }

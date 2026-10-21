@@ -1,4 +1,4 @@
-// TODO: add variants (secondary, danger, sizes) during the mock UI phase.
+// Planned: add variants (secondary, danger, sizes) during the mock UI phase.
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';

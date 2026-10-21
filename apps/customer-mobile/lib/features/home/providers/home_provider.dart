@@ -1,4 +1,4 @@
-// TODO: load the home summary from a repository in a later sprint. Returns a
+// Planned: load the home summary from a repository in a later sprint. Returns a
 // hardcoded mock for now.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

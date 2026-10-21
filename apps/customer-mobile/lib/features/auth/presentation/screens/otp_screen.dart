@@ -1,4 +1,4 @@
-// TODO: add paste-from-SMS autofill (sms_autofill) and haptic feedback in a
+// Planned: add paste-from-SMS autofill (sms_autofill) and haptic feedback in a
 // later sprint. Mock OTP UI only — any 6-digit code is accepted.
 import 'dart:async';
 

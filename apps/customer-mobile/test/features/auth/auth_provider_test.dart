@@ -1,4 +1,4 @@
-// TODO: add sign-out/session-restore tests once persistence lands.
+// Planned: add sign-out/session-restore tests once persistence lands.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safeshift_customer/core/errors/failures.dart';

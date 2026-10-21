@@ -1,4 +1,5 @@
-// TODO: extend with field-level details and error codes when the API contract
+// Planned: extend with field-level details and error codes when the API
+// contract
 // is finalized in a later sprint.
 
 /// Base failure type returned by repositories.

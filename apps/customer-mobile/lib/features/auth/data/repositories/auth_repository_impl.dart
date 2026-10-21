@@ -1,4 +1,4 @@
-// TODO: wire to [AuthRemoteDataSource] and map failures in a later sprint.
+// Planned: wire to [AuthRemoteDataSource] and map failures in a later sprint.
 // Every method throws until the auth feature is implemented.
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';

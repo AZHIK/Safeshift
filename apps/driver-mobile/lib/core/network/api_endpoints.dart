@@ -1,4 +1,4 @@
-// TODO: replace placeholder paths with the finalized backend API contract.
+// Planned: replace placeholder paths with the finalized backend API contract.
 abstract final class ApiEndpoints {
   static const String sendOtp = '/auth/otp/send';
   static const String verifyOtp = '/auth/otp/verify';

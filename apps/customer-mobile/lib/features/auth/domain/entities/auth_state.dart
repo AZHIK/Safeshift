@@ -1,4 +1,5 @@
-// TODO: persist the session (secure storage) and add token/expiry fields in a
+// Planned: persist the session (secure storage) and add token/expiry fields in
+// a
 // later sprint. Mock flow only — no backend involved.
 import 'user.dart';
 

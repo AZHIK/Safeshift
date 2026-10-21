@@ -87,8 +87,10 @@ class TrackingScreen extends ConsumerWidget {
                         label: const Text('Share Trip'),
                       ),
                       TextButton.icon(
-                        onPressed: () =>
-                            AppSnackbar.showError(context, 'Emergency — TODO'),
+                        onPressed: () => AppSnackbar.showError(
+                          context,
+                          'Emergency calling is not available yet',
+                        ),
                         icon: const Icon(
                           Icons.emergency_outlined,
                           color: AppColors.error,

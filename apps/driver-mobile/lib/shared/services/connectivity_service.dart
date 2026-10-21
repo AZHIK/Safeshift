@@ -1,4 +1,5 @@
-// TODO: add debouncing and offline-queue hooks in a later sprint. Placeholder
+// Planned: add debouncing and offline-queue hooks in a later sprint.
+// Placeholder
 // wrapper only.
 import 'package:connectivity_plus/connectivity_plus.dart';
 

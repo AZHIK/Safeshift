@@ -1,4 +1,4 @@
-// TODO: add country-code picker and error-text support when the Driver app
+// Planned: add country-code picker and error-text support when the Driver app
 // reuses this field. Mock UI phase version: fixed +255 prefix only.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

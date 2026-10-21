@@ -1,4 +1,5 @@
-// TODO: implement with Supabase (OTP send/verify, session) in a later sprint.
+// Planned: implement with Supabase (OTP send/verify, session) in a later
+// sprint.
 import '../models/user_model.dart';
 
 /// Remote data source contract for auth. Placeholder only.

@@ -1,4 +1,4 @@
-// TODO: add copyWith and value equality (or convert to Freezed) in a later
+// Planned: add copyWith and value equality (or convert to Freezed) in a later
 // sprint. Placeholder entity only.
 class User {
   const User({

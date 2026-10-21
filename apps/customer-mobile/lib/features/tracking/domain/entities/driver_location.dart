@@ -1,4 +1,5 @@
-// TODO: add heading/speed/accuracy fields and value equality in a later sprint.
+// Planned: add heading/speed/accuracy fields and value equality in a later
+// sprint.
 // Placeholder entity only.
 class DriverLocation {
   const DriverLocation({

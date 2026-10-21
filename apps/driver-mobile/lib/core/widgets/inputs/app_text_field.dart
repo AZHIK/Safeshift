@@ -1,4 +1,4 @@
-// TODO: add password, phone, and multiline variants during mock UI phase.
+// Planned: add password, phone, and multiline variants during mock UI phase.
 import 'package:flutter/material.dart';
 
 /// Reusable text field wrapping [TextFormField] with app styling.

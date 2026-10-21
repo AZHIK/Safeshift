@@ -1,4 +1,5 @@
-// TODO: initialize local storage (Hive/SharedPreferences), Firebase, and dotenv
+// Planned: initialize local storage (Hive/SharedPreferences), Firebase, and
+// dotenv
 // before runApp in a later sprint. No real initialization logic yet.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

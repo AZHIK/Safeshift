@@ -1,4 +1,4 @@
-// TODO: replace the mock delays with real Supabase OTP APIs and persist the
+// Planned: replace the mock delays with real Supabase OTP APIs and persist the
 // session in a later sprint. Mock logic only — no backend calls.
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

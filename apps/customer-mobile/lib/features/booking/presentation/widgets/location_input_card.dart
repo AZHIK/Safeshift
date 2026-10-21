@@ -1,4 +1,4 @@
-// TODO: build pickup/destination inputs with map autocomplete in the mock UI
+// Planned: build pickup/destination inputs with map autocomplete in the mock UI
 // phase. Placeholder widget only.
 import 'package:flutter/material.dart';
 
@@ -9,7 +9,7 @@ class LocationInputCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: const Text('LocationInputCard — TODO'),
+      child: const Text('Pickup and destination search coming soon'),
     );
   }
 }

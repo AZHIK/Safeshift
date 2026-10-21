@@ -1,4 +1,4 @@
-// TODO: tighten rules for Tanzanian phone formats (+255...) and add cargo/
+// Planned: tighten rules for Tanzanian phone formats (+255...) and add cargo/
 // address validators in a later sprint.
 abstract final class Validators {
   static bool isValidPhone(String value) {

@@ -1,4 +1,5 @@
-// TODO: render the digital receipt (amount, route, rating CTA) in the mock UI
+// Planned: render the digital receipt (amount, route, rating CTA) in the mock
+// UI
 // phase. Placeholder widget only.
 import 'package:flutter/material.dart';
 
@@ -9,7 +10,7 @@ class ReceiptCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: const Text('ReceiptCard — TODO'),
+      child: const Text('Digital receipt coming soon'),
     );
   }
 }

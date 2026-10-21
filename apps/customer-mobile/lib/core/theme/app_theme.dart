@@ -1,4 +1,4 @@
-// TODO: polish the dark theme with the design team during mock UI phase.
+// Planned: polish the dark theme with the design team during mock UI phase.
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';

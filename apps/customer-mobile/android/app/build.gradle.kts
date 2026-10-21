@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Application ID is set below; keep it in sync with google-services.json.
         applicationId = "com.safeshift.safeshift_customer"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -31,7 +31,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
+            // Release signing: replace the debug config with a production keystore.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }

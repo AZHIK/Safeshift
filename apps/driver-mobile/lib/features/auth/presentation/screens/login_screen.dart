@@ -1,4 +1,4 @@
-// TODO: wire the Terms/Privacy links to real documents and add final logo
+// Planned: wire the Terms/Privacy links to real documents and add final logo
 // artwork in a later sprint. Mock login UI only — no backend calls.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -258,8 +258,11 @@ class _TermsText extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = TextStyles.caption.copyWith(color: AppColors.textSecondary);
     final linkStyle = TextStyles.caption.copyWith(color: AppColors.primary);
-    void showTodo() {
-      AppSnackbar.showInfo(context, 'Terms — TODO');
+    void showTermsNotice() {
+      AppSnackbar.showInfo(
+        context,
+        'Terms and privacy pages are not available yet',
+      );
     }
 
     return Wrap(
@@ -268,12 +271,12 @@ class _TermsText extends StatelessWidget {
       children: <Widget>[
         Text('By continuing, you agree to our ', style: style),
         GestureDetector(
-          onTap: showTodo,
+          onTap: showTermsNotice,
           child: Text('Terms of Service', style: linkStyle),
         ),
         Text(' and ', style: style),
         GestureDetector(
-          onTap: showTodo,
+          onTap: showTermsNotice,
           child: Text('Privacy Policy', style: linkStyle),
         ),
       ],

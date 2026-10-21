@@ -1,4 +1,4 @@
-// TODO: convert to a @freezed class with json_serializable and run
+// Planned: convert to a @freezed class with json_serializable and run
 // build_runner in a later sprint. Manual stubs below unblock the mock UI phase.
 import '../../domain/entities/user.dart';
 

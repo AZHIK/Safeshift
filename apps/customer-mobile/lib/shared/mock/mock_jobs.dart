@@ -1,4 +1,4 @@
-// TODO: replace with paginated API data in a later sprint. Sample jobs only,
+// Planned: replace with paginated API data in a later sprint. Sample jobs only,
 // with Dar es Salaam addresses and quote amounts in TZS.
 import '../../features/booking/domain/entities/job.dart';
 

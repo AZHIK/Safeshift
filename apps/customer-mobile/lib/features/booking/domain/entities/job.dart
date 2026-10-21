@@ -1,4 +1,4 @@
-// TODO: add copyWith, value equality, and remaining fields (cargo, schedule,
+// Planned: add copyWith, value equality, and remaining fields (cargo, schedule,
 // vehicle class) in a later sprint. Placeholder entity only.
 class Job {
   const Job({

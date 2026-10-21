@@ -59,8 +59,8 @@ class RideSheetBody extends ConsumerWidget {
             RideStage.idle => const _IdleSearch(key: ValueKey('idle')),
             RideStage.route ||
             RideStage.vehicle ||
-            RideStage.confirm => _RouteAndVehicles(
-              key: const ValueKey('route'),
+            RideStage.confirm => const _RouteAndVehicles(
+              key: ValueKey('route'),
             ),
             RideStage.searching => const _SearchingView(
               key: ValueKey('searching'),
@@ -463,8 +463,8 @@ class _RouteInputs extends ConsumerWidget {
       child: Row(
         children: [
           const SizedBox(width: 6),
-          Column(
-            children: const [
+          const Column(
+            children: [
               Icon(Icons.trip_origin_rounded,
                   color: Color(0xFF34D17B), size: 26),
               SizedBox(
@@ -1125,7 +1125,9 @@ class _TrackingView extends ConsumerWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Emergency — TODO')),
+                  const SnackBar(
+                    content: Text('Emergency calling is not available yet'),
+                  ),
                 ),
                 icon: const Icon(Icons.emergency_outlined,
                     size: 18, color: AppColors.error),

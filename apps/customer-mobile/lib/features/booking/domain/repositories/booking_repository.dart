@@ -1,4 +1,4 @@
-// TODO: implement with Supabase quote/jobs APIs in a later sprint.
+// Planned: implement with Supabase quote/jobs APIs in a later sprint.
 import '../entities/job.dart';
 import '../entities/quote.dart';
 

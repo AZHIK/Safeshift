@@ -1,4 +1,4 @@
-// TODO: implement with Supabase (quotes/jobs tables) in a later sprint.
+// Planned: implement with Supabase (quotes/jobs tables) in a later sprint.
 import '../models/job_model.dart';
 import '../models/quote_model.dart';
 

@@ -1,4 +1,4 @@
-// TODO: add dark theme color variants in a later sprint.
+// Planned: add dark theme color variants in a later sprint.
 import 'package:flutter/material.dart';
 
 /// SafeShift brand colors for the Customer app.

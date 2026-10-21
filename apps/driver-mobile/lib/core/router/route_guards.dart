@@ -1,4 +1,4 @@
-// TODO: add role-based guards in a later sprint. Mock auth only.
+// Planned: add role-based guards in a later sprint. Mock auth only.
 
 /// Pure auth + profile redirect decision used by the app router.
 ///

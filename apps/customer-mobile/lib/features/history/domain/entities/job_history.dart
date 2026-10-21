@@ -1,4 +1,4 @@
-// TODO: add rating, receipt, and pagination fields in a later sprint.
+// Planned: add rating, receipt, and pagination fields in a later sprint.
 // Placeholder entity only.
 class JobHistory {
   const JobHistory({

@@ -108,9 +108,9 @@ class MainScaffold extends StatelessWidget {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.92),
-          border: Border(
+          border: const Border(
             top: BorderSide(
-              color: const Color(0xFFE1EBF2),
+              color: Color(0xFFE1EBF2),
               width: 0.8,
             ),
           ),

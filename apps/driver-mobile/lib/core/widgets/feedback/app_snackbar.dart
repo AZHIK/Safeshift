@@ -1,4 +1,4 @@
-// TODO: add action snackbars (undo/retry) in a later sprint.
+// Planned: add action snackbars (undo/retry) in a later sprint.
 import 'package:flutter/material.dart';
 
 /// Static helper for showing snackbars. Placeholder styling only.

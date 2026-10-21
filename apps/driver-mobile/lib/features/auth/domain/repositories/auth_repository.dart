@@ -1,4 +1,4 @@
-// TODO: implement with Supabase OTP APIs in a later sprint.
+// Planned: implement with Supabase OTP APIs in a later sprint.
 import '../entities/user.dart';
 
 /// Auth repository contract. Placeholder only.

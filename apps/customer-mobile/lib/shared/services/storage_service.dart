@@ -1,4 +1,4 @@
-// TODO: add refresh-token storage, session expiry, and biometric-gated reads
+// Planned: add refresh-token storage, session expiry, and biometric-gated reads
 // in a later sprint. Placeholder wrapper only.
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 

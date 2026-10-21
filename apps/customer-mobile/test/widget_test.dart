@@ -1,4 +1,4 @@
-// TODO: expand into real widget tests during the mock UI phase.
+// Planned: expand into real widget tests during the mock UI phase.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safeshift_customer/app.dart';

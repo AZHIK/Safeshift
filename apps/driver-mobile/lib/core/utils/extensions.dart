@@ -1,4 +1,5 @@
-// TODO: add currency (TZS) and distance formatting extensions in a later sprint.
+// Planned: add currency (TZS) and distance formatting extensions in a later
+// sprint.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

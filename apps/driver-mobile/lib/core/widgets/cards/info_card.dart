@@ -1,4 +1,4 @@
-// TODO: add loading/error/empty variants during the mock UI phase.
+// Planned: add loading/error/empty variants during the mock UI phase.
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';

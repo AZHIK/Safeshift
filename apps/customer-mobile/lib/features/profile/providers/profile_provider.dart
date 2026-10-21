@@ -1,4 +1,5 @@
-// TODO: load and update the profile via a repository in a later sprint. Reads
+// Planned: load and update the profile via a repository in a later sprint.
+// Reads
 // the mock user for now.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

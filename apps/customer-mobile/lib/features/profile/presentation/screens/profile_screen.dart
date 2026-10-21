@@ -55,7 +55,10 @@ class ProfileScreen extends ConsumerWidget {
         children: <Widget>[
           ProfileHeader(
             profile: profile,
-            onEdit: () => AppSnackbar.showInfo(context, 'Edit Profile — TODO'),
+            onEdit: () => AppSnackbar.showInfo(
+              context,
+              'Profile editing is not available yet',
+            ),
           ),
           const SizedBox(height: AppSizes.lg),
           _ProfileSection(
@@ -64,20 +67,26 @@ class ProfileScreen extends ConsumerWidget {
               _ProfileItem(
                 icon: Icons.payments_outlined,
                 title: 'Payment Methods',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Payment Methods — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Payment methods are not available yet',
+                ),
               ),
               _ProfileItem(
                 icon: Icons.bookmark_border_rounded,
                 title: 'Saved Addresses',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Saved Addresses — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Saved addresses are not available yet',
+                ),
               ),
               _ProfileItem(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Notifications — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Notification settings are not available yet',
+                ),
               ),
             ],
           ),
@@ -88,20 +97,26 @@ class ProfileScreen extends ConsumerWidget {
               _ProfileItem(
                 icon: Icons.help_outline_rounded,
                 title: 'Help Center',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Help Center — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Help center is not available yet',
+                ),
               ),
               _ProfileItem(
                 icon: Icons.support_agent_rounded,
                 title: 'Contact Support',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Contact Support — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Support chat is not available yet',
+                ),
               ),
               _ProfileItem(
                 icon: Icons.description_outlined,
                 title: 'Terms & Privacy',
-                onTap: () =>
-                    AppSnackbar.showInfo(context, 'Terms & Privacy — TODO'),
+                onTap: () => AppSnackbar.showInfo(
+                  context,
+                  'Terms and privacy pages are not available yet',
+                ),
               ),
             ],
           ),

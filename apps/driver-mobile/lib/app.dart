@@ -1,4 +1,5 @@
-// TODO: add localization delegates and locale switching (see lib/l10n/app_en.arb)
+// Planned: add localization delegates and locale switching (see
+// lib/l10n/app_en.arb)
 // in a later sprint.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

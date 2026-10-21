@@ -1,5 +1,6 @@
-// TODO: add the auth interceptor attaching the Supabase JWT once auth is live.
-// TODO: add retry and offline-queue interceptors in a later sprint.
+// Planned: add the auth interceptor attaching the Supabase JWT once auth is
+// live.
+// Planned: add retry and offline-queue interceptors in a later sprint.
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
