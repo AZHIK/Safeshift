@@ -954,12 +954,16 @@ select 19, 'promo_redemptions is service-write only',
        'no client write grant';
 
 insert into _phase3_verification
-select 19, 'No Phase 4+ tables created',
+select 19, 'No Phase 5+ tables created',
        case when count(*) = 0 then 'PASS' else 'FAIL' end,
-       coalesce(string_agg(tablename, ', '), 'no quote_history/jobs/commission_rules/payouts')
+       coalesce(string_agg(tablename, ', '), 'no payments/payouts/wallets/commissions/notifications')
 from pg_tables
 where schemaname = 'public'
-  and tablename in ('quote_history', 'jobs', 'job_evidence', 'commission_rules', 'payouts', 'payments');
+  and tablename in (
+    'payments', 'payment_methods', 'payouts', 'wallets', 'wallet_transactions',
+    'commissions', 'commission_rules', 'notifications', 'notification_preferences',
+    'analytics_events', 'analytics_daily'
+  );
 
 insert into _phase3_verification
 select 19, 'No Phase 3 enums introduced',

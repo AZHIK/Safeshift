@@ -322,16 +322,22 @@ from (values
 left join pg_class c on c.oid = to_regclass('public.' || x.name);
 
 -- ----------------------------------------------------------------------------
--- 10. No new enum types were created in Phase 2.
+-- 10. Phase 2 introduced no enum types. Phase 1 owns four core enums and
+--     Phase 4 owns five operational enums; every other status remains TEXT.
 -- ----------------------------------------------------------------------------
 insert into _phase2_verification
 select 10, 'No Phase 2 enums created',
-       case when count(*) = 4 then 'PASS' else 'FAIL' end,
-       count(*) || ' public enum(s); Phase 1 owns exactly four'
+       case when count(*) = 0 then 'PASS' else 'FAIL' end,
+       coalesce(string_agg(t.typname, ', ' order by t.typname),
+                count(*)::text || ' unexpected enum(s)')
 from pg_type t
 join pg_namespace n on n.oid = t.typnamespace
 where n.nspname = 'public'
-  and t.typtype = 'e';
+  and t.typtype = 'e'
+  and t.typname not in (
+    'user_role', 'driver_verification_status', 'driver_risk_tier', 'audit_action',
+    'job_status', 'payment_status', 'payment_method', 'evidence_type', 'trip_alert_type'
+  );
 
 -- ----------------------------------------------------------------------------
 -- 11. Seed and permission gates.

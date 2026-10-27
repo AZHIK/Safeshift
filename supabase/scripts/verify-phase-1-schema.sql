@@ -131,6 +131,7 @@ from pg_class c
 join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public'
   and c.relkind = 'r'
+  and not c.relispartition
   and not c.relrowsecurity;
 
 -- ----------------------------------------------------------------------------
@@ -146,6 +147,7 @@ from pg_class c
 join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public'
   and c.relkind = 'r'
+  and not c.relispartition
   and not exists (select 1 from pg_policy p where p.polrelid = c.oid);
 
 -- ----------------------------------------------------------------------------
@@ -423,19 +425,43 @@ select 15, 'Multi-country: 1 active + 2 inactive countries',
        (select string_agg(btrim(c.iso_code) || '=' || c.is_active::text, ', ' order by c.iso_code) from public.countries c);
 
 -- ----------------------------------------------------------------------------
--- 16. No Phase 4+ tables. Phase 2 adds vehicles/fleets; Phase 3 legitimately
---     adds pricing_plans, so the Phase 1 gate only guards later phases.
+-- 16. No Phase 5+ tables. Phase 2 adds vehicles/fleets, Phase 3 adds pricing,
+--     and Phase 4 adds jobs/quotes/disputes. The Phase 1 gate only guards the
+--     domains deliberately deferred to later phases.
 -- ----------------------------------------------------------------------------
 insert into _phase1_verification (check_no, check_name, status, details)
-select 16, 'No Phase 4+ tables created',
+select 16, 'No Phase 5+ tables created',
        case when count(*) = 0 then 'PASS' else 'FAIL' end,
-       case when count(*) = 0 then 'no jobs/payments/disputes/payouts/payment_methods'
+       case when count(*) = 0 then 'no payments/payouts/wallets/commissions/notifications'
             else string_agg(tablename, ', ') end
 from (
   select tablename from pg_tables
    where schemaname = 'public'
-     and tablename in ('jobs', 'payments', 'disputes', 'payouts', 'payment_methods', 'quote_history')
+     and tablename in (
+       'payments', 'payment_methods', 'payouts', 'wallets', 'wallet_transactions',
+       'commissions', 'commission_rules', 'notifications', 'notification_preferences',
+       'analytics_events', 'analytics_daily'
+     )
 ) x;
+
+insert into _phase1_verification (check_no, check_name, status, details)
+select 16, 'Partition children have no client privileges',
+       case when count(*) = 0 then 'PASS' else 'FAIL' end,
+       coalesce(string_agg(c.relname, ', '), 'no direct client access to partitions')
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relispartition
+  and (
+    has_table_privilege('anon', c.oid, 'SELECT')
+    or has_table_privilege('anon', c.oid, 'INSERT')
+    or has_table_privilege('anon', c.oid, 'UPDATE')
+    or has_table_privilege('anon', c.oid, 'DELETE')
+    or has_table_privilege('authenticated', c.oid, 'SELECT')
+    or has_table_privilege('authenticated', c.oid, 'INSERT')
+    or has_table_privilege('authenticated', c.oid, 'UPDATE')
+    or has_table_privilege('authenticated', c.oid, 'DELETE')
+  );
 
 -- ----------------------------------------------------------------------------
 -- Results
