@@ -2,8 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-07 (Sprint 1)
+- **Updated:** 2026-10-28 — executable workspaces added; see ADR 0014.
 - **Deciders:** Idea Owner (Marius Alex Isaay), Engineering Lead (Azaria Kilasi)
-- **Scope:** Sprint 1 — foundation only. No app code, no migrations, no functions.
+- **Scope:** Repository layout. Tooling details live in ADR 0014.
 
 ## Context
 
@@ -48,8 +49,9 @@ safeshift/
 └── LICENSE
 ```
 
-Sprint 1 creates folders and documentation only. Flutter and Next.js
-scaffolding happens in Sprint 2 onward.
+Sprint 1 created folders and documentation only. The layout is now executable:
+pnpm + Turborepo manage the TypeScript workspace and Melos manages the
+Flutter/Dart workspace. See ADR 0014 for commands and conventions.
 
 ## Rationale
 
@@ -87,7 +89,8 @@ scaffolding happens in Sprint 2 onward.
 
 ## Notes
 
-- `supabase/migrations/` is empty in Sprint 1 by design — SQL is written in
-  Sprint 2 from `0002-database-schema.md`.
-- `supabase/functions/` is empty in Sprint 1 — service-role code lives here
-  from Sprint 2 onward and nowhere else.
+- `supabase/migrations/` contains the Phase 1–6 schema. SQL remains the source
+  of truth for schema evolution.
+- `supabase/functions/` is the only home for service-role code. Phase 7 adds
+  the first production functions.
+- Root tooling and workspace commands are documented in ADR 0014.

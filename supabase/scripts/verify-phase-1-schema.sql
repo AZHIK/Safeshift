@@ -425,22 +425,22 @@ select 15, 'Multi-country: 1 active + 2 inactive countries',
        (select string_agg(btrim(c.iso_code) || '=' || c.is_active::text, ', ' order by c.iso_code) from public.countries c);
 
 -- ----------------------------------------------------------------------------
--- 16. No Phase 5+ tables. Phase 2 adds vehicles/fleets, Phase 3 adds pricing,
---     and Phase 4 adds jobs/quotes/disputes. The Phase 1 gate only guards the
---     domains deliberately deferred to later phases.
+-- 16. No Phase 7+ tables. Phase 6 adds communication, chat, safety, support,
+--     compliance, and analytics tables. The Phase 1 gate guards only domains
+--     deliberately deferred beyond Phase 6.
 -- ----------------------------------------------------------------------------
 insert into _phase1_verification (check_no, check_name, status, details)
-select 16, 'No Phase 5+ tables created',
+select 16, 'No Phase 7+ tables created',
        case when count(*) = 0 then 'PASS' else 'FAIL' end,
-       case when count(*) = 0 then 'no payments/payouts/wallets/commissions/notifications'
+       case when count(*) = 0 then 'no Phase 7+ tables'
             else string_agg(tablename, ', ') end
 from (
   select tablename from pg_tables
    where schemaname = 'public'
      and tablename in (
-       'payments', 'payment_methods', 'payouts', 'wallets', 'wallet_transactions',
-       'commissions', 'commission_rules', 'notifications', 'notification_preferences',
-       'analytics_events', 'analytics_daily'
+       'notification_deliveries', 'analytics_events',
+       'ml_models', 'model_predictions', 'eta_predictions',
+       'demand_forecasts', 'fraud_scores', 'provider_webhook_deliveries'
      )
 ) x;
 

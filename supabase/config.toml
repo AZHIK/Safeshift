@@ -72,7 +72,9 @@ enabled = true
 # Phase 2 seed depends on Phase 1 identifiers and must run second.
 # Phase 3 seed depends on Phase 1 and Phase 2 catalogues and runs third.
 # Phase 4 seed depends on Phase 1–3 identifiers and runs fourth.
-sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql"]
+# Phase 5 seed depends on Phase 1–4 identifiers and runs fifth.
+# Phase 6 seed depends on Phase 1–5 identifiers and runs sixth.
+sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.

@@ -1,0 +1,30 @@
+name: safeshift_workspace
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.1
+
+workspace:
+  - apps/customer-mobile
+  - apps/driver-mobile
+  - packages/shared-flutter
+
+dev_dependencies:
+  melos: 7.8.0
+
+melos:
+  command:
+    bootstrap:
+      usePubspecOverrides: true
+  scripts:
+    analyze:
+      description: Analyze all Flutter and Dart packages.
+      run: melos exec -- flutter analyze .
+    test:
+      description: Run tests in packages that have a test directory.
+      run: melos exec -- flutter test
+      packageFilters:
+        dirExists: test
+    format:
+      description: Format all Dart source.
+      run: melos exec -- dart format .

@@ -1,150 +1,209 @@
 # SafeShift
 
-A digital logistics marketplace launching in Dar es Salaam, Tanzania — connecting customers
-with verified drivers and trucks for moves, deliveries, and commercial cargo.
+A digital logistics marketplace launching in Dar es Salaam, Tanzania — connecting
+customers with verified drivers and trucks for moves, deliveries, and commercial
+cargo.
 
-Transparent pricing · Identity verification · Live GPS tracking ·
-Digital proof of delivery · Structured protection model.
+Transparent pricing · Identity verification · Live GPS tracking · Digital proof
+of delivery · Structured protection model.
 
 Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 
-> **Sprint 1 status (5–9 Oct 2026): foundation and documentation only.**
-> No application code, no SQL migrations, no Edge Functions, no UI.
-> App scaffolding (Flutter / Next.js) begins in Sprint 2.
+## Status
 
-## Core stack (non-negotiable)
+- Phase 1–6 database layer complete: 117 migrations, six seed files, six schema
+  gates.
+- Latest verified gate results: Phase 1 `151 PASS`, Phase 2 `166 PASS`, Phase 3
+  `150 PASS`, Phase 4 `154 PASS`, Phase 5 `81 PASS`, Phase 6 `154 PASS`, all
+  with `0 FAIL`.
+- Flutter customer and driver apps are scaffolded.
+- Next.js web workspace is scaffolded.
+- Phase 7 provider integrations, Edge Functions, live Realtime tests, and
+  deployment pipelines are next.
 
-- **Mobile:** Flutter (two apps — Customer and Driver)
-- **Web:** Next.js (App Router) — customer web + business portal + admin console
-- **Backend:** Supabase (Postgres + PostGIS, Auth, Storage, Realtime, Edge Functions)
-- **Maps:** Google Maps Platform
-- **Payments:** Selcom or Flutterwave (mobile money) + Flutterwave/Stripe (cards)
-- **Messaging:** Firebase Cloud Messaging (push), Beem Africa (SMS/OTP), Resend (email)
-- **Caching/Jobs:** Upstash Redis, Upstash QStash, Supabase pg_cron
-- **Observability:** Sentry, BetterStack, PostHog
-- **CI/CD:** GitHub Actions, Vercel, Codemagic + Fastlane
-- **Edge/DNS:** Cloudflare
+## Stack
 
-## Guiding principles
+| Layer         | Technology                                                           |
+| ------------- | -------------------------------------------------------------------- |
+| Mobile        | Flutter — customer and driver apps                                   |
+| Web           | Next.js App Router — customer web, business portal, admin console    |
+| Backend       | Supabase — Postgres/PostGIS, Auth, Storage, Realtime, Edge Functions |
+| Maps          | Google Maps Platform                                                 |
+| Payments      | Selcom / Flutterwave, cards via Flutterwave / Stripe                 |
+| Messaging     | Firebase Cloud Messaging, Beem Africa, Resend                        |
+| Jobs          | Supabase pg_cron, Upstash QStash                                     |
+| Observability | Sentry, BetterStack, PostHog                                         |
+| CI/CD         | GitHub Actions, Vercel, Codemagic + Fastlane                         |
+| Edge/DNS      | Cloudflare                                                           |
 
-1. **Managed over self-hosted** — every layer is managed or serverless.
-2. **One core data layer** — Supabase Postgres (with PostGIS) is the single source of truth.
-3. **Config-driven growth** — city, pricing, and vehicle rules live in configuration tables,
-   never hardcoded. Multi-city replication is a schema property from day one.
-4. **Security by default** — Row Level Security on every table, restricted API keys,
-   centralized secrets from day one. The service-role key never leaves the server.
-5. **Cost scales with usage** — pay-as-you-go providers throughout.
-
-## Repository structure
+## Monorepo layout
 
 ```text
 safeshift/
 ├── apps/
-│   ├── customer-mobile/      # Flutter — Customer app (scaffolded in Sprint 2+)
-│   ├── driver-mobile/        # Flutter — Driver app (scaffolded in Sprint 2+)
-│   └── web/                  # Next.js App Router — customer web + business portal + admin console
+│   ├── customer-mobile/      # Flutter — Melos workspace
+│   ├── driver-mobile/        # Flutter — Melos workspace
+│   └── web/                  # Next.js — pnpm workspace
 ├── packages/
-│   ├── shared-flutter/       # Shared Flutter package (design tokens, models, Supabase client)
-│   └── shared-types/         # Shared TypeScript types
+│   ├── shared-flutter/       # Shared Dart tokens, formatters, models
+│   └── shared-types/         # Shared TypeScript contracts + generated DB types
 ├── supabase/
-│   ├── migrations/           # SQL migrations (first migrations land in Sprint 2)
-│   └── functions/            # Edge Functions (first functions land after Sprint 2)
+│   ├── migrations/           # SQL migrations — source of truth
+│   ├── scripts/              # Phase 1–6 schema gates
+│   ├── functions/            # Deno Edge Functions
+│   └── seed*.sql             # Seed fixtures
 ├── docs/
-│   ├── api/                  # API documentation
-│   ├── runbooks/             # Operational guides
-│   └── architecture/         # Architecture decision records + design documents
-├── .github/
-│   └── workflows/            # CI/CD pipelines
-├── .gitignore
-├── README.md
-└── LICENSE
+│   ├── api/
+│   ├── architecture/
+│   └── runbooks/
+├── scripts/                  # Bootstrap and database verification
+├── .github/workflows/        # CI
+├── package.json              # pnpm + Turborepo entry point
+├── pnpm-workspace.yaml
+├── pubspec.yaml              # Dart pub workspace + Melos config
+└── turbo.json
 ```
 
-See `docs/architecture/0001-repository-structure.md` for why this monorepo was chosen.
+See `docs/architecture/0001-repository-structure.md` for the layout decision and
+`docs/architecture/0014-monorepo-conventions.md` for tooling conventions.
 
-| Path | Purpose |
-| ---- | ------- |
-| `apps/customer-mobile/` | Customer Flutter app (booking, tracking, payments, proof of delivery) |
-| `apps/driver-mobile/` | Driver Flutter app (availability, job offers, navigation, earnings) |
-| `apps/web/` | Next.js App Router project: customer web, business portal, admin console |
-| `packages/shared-flutter/` | Shared Dart code: design tokens, models, Supabase client helpers |
-| `packages/shared-types/` | Shared TypeScript types used by web and Edge Functions |
-| `supabase/migrations/` | Versioned SQL migrations — source of truth for schema evolution |
-| `supabase/functions/` | Server-only Edge Functions (service-role usage confined here) |
-| `docs/api/` | API contracts and integration notes |
-| `docs/runbooks/` | Operational guides (incidents, deploys, key rotation) |
-| `docs/architecture/` | ADRs and design docs (0001–0005 written in Sprint 1) |
+## Prerequisites
 
-## Key design documents (Sprint 1)
+- Node.js **24+** and Corepack
+- pnpm **12.15.0** (pinned through `packageManager`)
+- Flutter **3.47+** with Dart **3.13+**
+- Melos **7.8.0** (pinned; newer Melos requires a `cli_util` version that
+  conflicts with `flutter_launcher_icons` 0.14.4)
+- Docker
+- Supabase CLI — use `npx --yes supabase`, or install it globally
 
-- `docs/architecture/0001-repository-structure.md` — monorepo ADR
-- `docs/architecture/0002-database-schema.md` — full database design (reference for Sprint 2 migrations)
-- `docs/architecture/0003-rls-policies.md` — who can see and change what
-- `docs/architecture/0004-environments.md` — development / staging / production + secrets policy
-- `docs/architecture/0005-security-compliance-baseline.md` — security baseline, compliance checklist, auth approach
+The repository currently pins:
 
-## Getting started for a new developer
+```text
+Node 24
+pnpm 12.15.0
+Flutter 3.47.1 / Dart 3.13.1
+Melos 7.8.0
+```
 
-> Sprint 1 provides structure and documentation only. Steps marked *(coming in Sprint 2)*
-> have no runnable project behind them yet.
+## Bootstrap
 
-1. **Clone**
+```bash
+# from the repo root
+corepack enable --install-directory "$HOME/.local/bin" pnpm
+export PATH="$HOME/.local/bin:$PATH"
+corepack pnpm setup        # installs Node deps and bootstraps Melos
+```
 
-   ```bash
-   git clone <repo-url> safeshift
-   cd safeshift
-   ```
+If `melos` is not on your PATH:
 
-2. **Prerequisites (coming in Sprint 2)** — exact versions will be pinned then:
-   - Flutter SDK + Dart
-   - Node.js LTS + npm
-   - Supabase CLI
-   - Git
+```bash
+export PATH="$PATH:$HOME/.pub-cache/bin"
+```
 
-3. **Install dependencies (coming in Sprint 2)**
+Manual equivalent:
 
-   ```bash
-   # Flutter apps — not scaffolded yet
-   # (cd apps/customer-mobile && flutter pub get)
-   # (cd apps/driver-mobile && flutter pub get)
+```bash
+corepack pnpm install
+dart pub global activate melos 7.8.0
+melos bootstrap
+```
 
-   # Web + shared types — not scaffolded yet
-   # npm install
-   ```
+## Run the apps
 
-4. **Run local Supabase (coming in Sprint 2)**
+```bash
+# Next.js web
+corepack pnpm dev:web
 
-   ```bash
-   # supabase init   # already configured from Sprint 2 onward
-   # supabase start
-   # supabase db reset  # applies supabase/migrations/
-   ```
+# Flutter customer app
+cd apps/customer-mobile
+flutter run
 
-   Sprint 1 intentionally contains **no migrations**. The schema reference is
-   `docs/architecture/0002-database-schema.md`; SQL is written in Sprint 2.
+# Flutter driver app
+cd apps/driver-mobile
+flutter run
+```
 
-5. **Environment variables** — never committed. Copy the example template
-   (provided from Sprint 2 onward) to `.env.local` / `--env-file` equivalents:
+The web app runs at <http://localhost:3000>.
 
-   ```bash
-   # cp .env.example .env.local   # (coming in Sprint 2)
-   ```
+## Local database
 
-   All keys live only in Supabase / Vercel environment stores and Supabase Vault.
-   See `docs/architecture/0004-environments.md`.
+```bash
+corepack pnpm db:start
+corepack pnpm db:reset
+corepack pnpm db:verify
+```
 
-6. **Run the apps (coming in Sprint 2)**
+`db:reset` applies all 117 migrations and all six seed files. `db:verify` runs
+the Phase 1–6 gates in order and fails on the first `FAIL`.
 
-   ```bash
-   # Flutter: flutter run --flavor development
-   # Web:     npm run dev
-   ```
+If the `supabase` binary is not installed, the root scripts use `npx --yes
+supabase`. To run the gates manually:
 
-## Sprint boundaries
+```bash
+docker exec -i supabase_db_safeshift psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  < supabase/scripts/verify-phase-6-schema.sql
+```
 
-- **Sprint 1 (this sprint):** structure + documentation only. No code, no SQL,
-  no Edge Functions, no UI, no packages installed, no secrets.
-- **Sprint 2 onward:** schema migrations, auth, app scaffolding — per the MVP plan.
+## Workspace commands
+
+| Command                         | Purpose                                          |
+| ------------------------------- | ------------------------------------------------ |
+| `corepack pnpm dev`             | Run all persistent JS/TS dev tasks               |
+| `corepack pnpm build`           | Build shared types and web                       |
+| `corepack pnpm typecheck`       | Typecheck all TypeScript packages                |
+| `corepack pnpm lint`            | Lint all TypeScript packages                     |
+| `corepack pnpm flutter:analyze` | Analyze all Flutter/Dart packages                |
+| `corepack pnpm flutter:test`    | Test all Flutter/Dart packages                   |
+| `corepack pnpm flutter:format`  | Format all Dart source                           |
+| `corepack pnpm db:types`        | Regenerate Supabase TypeScript types             |
+| `corepack pnpm check`           | Typecheck, lint, build, Flutter analyze and test |
+
+## Environment
+
+Never commit real secrets.
+
+```bash
+cp .env.example .env
+cp apps/web/.env.example apps/web/.env.local
+cp apps/customer-mobile/.env.example apps/customer-mobile/.env
+cp apps/driver-mobile/.env.example apps/driver-mobile/.env
+```
+
+- Browser-safe values only use `NEXT_PUBLIC_*`.
+- The Supabase `service_role` key is server-only and belongs in Supabase Vault or
+  Edge Function secrets.
+- Provider keys for FCM, Beem, Resend, Selcom, and Flutterwave are Phase 7
+  placeholders until the integration lands.
+
+## Shared code rules
+
+- `packages/shared-types` is the contract between Postgres, Edge Functions, and
+  web. Regenerate it with `pnpm db:types` after schema changes.
+- `packages/shared-flutter` holds only cross-app design tokens, formatters,
+  domain primitives, and client helpers. App-specific widgets stay in the apps.
+- Apps must not import from another app. Shared code goes through `packages/`.
+- `supabase/functions` is the only place service-role code runs.
+- Migrations are append-only; never edit an applied migration in a deployed
+  environment.
+
+## CI
+
+`.github/workflows/ci.yml` runs three jobs:
+
+1. Node workspace — frozen install, typecheck, lint, build.
+2. Flutter workspace — Melos bootstrap, analyze, test.
+3. Database gates — Supabase start, reset, Phase 1–6 verification.
+
+## Documentation
+
+- `docs/architecture/0001-repository-structure.md` — monorepo layout
+- `docs/architecture/0002-database-schema.md` — schema design
+- `docs/architecture/0003-rls-policies.md` — access model
+- `docs/architecture/0004-environments.md` — environments and secrets
+- `docs/architecture/0005-security-compliance-baseline.md` — security baseline
+- `docs/architecture/0008`–`0013` — Phase 1–6 design records
+- `docs/architecture/0014-monorepo-conventions.md` — workspace tooling
 
 ## License
 

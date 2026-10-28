@@ -1,13 +1,39 @@
-# shared-flutter — Shared Flutter Package
+# shared-flutter
 
-> **Sprint 1 placeholder.** No Dart package is created yet.
+Shared Dart package for `apps/customer-mobile` and `apps/driver-mobile`.
 
-This package will hold code shared by `apps/customer-mobile` and
-`apps/driver-mobile`:
+## Contents
 
-- Design tokens (colors, typography, spacing, radii)
-- Domain models (profile, driver, vehicle, job, payment, alert)
-- Supabase client helpers (anon-key client construction, channel helpers)
-- Formatters (TZS amounts, dates in `Africa/Dar_es_Salaam`, distances)
+- `SafeShiftColors`, `SafeShiftSpacing`, `SafeShiftRadii` design tokens
+- `formatTzs`, `formatMoney` currency helpers
+- `formatDarEsSalaam*` date/time helpers
+- `SafeShiftJobStatus` canonical lifecycle enum
 
-Consumed via path dependency. Created in Sprint 2 or later — not in Sprint 1.
+## Usage
+
+Add the path dependency once per app:
+
+```yaml
+dependencies:
+  safeshift_shared:
+    path: ../../packages/shared-flutter
+```
+
+```dart
+import 'package:safeshift_shared/safeshift_shared.dart';
+
+Text(formatTzs(125000));
+```
+
+## Workspace
+
+Melos manages this package with both apps:
+
+```bash
+melos bootstrap
+melos run analyze
+melos run test
+```
+
+Keep app-specific widgets and screens in the app. Put only cross-app design,
+formatting, models, and client helpers here.

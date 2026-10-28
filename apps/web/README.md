@@ -1,15 +1,41 @@
-# Next.js — SafeShift Web (customer web + business portal + admin console)
+# SafeShift Web
 
-> **Sprint 1 placeholder.** No Next.js project is scaffolded yet.
+Next.js App Router project for three surfaces:
 
-This folder will hold the Next.js **App Router** project serving three surfaces:
+- customer web
+- business portal
+- admin console
 
-- **Customer web** — booking, quotes, tracking, payments, receipts
-- **Business portal** — business accounts, repeat bookings, invoicing views
-- **Admin console** — verification queues, job oversight, alert resolution,
-  pricing-config management (all writes via server-side service-role calls)
+## Workspace
 
-Shared TypeScript types will live in `packages/shared-types/`.
+This app is the `@safeshift/web` package in the root pnpm workspace. It consumes
+`@safeshift/shared-types` through `workspace:*`.
 
-Scaffolding (`create-next-app`, App Router, Vercel project wiring) happens in
-Sprint 2 or later — not in Sprint 1.
+```bash
+# from the repo root
+corepack pnpm install
+corepack pnpm dev:web
+```
+
+The app runs at <http://localhost:3000>.
+
+## Environment
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Use the local Supabase URL and anon key printed by `pnpm db:start`. Never put the
+`service_role` key in a `NEXT_PUBLIC_*` variable.
+
+## Commands
+
+```bash
+corepack pnpm --filter @safeshift/web dev
+corepack pnpm --filter @safeshift/web build
+corepack pnpm --filter @safeshift/web typecheck
+corepack pnpm --filter @safeshift/web lint
+```
+
+Server-side admin writes must go through Edge Functions. Do not ship the
+service-role key to the browser.

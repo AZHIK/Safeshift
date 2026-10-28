@@ -1,0 +1,26 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.turbo/
+pnpm-lock.yaml
+pubspec.lock
+apps/web/next-env.d.ts
+packages/shared-types/src/database.generated.ts
+supabase/migrations/
+supabase/seed*.sql
+apps/*/build/
+apps/*/.dart_tool/
+apps/*/pubspec.lock
+apps/*/assets/
+apps/*/android/
+apps/*/ios/
+apps/*/linux/
+apps/*/macos/
+apps/*/web/
+apps/*/windows/
+
+# Existing design documents predate the Prettier workspace. New docs are checked.
+docs/architecture/000[2-9]*.md
+docs/architecture/001[0-3]*.md

@@ -6,6 +6,7 @@ build/
 .flutter-plugins-dependencies
 .packages
 pubspec.lock
+!/pubspec.lock
 *.gr.dart
 *.mocks.dart
 *.gen.dart
@@ -31,8 +32,15 @@ build/
 .vercel/
 *.tsbuildinfo
 next-env.d.ts
+!apps/web/next-env.d.ts
 coverage/
 .nyc_output/
+pnpm-debug.log*
+
+# ── Melos / Dart workspace ──
+.melos_tool/
+pubspec_overrides.yaml
+melos.yaml.lock
 
 # ── Env files / secrets — NEVER commit ──
 .env

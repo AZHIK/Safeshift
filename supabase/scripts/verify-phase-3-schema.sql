@@ -954,15 +954,15 @@ select 19, 'promo_redemptions is service-write only',
        'no client write grant';
 
 insert into _phase3_verification
-select 19, 'No Phase 5+ tables created',
+select 19, 'No Phase 7+ tables created',
        case when count(*) = 0 then 'PASS' else 'FAIL' end,
-       coalesce(string_agg(tablename, ', '), 'no payments/payouts/wallets/commissions/notifications')
+       coalesce(string_agg(tablename, ', '), 'no Phase 7+ tables')
 from pg_tables
 where schemaname = 'public'
   and tablename in (
-    'payments', 'payment_methods', 'payouts', 'wallets', 'wallet_transactions',
-    'commissions', 'commission_rules', 'notifications', 'notification_preferences',
-    'analytics_events', 'analytics_daily'
+    'notification_deliveries', 'analytics_events',
+    'ml_models', 'model_predictions', 'eta_predictions',
+    'demand_forecasts', 'fraud_scores', 'provider_webhook_deliveries'
   );
 
 insert into _phase3_verification
