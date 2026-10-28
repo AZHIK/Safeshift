@@ -1,10 +1,17 @@
 {
   "compilerOptions": {
     "strict": true,
+    "skipLibCheck": true,
     "lib": ["deno.ns", "dom", "dom.iterable", "esnext"]
   },
   "imports": {
     "@safeshift/shared-types": "../../packages/shared-types/dist/index.js"
+  },
+  "tasks": {
+    "check": "deno check --all */index.ts",
+    "lint": "deno lint",
+    "test": "deno test --allow-env --allow-net _tests",
+    "verify": "deno task check && deno task lint && deno task test"
   },
   "fmt": {
     "lineWidth": 100,

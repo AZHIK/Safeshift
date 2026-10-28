@@ -1,0 +1,66 @@
+# Reference copy of the Phase 7 function gateway configuration.
+#
+# The Supabase CLI reads function settings from ../config.toml. This file is
+# kept next to the functions so reviewers can see the full list in one place.
+# Keep both files in sync when adding or removing a function.
+#
+# All functions use verify_jwt = false at the gateway. The handler performs
+# JWT, webhook-signature, X-Cron-Secret, or X-Internal-Secret verification so
+# that every failure returns the shared { data, error } envelope.
+
+[functions.health]
+verify_jwt = false
+
+[functions.auth-validate]
+verify_jwt = false
+
+[functions.maps-distance]
+verify_jwt = false
+
+[functions.maps-geocode]
+verify_jwt = false
+
+[functions.quote-calculate]
+verify_jwt = false
+
+[functions.sms-send]
+verify_jwt = false
+
+[functions.email-send]
+verify_jwt = false
+
+[functions.push-send]
+verify_jwt = false
+
+[functions.notification-dispatch]
+verify_jwt = false
+
+[functions.payment-selcom-initiate]
+verify_jwt = false
+
+[functions.payment-selcom-webhook]
+verify_jwt = false
+
+[functions.payment-flutterwave-initiate]
+verify_jwt = false
+
+[functions.payment-flutterwave-webhook]
+verify_jwt = false
+
+[functions.payment-refund]
+verify_jwt = false
+
+[functions.payout-execute]
+verify_jwt = false
+
+[functions.data-export]
+verify_jwt = false
+
+[functions.scheduled-daily-metrics]
+verify_jwt = false
+
+[functions.scheduled-demand-capture]
+verify_jwt = false
+
+[functions.scheduled-retention]
+verify_jwt = false

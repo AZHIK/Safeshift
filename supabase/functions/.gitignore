@@ -1,0 +1,4 @@
+# Keep the checked-in placeholder; real local env files remain ignored by the
+# repository-level .env.* rule.
+!.env.local.example
+!.env.example
