@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/screens/driver_onboarding_placeholder_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/otp_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
@@ -12,6 +11,7 @@ import '../../features/home/domain/entities/driver_status.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/providers/home_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/phase9/presentation/phase9_screens.dart';
 import '../../features/profile/presentation/screens/complete_profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/ratings/presentation/screens/ratings_screen.dart';
@@ -46,8 +46,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
       GoRoute(
         path: '/driver-onboarding',
-        builder: (context, state) =>
-            const DriverOnboardingPlaceholderScreen(),
+        builder: (context, state) => const DriverOnboardingScreen(),
       ),
       GoRoute(
         path: '/complete-profile',
@@ -90,6 +89,52 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ratings',
         builder: (context, state) => const RatingsScreen(),
+      ),
+      GoRoute(
+        path: '/verification',
+        builder: (context, state) => const DriverVerificationStatusScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) => const NotificationPreferencesScreen(),
+      ),
+      GoRoute(
+        path: '/settings/account',
+        builder: (context, state) => const AccountSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        builder: (context, state) => const PrivacyDataScreen(),
+      ),
+      GoRoute(
+        path: '/disputes',
+        builder: (context, state) => const DisputesListScreen(),
+      ),
+      GoRoute(
+        path: '/disputes/new',
+        builder: (context, state) => const DisputeCreateScreen(),
+      ),
+      GoRoute(
+        path: '/disputes/:id',
+        builder: (context, state) =>
+            DisputeDetailScreen(disputeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/support',
+        builder: (context, state) => const SupportHomeScreen(),
+      ),
+      GoRoute(
+        path: '/support/new',
+        builder: (context, state) => const SupportCreateScreen(),
+      ),
+      GoRoute(
+        path: '/support/:id',
+        builder: (context, state) =>
+            SupportDetailScreen(ticketId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/safety/contacts',
+        builder: (context, state) => const EmergencyContactsScreen(),
       ),
     ],
   );

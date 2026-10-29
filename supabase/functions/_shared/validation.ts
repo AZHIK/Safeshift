@@ -119,6 +119,16 @@ export const dataExportSchema = z
     path: ['request_id'],
   });
 
+export const sosAlertSchema = z.object({
+  alert_id: z.string().uuid(),
+  job_id: z.string().uuid().optional(),
+  note: z.string().trim().max(1_000).optional(),
+});
+
+export const tripShareSchema = z.object({
+  job_id: z.string().uuid(),
+});
+
 export const authValidateQuerySchema = z.object({});
 
 export async function parseJsonBody<T>(req: Request, schema: z.ZodType<T>): Promise<T> {

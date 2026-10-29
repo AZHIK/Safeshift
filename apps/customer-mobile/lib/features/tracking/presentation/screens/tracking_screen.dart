@@ -10,6 +10,7 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/driver_avatar_card.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../booking/providers/booking_provider.dart';
+import '../../../phase9/presentation/phase9_screens.dart';
 import '../../../ride/providers/ride_provider.dart';
 import '../widgets/map_view.dart';
 import '../widgets/trip_status_stepper.dart';
@@ -197,18 +198,16 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: <Widget>[
                       TextButton.icon(
-                        onPressed: () => AppSnackbar.showInfo(
-                          context,
-                          'Trip sharing is not enabled yet',
-                        ),
+                        onPressed: ride.jobId == null
+                            ? null
+                            : () => shareTrip(context, ref, ride.jobId!),
                         icon: const Icon(Icons.share_outlined),
                         label: const Text('Share Trip'),
                       ),
                       TextButton.icon(
-                        onPressed: () => AppSnackbar.showError(
-                          context,
-                          'Emergency calling is not available yet',
-                        ),
+                        onPressed: ride.jobId == null
+                            ? null
+                            : () => raiseSos(context, ref, ride.jobId!),
                         icon: const Icon(
                           Icons.emergency_outlined,
                           color: AppColors.error,

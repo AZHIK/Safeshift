@@ -111,15 +111,16 @@ class AuthNotifier extends Notifier<AuthState> {
     );
     try {
       final user = await _service.verifyOtp(phone, code);
-      final driverRegistered = appRole == 'driver'
-          ? await _service.hasDriverProfile(userId: user.id)
+      final registration = appRole == 'driver'
+          ? await _service.fetchDriverRegistration(userId: user.id)
           : null;
       if (!ref.mounted) return user;
       state = AuthState(
         status: AuthStatus.authenticated,
         phoneNumber: phone,
         currentUser: user,
-        driverRegistered: driverRegistered,
+        driverRegistered: registration?.registered,
+        driverVerificationStatus: registration?.verificationStatus,
         isInitialized: true,
       );
       unawaited(
@@ -155,15 +156,16 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user == null) {
         throw const AuthFailure('Your profile is still being created.');
       }
-      final driverRegistered = appRole == 'driver'
-          ? await _service.hasDriverProfile(userId: user.id)
+      final registration = appRole == 'driver'
+          ? await _service.fetchDriverRegistration(userId: user.id)
           : null;
       if (!ref.mounted) return;
       state = AuthState(
         status: AuthStatus.authenticated,
         phoneNumber: user.phone.replaceFirst('+255', ''),
         currentUser: user,
-        driverRegistered: driverRegistered,
+        driverRegistered: registration?.registered,
+        driverVerificationStatus: registration?.verificationStatus,
         isInitialized: true,
       );
       unawaited(

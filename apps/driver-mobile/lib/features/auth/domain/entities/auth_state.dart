@@ -11,6 +11,7 @@ class AuthState {
     this.isLoading = false,
     this.failureMessage,
     this.driverRegistered,
+    this.driverVerificationStatus,
     this.isInitialized = false,
   });
 
@@ -29,6 +30,12 @@ class AuthState {
   /// Driver app only: whether the authenticated profile has a drivers row.
   final bool? driverRegistered;
 
+  /// Driver app only: the `drivers.verification_status` value.
+  ///
+  /// Null while registration is still being loaded. Only `verified` drivers
+  /// may go online.
+  final String? driverVerificationStatus;
+
   /// False until session recovery and the first auth event have completed.
   /// The router does not redirect while this is false.
   final bool isInitialized;
@@ -38,6 +45,12 @@ class AuthState {
 
   bool get isUnauthenticated => status == AuthStatus.unauthenticated;
 
+  /// True when the driver row exists and its verification status is verified.
+  bool get isDriverVerified => driverVerificationStatus == 'verified';
+
+  /// True when a registered driver may toggle availability and receive jobs.
+  bool get canGoOnline => driverRegistered == true && isDriverVerified;
+
   AuthState copyWith({
     AuthStatus? status,
     String? phoneNumber,
@@ -45,10 +58,12 @@ class AuthState {
     bool? isLoading,
     String? failureMessage,
     bool? driverRegistered,
+    String? driverVerificationStatus,
     bool? isInitialized,
     bool clearUser = false,
     bool clearPhone = false,
     bool clearFailure = false,
+    bool clearVerificationStatus = false,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -58,6 +73,9 @@ class AuthState {
       failureMessage:
           clearFailure ? null : (failureMessage ?? this.failureMessage),
       driverRegistered: driverRegistered ?? this.driverRegistered,
+      driverVerificationStatus: clearVerificationStatus
+          ? null
+          : (driverVerificationStatus ?? this.driverVerificationStatus),
       isInitialized: isInitialized ?? this.isInitialized,
     );
   }

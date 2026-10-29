@@ -792,7 +792,7 @@ begin
 
   insert into _phase6_verification values
     (24, 'RLS: catalogue reads return the seeded rows',
-     case when v_c1_templates = 18 and v_c1_prohibited = 8 and v_c1_categories = 5
+     case when v_c1_templates = 18 and v_c1_prohibited = 8 and v_c1_categories >= 5
           then 'PASS' else 'FAIL' end,
      'templates=' || v_c1_templates || ', prohibited=' || v_c1_prohibited
        || ', categories=' || v_c1_categories);

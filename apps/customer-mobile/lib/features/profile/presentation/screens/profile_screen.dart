@@ -55,21 +55,23 @@ class ProfileScreen extends ConsumerWidget {
         children: <Widget>[
           ProfileHeader(
             profile: profile,
-            onEdit: () => AppSnackbar.showInfo(
-              context,
-              'Profile editing is not available yet',
-            ),
+            onEdit: () => context.push('/settings/account'),
           ),
           const SizedBox(height: AppSizes.lg),
           _ProfileSection(
             title: 'Account',
             items: <_ProfileItem>[
               _ProfileItem(
+                icon: Icons.manage_accounts_outlined,
+                title: 'Account Settings',
+                onTap: () => context.push('/settings/account'),
+              ),
+              _ProfileItem(
                 icon: Icons.payments_outlined,
                 title: 'Payment Methods',
                 onTap: () => AppSnackbar.showInfo(
                   context,
-                  'Payment methods are not available yet',
+                  'Payment methods are managed by SafeShift support.',
                 ),
               ),
               _ProfileItem(
@@ -77,16 +79,39 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'Saved Addresses',
                 onTap: () => AppSnackbar.showInfo(
                   context,
-                  'Saved addresses are not available yet',
+                  'Saved addresses are available during booking.',
                 ),
               ),
               _ProfileItem(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                onTap: () => AppSnackbar.showInfo(
-                  context,
-                  'Notification settings are not available yet',
-                ),
+                onTap: () => context.push('/settings/notifications'),
+              ),
+              _ProfileItem(
+                icon: Icons.business_center_outlined,
+                title: 'Business & Recurring Jobs',
+                onTap: () => context.push('/business'),
+              ),
+              _ProfileItem(
+                icon: Icons.star_outline_rounded,
+                title: 'Ratings & Reviews',
+                onTap: () => context.push('/reviews'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          _ProfileSection(
+            title: 'Safety',
+            items: <_ProfileItem>[
+              _ProfileItem(
+                icon: Icons.contact_emergency_outlined,
+                title: 'Emergency Contacts',
+                onTap: () => context.push('/safety/contacts'),
+              ),
+              _ProfileItem(
+                icon: Icons.shield_outlined,
+                title: 'Safety & Trip Sharing',
+                onTap: () => context.push('/safety/contacts'),
               ),
             ],
           ),
@@ -95,28 +120,19 @@ class ProfileScreen extends ConsumerWidget {
             title: 'Support',
             items: <_ProfileItem>[
               _ProfileItem(
-                icon: Icons.help_outline_rounded,
-                title: 'Help Center',
-                onTap: () => AppSnackbar.showInfo(
-                  context,
-                  'Help center is not available yet',
-                ),
+                icon: Icons.gavel_outlined,
+                title: 'Disputes',
+                onTap: () => context.push('/disputes'),
               ),
               _ProfileItem(
                 icon: Icons.support_agent_rounded,
                 title: 'Contact Support',
-                onTap: () => AppSnackbar.showInfo(
-                  context,
-                  'Support chat is not available yet',
-                ),
+                onTap: () => context.push('/support'),
               ),
               _ProfileItem(
                 icon: Icons.description_outlined,
                 title: 'Terms & Privacy',
-                onTap: () => AppSnackbar.showInfo(
-                  context,
-                  'Terms and privacy pages are not available yet',
-                ),
+                onTap: () => context.push('/settings/privacy'),
               ),
             ],
           ),

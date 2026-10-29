@@ -74,7 +74,8 @@ enabled = true
 # Phase 4 seed depends on Phase 1–3 identifiers and runs fourth.
 # Phase 5 seed depends on Phase 1–4 identifiers and runs fifth.
 # Phase 6 seed depends on Phase 1–5 identifiers and runs sixth.
-sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql"]
+# Phase 9 seed adds fleet-owner, support, and safety reference data.
+sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql", "./seed-phase-9.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -486,4 +487,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scheduled-retention]
+verify_jwt = false
+
+[functions.sos_alert]
+verify_jwt = false
+
+[functions.create-trip-share-token]
 verify_jwt = false

@@ -3,6 +3,23 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../../core/errors/failures.dart';
 import '../domain/entities/user.dart';
 
+/// Registration + trust state used by the router and the go-online gate.
+class DriverRegistrationStatus {
+  const DriverRegistrationStatus({
+    required this.registered,
+    this.verificationStatus,
+  });
+
+  const DriverRegistrationStatus.unregistered()
+    : registered = false,
+      verificationStatus = null;
+
+  final bool registered;
+  final String? verificationStatus;
+
+  bool get isVerified => registered && verificationStatus == 'verified';
+}
+
 /// Thin, testable wrapper around Supabase Auth and the profile bootstrap.
 class AuthService {
   AuthService(this._client, {this.appRole = 'driver'});
@@ -111,14 +128,29 @@ class AuthService {
 
   /// Returns true when the authenticated profile has a drivers row.
   Future<bool> hasDriverProfile({String? userId}) async {
+    return (await fetchDriverRegistration(userId: userId)).registered;
+  }
+
+  /// Loads the drivers row registration and verification status.
+  ///
+  /// A missing row is not an error: the router sends those users through
+  /// guided onboarding. `verificationStatus` is only meaningful when
+  /// [DriverRegistrationStatus.registered] is true.
+  Future<DriverRegistrationStatus> fetchDriverRegistration({
+    String? userId,
+  }) async {
     final id = userId ?? _client.auth.currentUser?.id;
-    if (id == null) return false;
+    if (id == null) return const DriverRegistrationStatus.unregistered();
     final row = await _client
         .from('drivers')
-        .select('id')
+        .select('id, verification_status')
         .eq('id', id)
         .maybeSingle();
-    return row != null;
+    if (row == null) return const DriverRegistrationStatus.unregistered();
+    return DriverRegistrationStatus(
+      registered: true,
+      verificationStatus: row['verification_status'] as String?,
+    );
   }
 
   Future<void> _ensureProfile(String? fullName) async {

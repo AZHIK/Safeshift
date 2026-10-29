@@ -13,6 +13,7 @@ import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/history/presentation/screens/history_detail_screen.dart';
 import '../../features/ride/presentation/screens/ride_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/phase9/presentation/phase9_screens.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/tracking/presentation/screens/tracking_screen.dart';
 import 'route_guards.dart';
@@ -82,6 +83,64 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/history/:id',
         builder: (context, state) =>
             HistoryDetailScreen(jobId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/business',
+        builder: (context, state) => const BusinessHubScreen(),
+      ),
+      GoRoute(
+        path: '/business/register',
+        builder: (context, state) => const BusinessRegisterScreen(),
+      ),
+      GoRoute(
+        path: '/business/recurring',
+        builder: (context, state) => const RecurringTemplatesScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) => const NotificationPreferencesScreen(),
+      ),
+      GoRoute(
+        path: '/settings/account',
+        builder: (context, state) => const AccountSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        builder: (context, state) => const PrivacyDataScreen(),
+      ),
+      GoRoute(
+        path: '/disputes',
+        builder: (context, state) => const DisputesListScreen(),
+      ),
+      GoRoute(
+        path: '/disputes/new',
+        builder: (context, state) => const DisputeCreateScreen(),
+      ),
+      GoRoute(
+        path: '/disputes/:id',
+        builder: (context, state) =>
+            DisputeDetailScreen(disputeId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/support',
+        builder: (context, state) => const SupportHomeScreen(),
+      ),
+      GoRoute(
+        path: '/support/new',
+        builder: (context, state) => const SupportCreateScreen(),
+      ),
+      GoRoute(
+        path: '/support/:id',
+        builder: (context, state) =>
+            SupportDetailScreen(ticketId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/safety/contacts',
+        builder: (context, state) => const EmergencyContactsScreen(),
+      ),
+      GoRoute(
+        path: '/reviews',
+        builder: (context, state) => const MyReviewsScreen(),
       ),
     ],
   );

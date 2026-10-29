@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
-import '../../../../../core/widgets/feedback/app_snackbar.dart';
+import '../../../../phase9/presentation/phase9_screens.dart';
 import '../../../providers/home_provider.dart';
 import 'sheet_handle.dart';
 
@@ -57,16 +58,31 @@ class InTransitSheet extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSizes.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton.icon(
+              onPressed: () => shareTrip(context, ref, job.id),
+              icon: const Icon(Icons.share_outlined),
+              label: const Text('Share trip'),
+            ),
+            TextButton.icon(
+              onPressed: () => raiseSos(context, ref, job.id),
+              icon: const Icon(Icons.emergency_outlined, color: AppColors.error),
+              label: const Text(
+                'SOS',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
+          ],
+        ),
         PrimaryButton(
           label: 'Arrived at destination',
           icon: Icons.flag_rounded,
           onPressed: () => ref.read(homeProvider.notifier).advanceStage(),
         ),
         TextButton(
-          onPressed: () => AppSnackbar.showInfo(
-            context,
-            'Support chat is not available yet',
-          ),
+          onPressed: () => context.push('/support'),
           child: const Text('Problem / Support'),
         ),
       ],

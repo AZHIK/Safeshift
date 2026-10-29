@@ -10,7 +10,7 @@ if ! docker inspect -f '{{.State.Running}}' "$CONTAINER" >/dev/null 2>&1; then
   exit 1
 fi
 
-for phase in 1 2 3 4 5 6 7 8; do
+for phase in 1 2 3 4 5 6 7 8 9; do
   gateway="$ROOT/supabase/scripts/verify-phase-${phase}-schema.sql"
   output="$(mktemp)"
 
