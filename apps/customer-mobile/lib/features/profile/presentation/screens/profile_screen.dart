@@ -127,7 +127,7 @@ class ProfileScreen extends ConsumerWidget {
               _ProfileItem(
                 icon: Icons.info_outline_rounded,
                 title: 'App Version',
-                trailing: 'v1.0.0 (mock)',
+                trailing: 'v0.1.0',
               ),
             ],
           ),

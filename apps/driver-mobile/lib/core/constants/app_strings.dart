@@ -17,5 +17,5 @@ abstract final class AppStrings {
   static const String offlineLabel = "You're offline";
   static const String onlineLabel = "You're online";
   static const String searchingLabel = 'Looking for jobs…';
-  static const String appVersion = 'v1.0.0 (mock)';
+  static const String appVersion = 'v0.1.0';
 }

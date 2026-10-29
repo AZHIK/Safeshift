@@ -10,6 +10,11 @@ class DriverJob {
     required this.cargoClass,
     required this.customerName,
     required this.pickupDistanceKm,
+    this.offerId,
+    this.status,
+    this.customerPhone,
+    this.expiresAt,
+    this.completedAt,
   });
 
   final String id;
@@ -20,6 +25,32 @@ class DriverJob {
   final String cargoClass;
   final String customerName;
   final double pickupDistanceKm;
+
+  /// Real backend identifiers. Null in design/mock fixtures.
+  final String? offerId;
+  final String? status;
+  final String? customerPhone;
+  final DateTime? expiresAt;
+  final DateTime? completedAt;
+
+  DriverJob copyWith({
+    String? status,
+    String? offerId,
+  }) => DriverJob(
+    id: id,
+    pickup: pickup,
+    destination: destination,
+    distanceKm: distanceKm,
+    estimatedFareTzs: estimatedFareTzs,
+    cargoClass: cargoClass,
+    customerName: customerName,
+    pickupDistanceKm: pickupDistanceKm,
+    offerId: offerId ?? this.offerId,
+    status: status ?? this.status,
+    customerPhone: customerPhone,
+    expiresAt: expiresAt,
+    completedAt: completedAt,
+  );
 }
 
 const List<DriverJob> mockJobs = <DriverJob>[

@@ -29,7 +29,9 @@ they differ in data, domains, build flavors, and safeguards.
 - **Used for:** Sprint 9 system testing, UAT, and regression. Staging mirrors
   production configuration (RLS, key restrictions, webhook endpoints) with
   sandbox payment providers.
-- **Data:** realistic fixtures + UAT accounts. No live pilot customers.
+- **Data:** configuration-only seed (`supabase/seed-staging.sql`). UAT accounts
+  are created through the Auth Admin API; demo fixtures from the local seed
+  files are never copied into staging. No live pilot customers.
 
 ## 3. Production
 

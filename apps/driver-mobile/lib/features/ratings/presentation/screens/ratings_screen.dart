@@ -4,9 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/errors/error_handler.dart';
 import '../../../../core/theme/text_styles.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
-import '../../../../shared/mock/mock_driver.dart';
 import '../../providers/ratings_provider.dart';
 
 /// Pushed route: recent customer ratings.
@@ -15,95 +16,129 @@ class RatingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ratings = ref.watch(ratingsStateProvider);
-    final average =
-        ref.read(ratingsStateProvider.notifier).averageRating();
+    final ratingsAsync = ref.watch(ratingsStateProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Ratings')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSizes.lg),
-        children: [
-          InfoCard(
-            child: Row(
-              children: [
-                Text(
-                  average.toStringAsFixed(1),
-                  style: TextStyles.display.copyWith(fontSize: 40),
-                ),
-                const SizedBox(width: AppSizes.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: List.generate(
-                          5,
-                          (i) => Icon(
-                            Icons.star_rounded,
-                            size: 20,
-                            color: average.round() > i
-                                ? const Color(0xFFFFB300)
-                                : AppColors.divider,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${ratings.length} recent ratings · ${mockDriver.completedTrips} trips',
-                        style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
-          for (final rating in ratings) ...[
-            InfoCard(
-              padding: 14,
+      body: ratingsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) {
+          final failure = ErrorHandler.map(error, stackTrace: stack);
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.xl),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          rating.customerName,
-                          style: TextStyles.title,
-                        ),
-                      ),
-                      Row(
-                        children: List.generate(
-                          5,
-                          (i) => Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: rating.stars > i
-                                ? const Color(0xFFFFB300)
-                                : AppColors.divider,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(rating.comment, style: TextStyles.body),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('d MMM yyyy').format(rating.date),
-                    style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  Text(failure.message, textAlign: TextAlign.center),
+                  const SizedBox(height: AppSizes.md),
+                  PrimaryButton(
+                    label: 'Try again',
+                    onPressed: () =>
+                        ref.read(ratingsStateProvider.notifier).refresh(),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSizes.sm),
-          ],
-        ],
+          );
+        },
+        data: (ratings) {
+          final average = averageRating(ratings);
+          return RefreshIndicator(
+            onRefresh: () => ref.read(ratingsStateProvider.notifier).refresh(),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSizes.lg),
+              children: [
+                InfoCard(
+                  child: Row(
+                    children: [
+                      Text(
+                        average.toStringAsFixed(1),
+                        style: TextStyles.display.copyWith(fontSize: 40),
+                      ),
+                      const SizedBox(width: AppSizes.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: List.generate(
+                                5,
+                                (i) => Icon(
+                                  Icons.star_rounded,
+                                  size: 20,
+                                  color: average.round() > i
+                                      ? const Color(0xFFFFB300)
+                                      : AppColors.divider,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${ratings.length} recent ratings',
+                              style: TextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.md),
+                for (final rating in ratings) ...[
+                  InfoCard(
+                    padding: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                rating.raterName,
+                                style: TextStyles.title,
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(
+                                5,
+                                (i) => Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: rating.score > i
+                                      ? const Color(0xFFFFB300)
+                                      : AppColors.divider,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          rating.comment ?? 'No comment',
+                          style: TextStyles.body,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          rating.createdAt == null
+                              ? ''
+                              : DateFormat(
+                                  'd MMM yyyy',
+                                ).format(rating.createdAt!),
+                          style: TextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }

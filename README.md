@@ -11,15 +11,18 @@ Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 
 ## Status
 
-- Phase 1–6 database layer complete: 117 migrations, six seed files, six schema
-  gates.
+- Phase 1–8 database layer complete: 123 migrations, six local seed files, and
+  schema gates for every phase.
 - Latest verified gate results: Phase 1 `151 PASS`, Phase 2 `166 PASS`, Phase 3
   `150 PASS`, Phase 4 `154 PASS`, Phase 5 `81 PASS`, Phase 6 `154 PASS`, all
-  with `0 FAIL`.
-- Flutter customer and driver apps are scaffolded.
+  with `0 FAIL`; Phase 7 and Phase 8 gates are run by `pnpm db:verify`.
+- Flutter customer and driver apps are wired to Supabase: OTP auth, Riverpod
+  data providers, Hive offline cache, Realtime/polling, Storage uploads,
+  delivery OTP, push-token registration, and deep links.
+- Phase 7 provider integrations and Edge Functions are implemented locally but
+  not deployed. Phase 8 staging, real SMS/FCM, universal links, Maps, and
+  payment-provider checks still require external credentials and devices.
 - Next.js web workspace is scaffolded.
-- Phase 7 provider integrations, Edge Functions, live Realtime tests, and
-  deployment pipelines are next.
 
 ## Stack
 
@@ -49,7 +52,7 @@ safeshift/
 │   └── shared-types/         # Shared TypeScript contracts + generated DB types
 ├── supabase/
 │   ├── migrations/           # SQL migrations — source of truth
-│   ├── scripts/              # Phase 1–6 schema gates
+│   ├── scripts/              # Phase 1–8 schema and integration gates
 │   ├── functions/            # Deno Edge Functions
 │   └── seed*.sql             # Seed fixtures
 ├── docs/
@@ -115,13 +118,13 @@ melos bootstrap
 # Next.js web
 corepack pnpm dev:web
 
-# Flutter customer app
+# Flutter customer app (local Supabase stack)
 cd apps/customer-mobile
-flutter run
+flutter run --dart-define=ENV=dev
 
-# Flutter driver app
+# Flutter driver app (local Supabase stack)
 cd apps/driver-mobile
-flutter run
+flutter run --dart-define=ENV=dev
 ```
 
 The web app runs at <http://localhost:3000>.
@@ -134,8 +137,13 @@ corepack pnpm db:reset
 corepack pnpm db:verify
 ```
 
-`db:reset` applies all 117 migrations and all six seed files. `db:verify` runs
-the Phase 1–6 gates in order and fails on the first `FAIL`.
+`db:reset` applies all 123 migrations and all six local seed files. `db:verify`
+runs the Phase 1–8 schema gates in order and fails on the first `FAIL`. The
+Phase 8 live integration gate runs separately:
+
+```bash
+supabase/scripts/verify-phase-8-integration.sh
+```
 
 If the `supabase` binary is not installed, the root scripts use `npx --yes
 supabase`. To run the gates manually:
@@ -166,15 +174,19 @@ Never commit real secrets.
 ```bash
 cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
-cp apps/customer-mobile/.env.example apps/customer-mobile/.env
-cp apps/driver-mobile/.env.example apps/driver-mobile/.env
 ```
 
+- Flutter `.env.example` files are documentation only; pass the values with
+  `--dart-define`. They are not read at runtime. For example:
+  `flutter run --dart-define=ENV=dev`.
 - Browser-safe values only use `NEXT_PUBLIC_*`.
 - The Supabase `service_role` key is server-only and belongs in Supabase Vault or
   Edge Function secrets.
-- Provider keys for FCM, Beem, Resend, Selcom, and Flutterwave are Phase 7
-  placeholders until the integration lands.
+- Provider keys for FCM, Beem, Resend, Selcom, and Flutterwave remain server
+  secrets. Mobile builds receive only public Supabase/Firebase client values
+  through `--dart-define`.
+- Staging is a separate Supabase project seeded with configuration only:
+  `supabase/seed-staging.sql`.
 
 ## Shared code rules
 
@@ -193,7 +205,8 @@ cp apps/driver-mobile/.env.example apps/driver-mobile/.env
 
 1. Node workspace — frozen install, typecheck, lint, build.
 2. Flutter workspace — Melos bootstrap, analyze, test.
-3. Database gates — Supabase start, reset, Phase 1–6 verification.
+3. Database gates — Supabase start, reset, Phase 1–8 verification, and the
+   Phase 8 live integration script.
 
 ## Documentation
 
@@ -204,6 +217,9 @@ cp apps/driver-mobile/.env.example apps/driver-mobile/.env
 - `docs/architecture/0005-security-compliance-baseline.md` — security baseline
 - `docs/architecture/0008`–`0013` — Phase 1–6 design records
 - `docs/architecture/0014-monorepo-conventions.md` — workspace tooling
+- `docs/architecture/0015`–`0016` — Phase 7 integration and Edge Functions
+- `docs/architecture/0017-phase-8-client-integration.md` — Phase 8 mobile clients
+- `docs/runbooks/phase-8-staging-and-qa.md` — staging setup and manual QA
 
 ## License
 

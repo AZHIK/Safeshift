@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
@@ -19,13 +20,37 @@ class LoadingSheet extends ConsumerStatefulWidget {
 
 class _LoadingSheetState extends ConsumerState<LoadingSheet> {
   final List<bool> _checked = <bool>[false, false, false, false];
+  bool _uploading = false;
 
   static const List<String> _items = <String>[
     'Cargo matches the booking',
     'Fragile items secured',
-    'Photos taken (mock)',
+    'Cargo photos uploaded',
     'Customer confirmed load',
   ];
+
+  Future<void> _uploadPhoto() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 2000,
+    );
+    if (picked == null) return;
+    setState(() => _uploading = true);
+    final ok = await ref
+        .read(homeProvider.notifier)
+        .uploadEvidence(
+          evidenceType: 'pickup_photo',
+          bytes: await picked.readAsBytes(),
+          fileName: picked.name,
+          mimeType: picked.mimeType ?? 'image/jpeg',
+        );
+    if (!mounted) return;
+    setState(() {
+      _uploading = false;
+      if (ok) _checked[2] = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +83,12 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                 ),
             ],
           ),
+        ),
+        const SizedBox(height: AppSizes.sm),
+        OutlinedButton.icon(
+          onPressed: _uploading ? null : _uploadPhoto,
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: Text(_uploading ? 'Uploading…' : 'Take cargo photo'),
         ),
         const SizedBox(height: AppSizes.md),
         PrimaryButton(

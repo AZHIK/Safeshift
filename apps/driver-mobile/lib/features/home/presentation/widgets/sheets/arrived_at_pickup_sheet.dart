@@ -28,7 +28,10 @@ class ArrivedAtPickupSheet extends ConsumerWidget {
       ),
       children: [
         const SheetHandle(),
-        Text('Arrived at pickup', style: TextStyles.headline.copyWith(fontSize: 18)),
+        Text(
+          'Arrived at pickup',
+          style: TextStyles.headline.copyWith(fontSize: 18),
+        ),
         const SizedBox(height: AppSizes.sm),
         InfoCard(
           child: Column(
@@ -50,8 +53,10 @@ class ArrivedAtPickupSheet extends ConsumerWidget {
           onPressed: () => ref.read(homeProvider.notifier).advanceStage(),
         ),
         TextButton(
-          onPressed: () =>
-              AppSnackbar.showInfo(context, 'Support contacted (mock)'),
+          onPressed: () => AppSnackbar.showInfo(
+            context,
+            'Support chat is not available yet',
+          ),
           child: const Text('Problem / Support'),
         ),
       ],

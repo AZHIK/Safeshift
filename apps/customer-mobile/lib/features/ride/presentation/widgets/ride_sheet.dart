@@ -18,7 +18,10 @@ import 'payment_dialog.dart';
 
 final _tzs = NumberFormat('#,##0');
 
-int _totalFor(String vehicleId) {
+int _totalFor(RideState ride, String vehicleId) {
+  if (vehicleId == ride.vehicleClass.id && ride.quoteTotal != null) {
+    return ride.quoteTotal!.round();
+  }
   for (final q in mockQuotes) {
     if (q.vehicleClassId == vehicleId) return q.total.round();
   }
@@ -57,11 +60,8 @@ class RideSheetBody extends ConsumerWidget {
           duration: const Duration(milliseconds: 280),
           child: switch (ride.stage) {
             RideStage.idle => const _IdleSearch(key: ValueKey('idle')),
-            RideStage.route ||
-            RideStage.vehicle ||
-            RideStage.confirm => const _RouteAndVehicles(
-              key: ValueKey('route'),
-            ),
+            RideStage.route || RideStage.vehicle || RideStage.confirm =>
+              const _RouteAndVehicles(key: ValueKey('route')),
             RideStage.searching => const _SearchingView(
               key: ValueKey('searching'),
             ),
@@ -151,7 +151,7 @@ class _RouteAndVehicles extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
     final notifier = ref.read(rideProvider.notifier);
-    final total = _totalFor(ride.vehicleClass.id);
+    final total = _totalFor(ride, ride.vehicleClass.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -174,9 +174,7 @@ class _RouteAndVehicles extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           'Cargo type + parcel details help us size the vehicle.',
-          style: TextStyles.caption.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
         // Cargo chips.
@@ -225,16 +223,14 @@ class _RouteAndVehicles extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           'Sized from your route + parcel above.',
-          style: TextStyles.caption.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
         for (final v in mockVehicleClasses)
           _VehicleTile(
             vehicle: v,
             selected: v.id == ride.vehicleClass.id,
-            price: _totalFor(v.id),
+            price: _totalFor(ride, v.id),
             onTap: () => notifier.selectVehicle(v),
           ),
         const SizedBox(height: 12),
@@ -305,9 +301,7 @@ class _RouteAndVehicles extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         [
-                          if ((ride.parcelDescription ?? '')
-                              .trim()
-                              .isNotEmpty)
+                          if ((ride.parcelDescription ?? '').trim().isNotEmpty)
                             ride.parcelDescription!.trim().length > 36
                                 ? '${ride.parcelDescription!.trim().substring(0, 36)}…'
                                 : ride.parcelDescription!.trim(),
@@ -332,13 +326,27 @@ class _RouteAndVehicles extends ConsumerWidget {
             ],
           ),
         ),
+        if (ride.isQuoting)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: LinearProgressIndicator(minHeight: 3),
+          ),
+        if (ride.errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              ride.errorMessage!,
+              style: TextStyles.caption.copyWith(color: AppColors.error),
+            ),
+          ),
         const SizedBox(height: 12),
         _PaymentTile(onTap: () => showPaymentDialog(context)),
         const SizedBox(height: 12),
         PrimaryButton(
           label: 'Confirm Move · TZS ${_tzs.format(total)}',
           icon: Icons.bolt_rounded,
-          onPressed: ride.hasRoute
+          isLoading: ride.isSubmitting || ride.isQuoting,
+          onPressed: ride.hasRoute && !ride.isQuoting
               ? () => ref.read(rideProvider.notifier).confirmAndFindDriver()
               : null,
         ),
@@ -346,9 +354,7 @@ class _RouteAndVehicles extends ConsumerWidget {
         Center(
           child: Text(
             'Final price may adjust if cargo changes',
-            style: TextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
           ),
         ),
       ],
@@ -465,14 +471,20 @@ class _RouteInputs extends ConsumerWidget {
           const SizedBox(width: 6),
           const Column(
             children: [
-              Icon(Icons.trip_origin_rounded,
-                  color: Color(0xFF34D17B), size: 26),
+              Icon(
+                Icons.trip_origin_rounded,
+                color: Color(0xFF34D17B),
+                size: 26,
+              ),
               SizedBox(
                 height: 30,
                 child: VerticalDivider(width: 2, thickness: 2),
               ),
-              Icon(Icons.location_on_rounded,
-                  color: Color(0xFFFF5A5A), size: 26),
+              Icon(
+                Icons.location_on_rounded,
+                color: Color(0xFFFF5A5A),
+                size: 26,
+              ),
             ],
           ),
           const SizedBox(width: 10),
@@ -535,8 +547,11 @@ class _InputRow extends StatelessWidget {
               ),
             ),
           ),
-          const Icon(Icons.search_rounded,
-              size: 20, color: AppColors.textSecondary),
+          const Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
     ),
@@ -710,9 +725,7 @@ class _VehicleTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: selected
-                        ? AppColors.lime
-                        : AppColors.textSecondary,
+                    color: selected ? AppColors.lime : AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -763,9 +776,7 @@ class _ParcelCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                done
-                    ? Icons.check_rounded
-                    : Icons.inventory_2_outlined,
+                done ? Icons.check_rounded : Icons.inventory_2_outlined,
                 color: done ? Colors.white : AppColors.primaryDark,
               ),
             ),
@@ -830,7 +841,8 @@ class _ParcelCard extends ConsumerWidget {
   }
 }
 
-class _SchedulePill extends ConsumerWidget {  @override
+class _SchedulePill extends ConsumerWidget {
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final label = ref.watch(rideProvider).scheduledLabel;
     return InkWell(
@@ -916,6 +928,7 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
 
   @override
   Widget build(BuildContext context) {
+    final ride = ref.watch(rideProvider);
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -934,8 +947,10 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.primary.withValues(
-                        alpha: (0.28 * (1 - ((_c.value + i / 3) % 1)))
-                            .clamp(0.0, 0.3),
+                        alpha: (0.28 * (1 - ((_c.value + i / 3) % 1))).clamp(
+                          0.0,
+                          0.3,
+                        ),
                       ),
                     ),
                   ),
@@ -958,12 +973,30 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
           ),
         ),
         const SizedBox(height: 8),
-        const Text('Finding nearby drivers…',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        const Text(
+          'Finding nearby drivers…',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 4),
-        Text('Verified vehicles within 5 km',
-            style:
-                TextStyles.body.copyWith(color: AppColors.textSecondary)),
+        Text(
+          'Verified vehicles within 5 km',
+          style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+        if (ride.errorMessage != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            ride.errorMessage!,
+            textAlign: TextAlign.center,
+            style: TextStyles.caption.copyWith(color: AppColors.error),
+          ),
+          const SizedBox(height: 8),
+          PrimaryButton(
+            label: 'Try again',
+            icon: Icons.refresh_rounded,
+            isLoading: ride.isSubmitting,
+            onPressed: () => ref.read(rideProvider.notifier).retryDispatch(),
+          ),
+        ],
         const SizedBox(height: 14),
         OutlinedButton(
           onPressed: () => ref.read(rideProvider.notifier).cancelSearch(),
@@ -1060,16 +1093,23 @@ class _TrackingView extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(driver.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 13)),
+                          child: Text(
+                            driver.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
-                        const Icon(Icons.verified_rounded,
-                            size: 16, color: AppColors.primary),
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
                     Text(
-                      '${driver.rating.toStringAsFixed(1)} · ${driver.vehicleClass} · TZS ${_tzs.format(_totalFor(ride.vehicleClass.id))}',
+                      '${driver.rating.toStringAsFixed(1)} · ${driver.vehicleClass} · TZS ${_tzs.format(_totalFor(ride, ride.vehicleClass.id))}',
                       style: TextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -1085,7 +1125,7 @@ class _TrackingView extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            'Paying with ${ride.paymentMethod.name} (mock)',
+                            'Paying with ${ride.paymentMethod.name}',
                             style: TextStyles.caption.copyWith(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
@@ -1099,7 +1139,7 @@ class _TrackingView extends ConsumerWidget {
               ),
               IconButton.filled(
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Calling ${driver.name} (mock)')),
+                  const SnackBar(content: Text('Calling is not available yet')),
                 ),
                 icon: const Icon(Icons.call_rounded, size: 20),
                 style: IconButton.styleFrom(
@@ -1115,7 +1155,9 @@ class _TrackingView extends ConsumerWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share link copied (mock)')),
+                  const SnackBar(
+                    content: Text('Trip sharing is not available yet'),
+                  ),
                 ),
                 icon: const Icon(Icons.share_outlined, size: 18),
                 label: const Text('Share'),
@@ -1129,19 +1171,54 @@ class _TrackingView extends ConsumerWidget {
                     content: Text('Emergency calling is not available yet'),
                   ),
                 ),
-                icon: const Icon(Icons.emergency_outlined,
-                    size: 18, color: AppColors.error),
-                label: const Text('SOS',
-                    style: TextStyle(color: AppColors.error)),
+                icon: const Icon(
+                  Icons.emergency_outlined,
+                  size: 18,
+                  color: AppColors.error,
+                ),
+                label: const Text(
+                  'SOS',
+                  style: TextStyle(color: AppColors.error),
+                ),
               ),
             ),
           ],
         ),
+        if (ride.deliveryOtp != null) ...[
+          const SizedBox(height: 10),
+          InfoCard(
+            child: Row(
+              children: [
+                const Icon(Icons.password_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Give this delivery code to your driver',
+                    style: TextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                Text(
+                  ride.deliveryOtp!,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         PrimaryButton(
           label: 'Confirm Delivery',
           icon: Icons.check_rounded,
-          onPressed: () => ref.read(rideProvider.notifier).complete(),
+          onPressed:
+              ride.jobStatus == 'delivered' || ride.jobStatus == 'completed'
+              ? () => ref.read(rideProvider.notifier).complete()
+              : null,
         ),
       ],
     );
@@ -1162,12 +1239,17 @@ class _DoneView extends ConsumerWidget {
             color: AppColors.success.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check_rounded,
-              color: AppColors.success, size: 38),
+          child: const Icon(
+            Icons.check_rounded,
+            color: AppColors.success,
+            size: 38,
+          ),
         ),
         const SizedBox(height: 10),
-        const Text('Delivered',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+        const Text(
+          'Delivered',
+          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+        ),
         Text(
           '${ride.pickup?.name ?? ''} to ${ride.destination?.name ?? ''}',
           textAlign: TextAlign.center,

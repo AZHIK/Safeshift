@@ -1,73 +1,211 @@
-// Planned: replace the mock delays with real Supabase OTP APIs and persist the
-// session in a later sprint. Mock logic only — no backend calls.
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supa;
+
+import '../../../core/cache/cache_service.dart';
+import '../../../core/errors/error_handler.dart';
 import '../../../core/errors/failures.dart';
-import '../../../shared/mock/mock_users.dart';
+import '../../../core/network/supabase_client.dart';
+import '../../../core/notifications/push_service.dart';
+import '../data/auth_service.dart';
 import '../domain/entities/auth_state.dart';
 import '../domain/entities/user.dart';
 
-part 'auth_provider.g.dart';
+/// Real Supabase OTP auth for the customer app.
+///
+/// The notifier owns exactly one auth-state subscription and cancels it when
+/// the provider is disposed. Profile rows are loaded after every signed-in
+/// event, including session recovery and token refresh.
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  () => AuthNotifier(appRole: 'customer'),
+);
 
-/// Mock auth state. Simulates OTP send/verify with local delays only.
-@riverpod
-class AuthNotifier extends _$AuthNotifier {
+class AuthNotifier extends Notifier<AuthState> {
+  AuthNotifier({this.appRole = 'customer'});
+
+  final String appRole;
+  late final AuthService _service;
+  StreamSubscription<supa.AuthState>? _authSubscription;
+
   @override
   AuthState build() {
-    // Auth session must survive moments with zero listeners (e.g. during
-    // route transitions to screens that don't watch auth state).
-    ref.keepAlive();
+    _service = AuthService(ref.watch(supabaseProvider), appRole: appRole);
+    _authSubscription = _service.onAuthStateChange.listen(
+      _onAuthEvent,
+      onError: (Object error, StackTrace stack) {
+        if (!ref.mounted) return;
+        state = state.copyWith(
+          status: AuthStatus.error,
+          isLoading: false,
+          failureMessage: ErrorHandler.map(error, stackTrace: stack).message,
+        );
+      },
+    );
+    ref.onDispose(() => _authSubscription?.cancel());
+    unawaited(_restoreSession());
     return const AuthState();
   }
 
-  /// Simulates sending an OTP. Stores the phone number after a 1-second delay.
-  /// Throws [ValidationFailure] when the number is not exactly 9 digits.
+  Future<void> _restoreSession() async {
+    final session = _service.client.auth.currentSession;
+    if (session == null) {
+      state = state.copyWith(isInitialized: true);
+      return;
+    }
+    await _loadProfile(showLoading: false);
+  }
+
+  void _onAuthEvent(supa.AuthState event) {
+    if (!ref.mounted) return;
+    if (event.session == null) {
+      state = const AuthState(isInitialized: true);
+      return;
+    }
+    unawaited(_loadProfile(showLoading: false));
+  }
+
   Future<void> sendOtp(String phoneNumber) async {
-    final digits = phoneNumber.replaceAll(RegExp(r'\D'), '');
-    state = state.copyWith(isLoading: true, clearFailure: true);
-    await Future<void>.delayed(const Duration(seconds: 1));
-    if (digits.length != 9) {
-      const message = 'Enter a valid 9-digit phone number';
-      state = state.copyWith(isLoading: false, failureMessage: message);
-      throw const ValidationFailure(message);
-    }
     state = state.copyWith(
-      isLoading: false,
-      phoneNumber: digits,
+      status: AuthStatus.authenticating,
+      isLoading: true,
       clearFailure: true,
     );
+    try {
+      await _service.sendOtp(phoneNumber);
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        isLoading: false,
+        phoneNumber: phoneNumber.replaceAll(RegExp(r'\D'), ''),
+        clearFailure: true,
+      );
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
   }
 
-  /// Simulates verifying an OTP. Any 6-digit code (including 123456) logs the
-  /// user in as the mock customer. Throws [ValidationFailure] otherwise.
-  Future<void> verifyOtp(String code) async {
-    final digits = code.replaceAll(RegExp(r'\D'), '');
-    state = state.copyWith(isLoading: true, clearFailure: true);
-    await Future<void>.delayed(const Duration(seconds: 1));
-    if (!RegExp(r'^\d{6}$').hasMatch(digits)) {
-      const message = 'Invalid code';
-      state = state.copyWith(isLoading: false, failureMessage: message);
-      throw const ValidationFailure(message);
+  Future<User> verifyOtp(String code) async {
+    final phone = state.phoneNumber;
+    if (phone == null || phone.isEmpty) {
+      const failure = AuthFailure('Request a new code first.');
+      state = state.copyWith(
+        status: AuthStatus.error,
+        failureMessage: failure.message,
+      );
+      throw failure;
     }
+
     state = state.copyWith(
-      isLoading: false,
-      currentUser: User(
-        id: mockUser.id,
-        phone: mockUser.phone,
-        fullName: mockUser.fullName,
-        role: 'customer',
-      ),
+      status: AuthStatus.authenticating,
+      isLoading: true,
       clearFailure: true,
     );
+    try {
+      final user = await _service.verifyOtp(phone, code);
+      final driverRegistered = appRole == 'driver'
+          ? await _service.hasDriverProfile(userId: user.id)
+          : null;
+      if (!ref.mounted) return user;
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        phoneNumber: phone,
+        currentUser: user,
+        driverRegistered: driverRegistered,
+        isInitialized: true,
+      );
+      unawaited(
+        ref
+            .read(pushServiceProvider)
+            .registerForUser(user.id, ref.read(supabaseProvider)),
+      );
+      return user;
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) throw failure;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
   }
 
-  /// Clears the current user and phone number.
-  void signOut() {
-    state = state.copyWith(clearUser: true, clearPhone: true);
+  Future<void> refreshProfile() => _loadProfile(showLoading: false);
+
+  Future<void> _loadProfile({bool showLoading = true}) async {
+    if (showLoading && ref.mounted) {
+      state = state.copyWith(
+        status: AuthStatus.authenticating,
+        isLoading: true,
+        clearFailure: true,
+      );
+    }
+    try {
+      final user = await _service.fetchUserProfile();
+      if (user == null) {
+        throw const AuthFailure('Your profile is still being created.');
+      }
+      final driverRegistered = appRole == 'driver'
+          ? await _service.hasDriverProfile(userId: user.id)
+          : null;
+      if (!ref.mounted) return;
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        phoneNumber: user.phone.replaceFirst('+255', ''),
+        currentUser: user,
+        driverRegistered: driverRegistered,
+        isInitialized: true,
+      );
+      unawaited(
+        ref
+            .read(pushServiceProvider)
+            .registerForUser(user.id, ref.read(supabaseProvider)),
+      );
+    } catch (error, stack) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: ErrorHandler.map(error, stackTrace: stack).message,
+        isInitialized: true,
+      );
+    }
   }
 
-  /// Returns the notifier to its initial state.
+  Future<void> signOut() async {
+    final userId = state.currentUser?.id;
+    try {
+      await _service.signOut();
+    } catch (error, stack) {
+      // A local sign-out still clears the UI even if the network call fails.
+      ErrorHandler.map(error, stackTrace: stack);
+    } finally {
+      try {
+        await ref.read(pushServiceProvider).unregister();
+      } catch (_) {
+        // Sign-out must not be blocked by push cleanup.
+      }
+      if (userId != null) {
+        try {
+          await ref.read(cacheServiceProvider).clearUser(userId);
+        } catch (_) {
+          // A cache failure must not keep the previous session visible.
+        }
+      }
+      if (ref.mounted) state = const AuthState(isInitialized: true);
+    }
+  }
+
   void reset() {
-    state = const AuthState();
+    if (ref.mounted) state = const AuthState();
   }
 }

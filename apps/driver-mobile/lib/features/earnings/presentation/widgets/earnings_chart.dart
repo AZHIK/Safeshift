@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/mock/mock_earnings.dart';
+import '../../../home/data/driver_repository.dart';
 
 /// Custom bar chart (no new packages) for the last 7 days.
 class EarningsChart extends StatelessWidget {
-  const EarningsChart({super.key});
+  const EarningsChart({super.key, required this.days});
+
+  final List<DailyEarning> days;
 
   @override
   Widget build(BuildContext context) {
-    final max = MockEarnings.last7Days
-        .map((d) => d.amountTzs)
-        .reduce((a, b) => a > b ? a : b)
-        .toDouble();
+    final max = days.isEmpty
+        ? 1.0
+        : days.map((d) => d.amount).reduce((a, b) => a > b ? a : b).toDouble();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        for (final day in MockEarnings.last7Days)
+        for (final day in days)
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -24,7 +25,7 @@ class EarningsChart extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
-                    height: 110 * (day.amountTzs / max),
+                    height: 110 * (day.amount / (max == 0 ? 1 : max)),
                     decoration: BoxDecoration(
                       gradient: AppColors.brandGradient,
                       borderRadius: BorderRadius.circular(8),

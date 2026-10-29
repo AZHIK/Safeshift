@@ -8,7 +8,6 @@ import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
-import '../../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../../../shared/mock/mock_earnings.dart';
 import '../../../providers/home_provider.dart';
 import 'sheet_handle.dart';
@@ -69,16 +68,17 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
                 value: '− ${_tzs(commission)}',
               ),
               const Divider(height: AppSizes.lg),
-              _Row(label: 'Your earnings', value: _tzs(earnings), isTotal: true),
+              _Row(
+                label: 'Your earnings',
+                value: _tzs(earnings),
+                isTotal: true,
+              ),
             ],
           ),
         ),
         const SizedBox(height: AppSizes.md),
         Center(
-          child: Text(
-            'Rate ${job.customerName}',
-            style: TextStyles.title,
-          ),
+          child: Text('Rate ${job.customerName}', style: TextStyles.title),
         ),
         const SizedBox(height: AppSizes.xs),
         Row(
@@ -89,9 +89,7 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
               onPressed: () => setState(() => _stars = i + 1),
               icon: const Icon(Icons.star_rounded),
               iconSize: 32,
-              color: _stars > i
-                  ? const Color(0xFFFFB300)
-                  : AppColors.divider,
+              color: _stars > i ? const Color(0xFFFFB300) : AppColors.divider,
             ),
           ),
         ),
@@ -102,10 +100,7 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
           onPressed: () => ref.read(homeProvider.notifier).goBackOnline(),
         ),
         TextButton(
-          onPressed: () {
-            AppSnackbar.showInfo(context, 'Trip receipt (mock)');
-            context.push('/trips');
-          },
+          onPressed: () => context.push('/trips'),
           child: const Text('View trip details'),
         ),
       ],

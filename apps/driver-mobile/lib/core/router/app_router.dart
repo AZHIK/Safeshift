@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/driver_onboarding_placeholder_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/otp_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
@@ -13,7 +14,6 @@ import '../../features/home/providers/home_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/profile/presentation/screens/complete_profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
-import '../../features/profile/providers/profile_provider.dart';
 import '../../features/ratings/presentation/screens/ratings_screen.dart';
 import '../../features/trips/presentation/screens/trip_detail_screen.dart';
 import '../../features/trips/presentation/screens/trips_screen.dart';
@@ -28,14 +28,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   final initialLocation = ref.watch(routerInitialLocationProvider);
   // Rebuild the router when auth or profile-completion state changes so the
   // redirect below always sees the latest gate values.
-  final isAuthenticated = ref.watch(authProvider.select((s) => s.isAuthenticated));
-  final hasCompletedProfile =
-      ref.watch(driverProfileStateProvider.select((p) => p?.isComplete ?? false));
+  final auth = ref.watch(authProvider);
   return GoRouter(
     initialLocation: initialLocation,
     redirect: (context, state) => authRedirect(
-      isAuthenticated: isAuthenticated,
-      hasCompletedProfile: hasCompletedProfile,
+      isAuthenticated: auth.isAuthenticated,
+      isInitialized: auth.isInitialized,
+      isDriverRegistered: auth.driverRegistered == true,
       location: state.uri.path,
     ),
     routes: <RouteBase>[
@@ -45,6 +44,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
+      GoRoute(
+        path: '/driver-onboarding',
+        builder: (context, state) =>
+            const DriverOnboardingPlaceholderScreen(),
+      ),
       GoRoute(
         path: '/complete-profile',
         builder: (context, state) => const CompleteProfileScreen(),

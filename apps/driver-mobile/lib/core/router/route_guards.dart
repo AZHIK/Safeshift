@@ -1,34 +1,36 @@
-// Planned: add role-based guards in a later sprint. Mock auth only.
+// Phase 8 driver auth + registration guard. Pure function for unit tests.
 
-/// Pure auth + profile redirect decision used by the app router.
+/// Pure auth + driver-registration redirect decision.
 ///
+/// - The router must not redirect until session recovery completes.
 /// - Unauthenticated users visiting a protected route go to /login.
-/// - Authenticated users without a completed profile are forced to
-///   /complete-profile (except while on /login, /otp, /complete-profile).
-/// - Authenticated users with a completed profile visiting /login, /otp or
-///   /complete-profile go to /home.
-/// - Returns null when navigation is allowed.
+/// - Authenticated users without a drivers row go to /driver-onboarding.
+/// - Registered drivers visiting /login, /otp, /onboarding, or
+///   /driver-onboarding go to /home.
 String? authRedirect({
   required bool isAuthenticated,
-  required bool hasCompletedProfile,
+  required bool isInitialized,
+  required bool isDriverRegistered,
   required String location,
 }) {
-  const publicPaths = <String>['/login', '/otp'];
-  const profileSetupPath = '/complete-profile';
+  if (!isInitialized) return null;
+
+  const publicPaths = <String>['/login', '/otp', '/onboarding'];
+  const onboardingPath = '/driver-onboarding';
 
   final isPublic = publicPaths.contains(location);
-  final isProfileSetup = location == profileSetupPath;
+  final isOnboarding = location == onboardingPath;
 
   if (!isAuthenticated && !isPublic) {
     return '/login';
   }
   if (isAuthenticated && isPublic) {
-    return hasCompletedProfile ? '/home' : profileSetupPath;
+    return isDriverRegistered ? '/home' : onboardingPath;
   }
-  if (isAuthenticated && !hasCompletedProfile && !isPublic && !isProfileSetup) {
-    return profileSetupPath;
+  if (isAuthenticated && !isDriverRegistered && !isOnboarding) {
+    return onboardingPath;
   }
-  if (isAuthenticated && hasCompletedProfile && isProfileSetup) {
+  if (isAuthenticated && isDriverRegistered && isOnboarding) {
     return '/home';
   }
   return null;

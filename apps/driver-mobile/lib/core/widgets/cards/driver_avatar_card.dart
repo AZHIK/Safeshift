@@ -91,10 +91,8 @@ class DriverAvatarCard extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              onPressed: () => AppSnackbar.showInfo(
-                context,
-                'Calling ${driver.name} (mock)',
-              ),
+              onPressed: () =>
+                  AppSnackbar.showInfo(context, 'Calling is not available yet'),
               icon: const Icon(Icons.call_outlined),
             ),
             IconButton(
@@ -104,7 +102,7 @@ class DriverAvatarCard extends StatelessWidget {
               constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               onPressed: () => AppSnackbar.showInfo(
                 context,
-                'Messaging ${driver.name} (mock)',
+                'Messaging is not available yet',
               ),
               icon: const Icon(Icons.chat_bubble_outline_rounded),
             ),

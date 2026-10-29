@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/otp_screen.dart';
 import '../../features/booking/presentation/screens/booking_screen.dart';
 import '../../features/booking/presentation/screens/matching_screen.dart';
@@ -14,15 +15,22 @@ import '../../features/ride/presentation/screens/ride_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/tracking/presentation/screens/tracking_screen.dart';
+import 'route_guards.dart';
 
-/// Provides the app router. Authenticated route redirects are intentionally
-/// deferred; screens navigate directly through GoRouter.
+/// Provides the app router. Redirects run after session recovery so a valid
+/// stored session opens the authenticated home instead of flashing login.
 final routerInitialLocationProvider = Provider<String>((ref) => '/login');
 
 final routerProvider = Provider<GoRouter>((ref) {
   final initialLocation = ref.watch(routerInitialLocationProvider);
+  final auth = ref.watch(authProvider);
   return GoRouter(
     initialLocation: initialLocation,
+    redirect: (context, state) => authRedirect(
+      isAuthenticated: auth.isAuthenticated,
+      isInitialized: auth.isInitialized,
+      location: state.uri.path,
+    ),
     routes: <RouteBase>[
       GoRoute(
         path: '/onboarding',
@@ -62,7 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/tracking',
-        builder: (context, state) => const TrackingScreen(),
+        builder: (context, state) => TrackingScreen(
+          jobId: state.uri.queryParameters['jobId'],
+        ),
       ),
       GoRoute(
         path: '/delivery',

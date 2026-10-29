@@ -5,13 +5,17 @@ import 'driver_status.dart';
 class HomeState {
   const HomeState({
     this.driverStatus = DriverStatus.offline,
-    this.todayEarnings = 161000,
-    this.completedToday = 3,
-    this.acceptanceRate = 0.94,
+    this.todayEarnings = 0,
+    this.completedToday = 0,
+    this.acceptanceRate = 0,
     this.incomingJob,
     this.activeJob,
     this.countdownSeconds = 15,
     this.jobIndex = 0,
+    this.errorMessage,
+    this.isSubmitting = false,
+    this.isLoading = false,
+    this.isMockMode = false,
   });
 
   final DriverStatus driverStatus;
@@ -22,6 +26,10 @@ class HomeState {
   final DriverJob? activeJob;
   final int countdownSeconds;
   final int jobIndex;
+  final String? errorMessage;
+  final bool isSubmitting;
+  final bool isLoading;
+  final bool isMockMode;
 
   HomeState copyWith({
     DriverStatus? driverStatus,
@@ -32,8 +40,13 @@ class HomeState {
     DriverJob? activeJob,
     int? countdownSeconds,
     int? jobIndex,
+    String? errorMessage,
+    bool? isSubmitting,
+    bool? isLoading,
+    bool? isMockMode,
     bool clearIncoming = false,
     bool clearActive = false,
+    bool clearError = false,
   }) {
     return HomeState(
       driverStatus: driverStatus ?? this.driverStatus,
@@ -44,6 +57,10 @@ class HomeState {
       activeJob: clearActive ? null : (activeJob ?? this.activeJob),
       countdownSeconds: countdownSeconds ?? this.countdownSeconds,
       jobIndex: jobIndex ?? this.jobIndex,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      isLoading: isLoading ?? this.isLoading,
+      isMockMode: isMockMode ?? this.isMockMode,
     );
   }
 }

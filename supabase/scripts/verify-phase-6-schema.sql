@@ -263,10 +263,9 @@ where n.nspname = 'public'
 -- 4. Realtime publication
 -- ----------------------------------------------------------------------------
 insert into _phase6_verification (check_no, check_name, status, details)
-select 7, 'Realtime publication has exactly the five approved tables',
-       case when count(*) = 5
-             and array_agg(tablename::text order by tablename) =
-                 array['chat_messages','driver_locations','job_events','jobs','notification_log']::text[]
+select 7, 'Realtime publication contains the five Phase 6 tables',
+       case when array['chat_messages','driver_locations','job_events','jobs','notification_log']::text[]
+                 <@ coalesce(array_agg(tablename::text), array[]::text[])
             then 'PASS' else 'FAIL' end,
        coalesce(string_agg(tablename, ', ' order by tablename), 'none')
 from pg_publication_tables

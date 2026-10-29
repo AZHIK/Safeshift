@@ -55,6 +55,7 @@ jobs:
       - run: supabase start
       - run: supabase db reset
       - run: bash scripts/verify-db.sh
+      - run: bash supabase/scripts/verify-phase-8-integration.sh
 
   ci:
     name: CI result

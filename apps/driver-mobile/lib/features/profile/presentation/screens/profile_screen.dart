@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/errors/error_handler.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
@@ -16,7 +17,53 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final driver = ref.watch(driverProfileStateProvider);
+    final driverAsync = ref.watch(driverProfileStateProvider);
+    final driver = driverAsync.value;
+
+    if (driverAsync.isLoading && driver == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profile')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (driverAsync.hasError && driver == null) {
+      final failure = ErrorHandler.map(
+        driverAsync.error!,
+        stackTrace: driverAsync.stackTrace,
+      );
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profile')),
+        body: Padding(
+          padding: const EdgeInsets.all(AppSizes.lg),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                size: 56,
+                color: AppColors.textDisabled,
+              ),
+              const SizedBox(height: AppSizes.md),
+              Text(
+                failure.message,
+                textAlign: TextAlign.center,
+                style: TextStyles.body,
+              ),
+              const SizedBox(height: AppSizes.md),
+              FilledButton(
+                onPressed: () => ref
+                    .read(driverProfileStateProvider.notifier)
+                    .refreshProfile(),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (driver == null) {
       // Should rarely be visible (router forces /complete-profile), but
       // handle it gracefully instead of crashing on null.
@@ -28,8 +75,11 @@ class ProfileScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.person_outline_rounded,
-                  size: 64, color: AppColors.textDisabled),
+              const Icon(
+                Icons.person_outline_rounded,
+                size: 64,
+                color: AppColors.textDisabled,
+              ),
               const SizedBox(height: AppSizes.md),
               const Text(
                 'No profile yet',
@@ -40,14 +90,13 @@ class ProfileScreen extends ConsumerWidget {
               Text(
                 'Complete your profile to start driving.',
                 textAlign: TextAlign.center,
-                style: TextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
+                style: TextStyles.body.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: AppSizes.md),
               FilledButton.icon(
-                onPressed: () => context.go('/complete-profile'),
+                onPressed: () => context.go('/driver-onboarding'),
                 icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text('Complete profile'),
+                label: const Text('Continue onboarding'),
               ),
             ],
           ),
@@ -64,8 +113,7 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor:
-                      AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                   child: Text(
                     driver.initials,
                     style: TextStyles.headline.copyWith(
@@ -130,7 +178,10 @@ class ProfileScreen extends ConsumerWidget {
           _Tile(
             icon: Icons.phone_outlined,
             label: driver.phone,
-            onTap: () => AppSnackbar.showInfo(context, 'Phone (mock)'),
+            onTap: () => AppSnackbar.showInfo(
+              context,
+              'Phone actions are not available yet',
+            ),
           ),
           _Tile(
             icon: Icons.local_shipping_outlined,
@@ -152,23 +203,30 @@ class ProfileScreen extends ConsumerWidget {
           _Tile(
             icon: Icons.help_outline_rounded,
             label: 'Help Center',
-            onTap: () => AppSnackbar.showInfo(context, 'Help Center (mock)'),
+            onTap: () => AppSnackbar.showInfo(
+              context,
+              'Help center is not available yet',
+            ),
           ),
           _Tile(
             icon: Icons.headset_mic_outlined,
             label: 'Contact Support',
-            onTap: () =>
-                AppSnackbar.showInfo(context, 'Contact Support (mock)'),
+            onTap: () => AppSnackbar.showInfo(
+              context,
+              'Support chat is not available yet',
+            ),
           ),
           _Tile(
             icon: Icons.description_outlined,
             label: 'Terms & Privacy',
-            onTap: () =>
-                AppSnackbar.showInfo(context, 'Terms & Privacy (mock)'),
+            onTap: () => AppSnackbar.showInfo(
+              context,
+              'Terms and privacy pages are not available yet',
+            ),
           ),
           const SizedBox(height: AppSizes.sm),
           const _SectionTitle('About'),
-          const _TileStatic(label: 'App version', value: 'v1.0.0 (mock)'),
+          const _TileStatic(label: 'App version', value: 'v0.1.0'),
           const SizedBox(height: AppSizes.lg),
           OutlinedButton.icon(
             onPressed: () async {

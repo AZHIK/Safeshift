@@ -27,21 +27,12 @@ class OfflineSheet extends ConsumerWidget {
       ),
       children: [
         const SheetHandle(),
-        OnlineToggle(
-          isOnline: false,
-          onTap: () => _goOnline(context, ref),
-        ),
+        OnlineToggle(isOnline: false, onTap: () => _goOnline(context, ref)),
         const SizedBox(height: AppSizes.md),
         Row(
           children: [
-            SheetStat(
-              value: '${home.completedToday}',
-              label: "Today's trips",
-            ),
-            SheetStat(
-              value: _tzs(home.todayEarnings),
-              label: 'Earnings',
-            ),
+            SheetStat(value: '${home.completedToday}', label: "Today's trips"),
+            SheetStat(value: _tzs(home.todayEarnings), label: 'Earnings'),
             SheetStat(
               value: '${(home.acceptanceRate * 100).round()}%',
               label: 'Acceptance',
@@ -60,7 +51,7 @@ class OfflineSheet extends ConsumerWidget {
         builder: (context) => AlertDialog(
           title: const Text('Allow location access?'),
           content: const Text(
-            'SafeShift Driver needs your location to match you with nearby jobs (mock).',
+            'SafeShift Driver needs your location to match you with nearby jobs.',
           ),
           actions: [
             TextButton(
@@ -80,9 +71,7 @@ class OfflineSheet extends ConsumerWidget {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Allow notifications?'),
-          content: const Text(
-            'Get notified instantly about new job requests (mock).',
-          ),
+          content: const Text('Get notified instantly about new job requests.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),

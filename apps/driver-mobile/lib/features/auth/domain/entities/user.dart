@@ -6,10 +6,12 @@ class User {
     required this.phone,
     required this.fullName,
     required this.role,
+    this.email = '',
   });
 
   final String id;
   final String phone;
   final String fullName;
   final String role;
+  final String email;
 }

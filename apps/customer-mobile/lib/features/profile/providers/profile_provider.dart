@@ -1,16 +1,19 @@
-// Planned: load and update the profile via a repository in a later sprint.
-// Reads
-// the mock user for now.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shared/mock/mock_users.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../domain/entities/profile.dart';
 
+/// Profile data comes from the authenticated `profiles` row loaded by
+/// [AuthService]. No mock user is used in the real app.
 final profileProvider = Provider<Profile>((ref) {
+  final user = ref.watch(authProvider).currentUser;
+  if (user == null) {
+    return const Profile(id: '', fullName: '', phone: '', email: '');
+  }
   return Profile(
-    id: mockUser.id,
-    fullName: mockUser.fullName,
-    phone: mockUser.phone,
-    email: mockUser.email,
+    id: user.id,
+    fullName: user.fullName.isEmpty ? 'SafeShift customer' : user.fullName,
+    phone: user.phone,
+    email: user.email,
   );
 });

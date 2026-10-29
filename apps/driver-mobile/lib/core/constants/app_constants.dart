@@ -1,6 +1,5 @@
-// Planned: add environment-specific overrides (dev/staging/prod flavors) and
-// read
-// secrets from .env instead of hardcoding placeholders.
+// Static product constants. Environment-specific Supabase/Firebase values are
+// resolved in core/config from --dart-define, not from this file.
 abstract final class AppConstants {
   static const String appName = 'safeshift';
   static const String appVersion = '0.1.0';

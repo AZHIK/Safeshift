@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
@@ -9,6 +10,36 @@ import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../providers/home_provider.dart';
 import 'sheet_handle.dart';
+
+Future<void> _sendChatPhoto(
+  BuildContext context,
+  WidgetRef ref,
+  String customerName,
+) async {
+  final picked = await ImagePicker().pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 85,
+    maxWidth: 2000,
+  );
+  if (picked == null) return;
+  final ok = await ref
+      .read(homeProvider.notifier)
+      .sendChatAttachment(
+        bytes: await picked.readAsBytes(),
+        fileName: picked.name,
+        mimeType: picked.mimeType ?? 'image/jpeg',
+        caption: 'Photo from driver',
+      );
+  if (!context.mounted) return;
+  if (ok) {
+    AppSnackbar.showSuccess(context, 'Photo sent to $customerName.');
+  } else {
+    AppSnackbar.showError(
+      context,
+      ref.read(homeProvider).errorMessage ?? 'Could not send the photo.',
+    );
+  }
+}
 
 /// Heading-to-pickup sheet: customer card + ETA + primary action.
 class HeadingToPickupSheet extends ConsumerWidget {
@@ -29,7 +60,10 @@ class HeadingToPickupSheet extends ConsumerWidget {
       ),
       children: [
         const SheetHandle(),
-        Text('Heading to pickup', style: TextStyles.headline.copyWith(fontSize: 18)),
+        Text(
+          'Heading to pickup',
+          style: TextStyles.headline.copyWith(fontSize: 18),
+        ),
         const SizedBox(height: AppSizes.sm),
         InfoCard(
           child: Column(
@@ -38,8 +72,7 @@ class HeadingToPickupSheet extends ConsumerWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor:
-                        AppColors.primary.withValues(alpha: 0.12),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                     child: Text(
                       job.customerName.isNotEmpty
                           ? job.customerName[0].toUpperCase()
@@ -68,16 +101,14 @@ class HeadingToPickupSheet extends ConsumerWidget {
                     tooltip: 'Call customer',
                     onPressed: () => AppSnackbar.showInfo(
                       context,
-                      'Calling ${job.customerName} (mock)',
+                      'Calling ${job.customerName} is not available yet',
                     ),
                     icon: const Icon(Icons.call_outlined),
                   ),
                   IconButton(
                     tooltip: 'Message customer',
-                    onPressed: () => AppSnackbar.showInfo(
-                      context,
-                      'Messaging ${job.customerName} (mock)',
-                    ),
+                    onPressed: () =>
+                        _sendChatPhoto(context, ref, job.customerName),
                     icon: const Icon(Icons.chat_bubble_outline_rounded),
                   ),
                 ],
@@ -104,8 +135,10 @@ class HeadingToPickupSheet extends ConsumerWidget {
           onPressed: () => ref.read(homeProvider.notifier).advanceStage(),
         ),
         TextButton(
-          onPressed: () =>
-              AppSnackbar.showInfo(context, 'Support contacted (mock)'),
+          onPressed: () => AppSnackbar.showInfo(
+            context,
+            'Support chat is not available yet',
+          ),
           child: const Text('Problem / Support'),
         ),
       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -8,22 +9,108 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/driver_avatar_card.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
-import '../../../../shared/mock/mock_drivers.dart';
 import '../../../booking/providers/booking_provider.dart';
+import '../../../ride/providers/ride_provider.dart';
 import '../widgets/map_view.dart';
 import '../widgets/trip_status_stepper.dart';
-import '../../providers/tracking_provider.dart';
 
-class TrackingScreen extends ConsumerWidget {
-  const TrackingScreen({super.key});
+/// Live tracking route, also reachable from `safeshift://tracking/<jobId>`.
+///
+/// The screen reads the same RideNotifier used by the main ride flow, so a
+/// deep link and the in-app sheet always show the same server-backed state.
+class TrackingScreen extends ConsumerStatefulWidget {
+  const TrackingScreen({super.key, this.jobId});
+
+  final String? jobId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tracking = ref.watch(trackingProvider);
-    final booking = ref.watch(bookingProvider);
-    final driver = mockDrivers.firstWhere(
-      (item) => item.id == tracking.driverLocation.driverId,
+  ConsumerState<TrackingScreen> createState() => _TrackingScreenState();
+}
+
+class _TrackingScreenState extends ConsumerState<TrackingScreen> {
+  bool _uploading = false;
+
+  Future<void> _attach({required bool evidence}) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 2000,
     );
+    if (picked == null) return;
+    setState(() => _uploading = true);
+    final notifier = ref.read(rideProvider.notifier);
+    final bytes = await picked.readAsBytes();
+    final ok = evidence
+        ? await notifier.uploadEvidence(
+            evidenceType: 'delivery_photo',
+            bytes: bytes,
+            fileName: picked.name,
+            mimeType: picked.mimeType ?? 'image/jpeg',
+          )
+        : await notifier.sendChatAttachment(
+            bytes: bytes,
+            fileName: picked.name,
+            mimeType: picked.mimeType ?? 'image/jpeg',
+          );
+    if (!mounted) return;
+    setState(() => _uploading = false);
+    if (ok) {
+      AppSnackbar.showSuccess(
+        context,
+        evidence ? 'Photo attached to this move.' : 'Photo sent to driver.',
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final id = widget.jobId;
+      if (id == null || id.isEmpty) return;
+      if (ref.read(rideProvider).jobId != id) {
+        ref.read(rideProvider.notifier).loadJob(id);
+      }
+    });
+  }
+
+  int _stepFor(String? status) => switch (status) {
+    'accepted' || 'heading_to_pickup' => 0,
+    'arrived' => 1,
+    'loading' => 2,
+    'in_transit' => 3,
+    'delivered' || 'completed' => 4,
+    _ => 0,
+  };
+
+  String _labelFor(String? status) => switch (status) {
+    'accepted' || 'heading_to_pickup' => 'Driver is heading to pickup',
+    'arrived' => 'Driver has arrived at pickup',
+    'loading' => 'Cargo is being loaded',
+    'in_transit' => 'On the way to destination',
+    'delivered' => 'Delivered',
+    'completed' => 'Move completed',
+    'cancelled' => 'Move cancelled',
+    _ => 'Looking for a driver',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final ride = ref.watch(rideProvider);
+    final booking = ref.watch(bookingProvider);
+    final driver = ride.driver;
+    final pickup =
+        ride.pickupAddress ??
+        ride.pickup?.name ??
+        booking?.pickup.name ??
+        'Pickup';
+    final destination =
+        ride.destinationAddress ??
+        ride.destination?.name ??
+        booking?.destination.name ??
+        'Destination';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Track your move')),
       body: Column(
@@ -51,26 +138,57 @@ class TrackingScreen extends ConsumerWidget {
                   AppSizes.xl,
                 ),
                 children: <Widget>[
-                  TripStatusStepper(currentStep: tracking.currentStep),
+                  if (ride.errorMessage != null) ...<Widget>[
+                    Text(
+                      ride.errorMessage!,
+                      style: TextStyles.body.copyWith(color: AppColors.error),
+                    ),
+                    const SizedBox(height: AppSizes.sm),
+                  ],
+                  TripStatusStepper(currentStep: _stepFor(ride.jobStatus)),
                   const SizedBox(height: AppSizes.md),
-                  DriverAvatarCard(driver: driver, showActions: true),
+                  Text(
+                    _labelFor(ride.jobStatus),
+                    style: TextStyles.title.copyWith(fontSize: 15),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  if (driver != null)
+                    DriverAvatarCard(driver: driver, showActions: true)
+                  else
+                    Text(
+                      ride.jobId == null
+                          ? 'Open this link from a move to see live status.'
+                          : 'Assigning the nearest driver…',
+                      textAlign: TextAlign.center,
+                      style: TextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   const SizedBox(height: AppSizes.sm),
                   _JobRouteRow(
                     icon: Icons.trip_origin_rounded,
                     color: AppColors.success,
-                    title: booking?.pickup.name ?? 'Kariakoo Market',
+                    title: pickup,
                   ),
                   const SizedBox(height: AppSizes.xs),
                   _JobRouteRow(
                     icon: Icons.location_on_rounded,
                     color: AppColors.error,
-                    title: booking?.destination.name ?? 'Mlimani City Mall',
+                    title: destination,
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    '5.4 km  ·  18 min remaining',
+                    ride.deliveryOtp == null
+                        ? '${ride.distanceKm.toStringAsFixed(1)} km'
+                        : 'Delivery code: ${ride.deliveryOtp}',
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: ride.deliveryOtp == null
+                          ? AppColors.textSecondary
+                          : AppColors.primary,
+                      fontWeight: ride.deliveryOtp == null
+                          ? FontWeight.w400
+                          : FontWeight.w700,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -81,7 +199,7 @@ class TrackingScreen extends ConsumerWidget {
                       TextButton.icon(
                         onPressed: () => AppSnackbar.showInfo(
                           context,
-                          'Share link copied (mock)',
+                          'Trip sharing is not enabled yet',
                         ),
                         icon: const Icon(Icons.share_outlined),
                         label: const Text('Share Trip'),
@@ -103,17 +221,27 @@ class TrackingScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: AppSizes.sm),
-                  PrimaryButton(
-                    label: 'Contact Driver',
-                    onPressed: () => AppSnackbar.showInfo(
-                      context,
-                      'Calling ${driver.name} (mock)',
+                  OutlinedButton.icon(
+                    onPressed: _uploading
+                        ? null
+                        : () => _attach(evidence: false),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded),
+                    label: Text(
+                      _uploading ? 'Uploading…' : 'Send photo to driver',
                     ),
                   ),
+                  const SizedBox(height: AppSizes.xs),
+                  OutlinedButton.icon(
+                    onPressed: _uploading
+                        ? null
+                        : () => _attach(evidence: true),
+                    icon: const Icon(Icons.add_a_photo_outlined),
+                    label: const Text('Add delivery photo'),
+                  ),
                   const SizedBox(height: AppSizes.md),
-                  TextButton(
-                    onPressed: () => context.push('/delivery'),
-                    child: const Text('Confirm delivery'),
+                  PrimaryButton(
+                    label: 'Back to home',
+                    onPressed: () => context.go('/home'),
                   ),
                 ],
               ),
@@ -131,9 +259,11 @@ class _JobRouteRow extends StatelessWidget {
     required this.color,
     required this.title,
   });
+
   final IconData icon;
   final Color color;
   final String title;
+
   @override
   Widget build(BuildContext context) => Row(
     children: <Widget>[

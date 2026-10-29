@@ -5,17 +5,18 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/errors/error_handler.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/driver_avatar_card.dart';
 import '../../../../core/widgets/cards/receipt_card.dart';
-import '../../../../shared/mock/mock_drivers.dart';
-import '../../../../shared/mock/mock_jobs.dart';
 import '../../../../shared/mock/mock_locations.dart';
 import '../../../../shared/mock/mock_vehicle_classes.dart';
-import '../../../booking/providers/booking_provider.dart';
-import '../../../tracking/domain/entities/driver.dart';
 import '../../../booking/domain/entities/job.dart';
+import '../../../booking/providers/booking_provider.dart';
+import '../../../ride/data/ride_repository.dart';
+import '../../../tracking/domain/entities/driver.dart';
+import '../../providers/history_provider.dart';
 
 class HistoryDetailScreen extends ConsumerWidget {
   const HistoryDetailScreen({super.key, required this.jobId});
@@ -23,86 +24,129 @@ class HistoryDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final matches = mockJobs.where((job) => job.id == jobId);
-    if (matches.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Trip Details')),
-        body: const Center(child: Text('Trip not found.')),
-      );
-    }
-    final job = matches.first;
-    final driver = _driverFor(job);
+    final asyncJob = ref.watch(historyDetailProvider(jobId));
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Details')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSizes.lg,
-          AppSizes.md,
-          AppSizes.lg,
-          AppSizes.xl,
-        ),
-        children: <Widget>[
-          Text(
-            DateFormat('EEEE, d MMMM yyyy')
-                .format(job.createdAt ?? DateTime.now()),
-            style: TextStyles.title.copyWith(fontSize: 16),
-          ),
-          const SizedBox(height: AppSizes.md),
-          DriverAvatarCard(driver: driver),
-          const SizedBox(height: AppSizes.md),
-          _RouteSummary(job: job),
-          const SizedBox(height: AppSizes.md),
-          ReceiptCard.fromJob(job: job, driverName: driver.name),
-        ],
+      body: asyncJob.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) {
+          final failure = ErrorHandler.map(error, stackTrace: stack);
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(failure.message, textAlign: TextAlign.center),
+                  const SizedBox(height: AppSizes.md),
+                  PrimaryButton(
+                    label: 'Try again',
+                    onPressed: () =>
+                        ref.invalidate(historyDetailProvider(jobId)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        data: (snapshot) {
+          if (snapshot == null) {
+            return const Center(child: Text('Trip not found.'));
+          }
+          final job = _jobFrom(snapshot);
+          final driver = _driverFrom(snapshot);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.md,
+              AppSizes.lg,
+              AppSizes.xl,
+            ),
+            children: <Widget>[
+              Text(
+                DateFormat('EEEE, d MMMM yyyy').format(
+                  snapshot.completedAt ?? snapshot.createdAt ?? DateTime.now(),
+                ),
+                style: TextStyles.title.copyWith(fontSize: 16),
+              ),
+              const SizedBox(height: AppSizes.md),
+              DriverAvatarCard(driver: driver),
+              const SizedBox(height: AppSizes.md),
+              _RouteSummary(job: job),
+              const SizedBox(height: AppSizes.md),
+              ReceiptCard.fromJob(job: job, driverName: driver.name),
+            ],
+          );
+        },
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSizes.lg,
-            AppSizes.sm,
-            AppSizes.lg,
-            AppSizes.md,
-          ),
-          child: PrimaryButton(
-            label: 'Book Again',
-            onPressed: () {
-              final pickup = mockLocations.firstWhere(
-                (location) => location.name == job.pickupAddress,
-                orElse: () => mockLocations.first,
-              );
-              final destination = mockLocations.firstWhere(
-                (location) => location.name == job.destinationAddress,
-                orElse: () => mockLocations[1],
-              );
-              final vehicle = mockVehicleClasses.firstWhere(
-                (item) => item.id == job.vehicleClassId,
-                orElse: () => mockVehicleClasses.first,
-              );
-              ref
-                  .read(bookingProvider.notifier)
-                  .save(
-                    BookingDraft(
-                      pickup: pickup,
-                      destination: destination,
-                      cargoCategory: null,
-                      vehicleClass: vehicle,
-                      scheduledTime: null,
-                    ),
-                  );
-              context.push('/booking');
-            },
-          ),
-        ),
-      ),
+      bottomNavigationBar: asyncJob.value == null
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizes.lg,
+                  AppSizes.sm,
+                  AppSizes.lg,
+                  AppSizes.md,
+                ),
+                child: PrimaryButton(
+                  label: 'Book Again',
+                  onPressed: () {
+                    final job = _jobFrom(asyncJob.value!);
+                    final pickup = mockLocations.firstWhere(
+                      (location) => location.name == job.pickupAddress,
+                      orElse: () => mockLocations.first,
+                    );
+                    final destination = mockLocations.firstWhere(
+                      (location) => location.name == job.destinationAddress,
+                      orElse: () => mockLocations[1],
+                    );
+                    final vehicle = mockVehicleClasses.firstWhere(
+                      (item) =>
+                          item.id == job.vehicleClassId ||
+                          item.name == job.vehicleClassId,
+                      orElse: () => mockVehicleClasses.first,
+                    );
+                    ref
+                        .read(bookingProvider.notifier)
+                        .save(
+                          BookingDraft(
+                            pickup: pickup,
+                            destination: destination,
+                            cargoCategory: null,
+                            vehicleClass: vehicle,
+                            scheduledTime: null,
+                          ),
+                        );
+                    context.push('/booking');
+                  },
+                ),
+              ),
+            ),
     );
   }
 
-  Driver _driverFor(Job job) {
-    for (final driver in mockDrivers) {
-      if (driver.id == job.driverId) return driver;
-    }
-    return mockDrivers.first;
-  }
+  Job _jobFrom(CustomerJobSnapshot snapshot) => Job(
+    id: snapshot.id,
+    status: snapshot.status,
+    pickupAddress: snapshot.pickupAddress,
+    destinationAddress: snapshot.destinationAddress,
+    quoteAmount: snapshot.amount,
+    createdAt: snapshot.createdAt,
+    driverId: snapshot.driverId,
+    vehicleClassId: snapshot.vehicleType,
+    paymentMethod: snapshot.paymentMethod,
+  );
+
+  Driver _driverFrom(CustomerJobSnapshot snapshot) => Driver(
+    id: snapshot.driverId ?? '',
+    name: snapshot.driverName ?? 'SafeShift driver',
+    vehicleClass: snapshot.vehicleType ?? 'Vehicle',
+    rating: snapshot.driverRating,
+    phone: snapshot.driverPhone ?? '',
+    completedTrips: 0,
+    verified: snapshot.driverVerified,
+  );
 }
 
 class _RouteSummary extends StatelessWidget {

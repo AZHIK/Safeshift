@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:safeshift_driver/core/config/mock_mode.dart';
 import 'package:safeshift_driver/features/home/domain/entities/driver_status.dart';
 import 'package:safeshift_driver/features/home/providers/home_provider.dart';
 
@@ -19,7 +20,9 @@ Future<void> _waitUntil(
 void main() {
   group('HomeNotifier state transitions', () {
     test('full job flow stays on one screen through every stage', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [mockEnabledProvider.overrideWithValue(true)],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(homeProvider.notifier);
 
@@ -104,7 +107,9 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 90)));
 
     test('decline returns to searching', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [mockEnabledProvider.overrideWithValue(true)],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(homeProvider.notifier);
 
@@ -124,7 +129,9 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 60)));
 
     test('goOffline cancels everything', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [mockEnabledProvider.overrideWithValue(true)],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(homeProvider.notifier);
 

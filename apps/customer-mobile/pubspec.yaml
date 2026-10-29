@@ -35,6 +35,13 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   intl: ^0.20.3
   logger: ^2.8.0
+  supabase_flutter: ^2.18.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.6
+  app_links: ^7.2.2
+  firebase_core: ^4.15.2
+  flutter_local_notifications: ^22.3.3
 
 dev_dependencies:
   flutter_test:
@@ -51,6 +58,7 @@ dev_dependencies:
   # need custom_lint. Revisit if custom_lint ships analyzer-14 support.
   riverpod_lint: ^3.1.9
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
 
 flutter:
   uses-material-design: true

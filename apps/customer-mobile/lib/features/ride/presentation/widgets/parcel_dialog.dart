@@ -74,17 +74,14 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
         imageQuality: 82,
       );
       if (files.isNotEmpty) {
-        final paths = [
-          ...current,
-          ...files.take(remaining).map((f) => f.path),
-        ];
+        final paths = [...current, ...files.take(remaining).map((f) => f.path)];
         ref.read(rideProvider.notifier).setParcelDetails(photoPaths: paths);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open gallery (mock)')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open gallery')));
       }
     } finally {
       if (mounted) setState(() => _picking = false);
@@ -110,9 +107,8 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera unavailable (mock)')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Camera unavailable')));
       }
     } finally {
       if (mounted) setState(() => _picking = false);
@@ -123,11 +119,13 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
     final weight = double.tryParse(_weight.text.trim().replaceAll(',', '.'));
     final valueText = _value.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
     final value = valueText.isEmpty ? null : int.tryParse(valueText);
-    ref.read(rideProvider.notifier).setParcelDetails(
-      description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
-      weightKg: weight != null && weight > 0 ? weight : null,
-      valueTzs: value != null && value >= 0 ? value : null,
-    );
+    ref
+        .read(rideProvider.notifier)
+        .setParcelDetails(
+          description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+          weightKg: weight != null && weight > 0 ? weight : null,
+          valueTzs: value != null && value >= 0 ? value : null,
+        );
     // Keep existing photos (already in provider via picker).
     Navigator.pop(context);
   }
@@ -206,8 +204,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                     minLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      hintText:
-                          'e.g. 2-seater sofa + 4 boxes of kitchenware, fragile glassware on top',
+                      hintText: 'e.g. 2-seater sofa + 4 boxes of kitchenware, fragile glassware on top',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -319,9 +316,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                   if (ride.hasParcelDetails)
                     TextButton(
                       onPressed: () {
-                        ref
-                            .read(rideProvider.notifier)
-                            .clearParcelDetails();
+                        ref.read(rideProvider.notifier).clearParcelDetails();
                         _desc.clear();
                         _weight.clear();
                         _value.clear();
@@ -387,9 +382,13 @@ class _AddPhotoTile extends StatelessWidget {
                         color: AppColors.primaryDark,
                       ),
                       SizedBox(height: 4),
-                      Text('Gallery',
-                          style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w700)),
+                      Text(
+                        'Gallery',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -407,9 +406,13 @@ class _AddPhotoTile extends StatelessWidget {
                         color: AppColors.primaryDark,
                       ),
                       SizedBox(height: 4),
-                      Text('Camera',
-                          style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w700)),
+                      Text(
+                        'Camera',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -469,9 +472,6 @@ class _PhotoThumb extends StatelessWidget {
     width: 84,
     height: 84,
     color: AppColors.background,
-    child: const Icon(
-      Icons.image_outlined,
-      color: AppColors.textSecondary,
-    ),
+    child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
   );
 }

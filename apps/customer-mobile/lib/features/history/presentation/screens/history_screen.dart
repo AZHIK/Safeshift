@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/errors/error_handler.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../providers/history_provider.dart';
@@ -21,7 +22,7 @@ class HistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(historyFilterProvider);
-    final jobs = ref.watch(historyProvider);
+    final jobsAsync = ref.watch(filteredHistoryProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('My Trips')),
       body: Column(
@@ -55,47 +56,86 @@ class HistoryScreen extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: jobs.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSizes.xl),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Icon(
-                            Icons.route_outlined,
-                            size: 56,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(height: AppSizes.md),
-                          Text(
-                            'No trips yet',
-                            style: TextStyles.title.copyWith(fontSize: 18),
-                          ),
-                          const SizedBox(height: AppSizes.md),
-                          PrimaryButton(
-                            label: 'Book your first move',
-                            onPressed: () => context.push('/booking'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSizes.lg,
-                      AppSizes.xs,
-                      AppSizes.lg,
-                      AppSizes.lg,
-                    ),
-                    itemCount: jobs.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSizes.sm),
-                    itemBuilder: (context, index) => HistoryJobTile(
-                      job: jobs[index],
-                      onTap: () => context.push('/history/${jobs[index].id}'),
+            child: jobsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) {
+                final failure = ErrorHandler.map(error, stackTrace: stack);
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSizes.xl),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          size: 56,
+                          color: AppColors.textDisabled,
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        Text(
+                          failure.message,
+                          textAlign: TextAlign.center,
+                          style: TextStyles.body,
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        PrimaryButton(
+                          label: 'Try again',
+                          onPressed: () => ref
+                              .read(historyProvider.notifier)
+                              .refresh(),
+                        ),
+                      ],
                     ),
                   ),
+                );
+              },
+              data: (jobs) => jobs.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSizes.xl),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            const Icon(
+                              Icons.route_outlined,
+                              size: 56,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(height: AppSizes.md),
+                            Text(
+                              'No trips yet',
+                              style: TextStyles.title.copyWith(fontSize: 18),
+                            ),
+                            const SizedBox(height: AppSizes.md),
+                            PrimaryButton(
+                              label: 'Book your first move',
+                              onPressed: () => context.push('/booking'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () =>
+                          ref.read(historyProvider.notifier).refresh(),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSizes.lg,
+                          AppSizes.xs,
+                          AppSizes.lg,
+                          AppSizes.lg,
+                        ),
+                        itemCount: jobs.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSizes.sm),
+                        itemBuilder: (context, index) => HistoryJobTile(
+                          job: jobs[index],
+                          onTap: () =>
+                              context.push('/history/${jobs[index].id}'),
+                        ),
+                      ),
+                    ),
+            ),
           ),
         ],
       ),

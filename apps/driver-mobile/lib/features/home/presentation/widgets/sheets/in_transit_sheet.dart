@@ -51,9 +51,7 @@ class InTransitSheet extends ConsumerWidget {
               const SizedBox(height: AppSizes.sm),
               Text(
                 '${job.distanceKm.toStringAsFixed(1)} km remaining · ETA 22 min',
-                style: TextStyles.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyles.body.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -65,8 +63,10 @@ class InTransitSheet extends ConsumerWidget {
           onPressed: () => ref.read(homeProvider.notifier).advanceStage(),
         ),
         TextButton(
-          onPressed: () =>
-              AppSnackbar.showInfo(context, 'Support contacted (mock)'),
+          onPressed: () => AppSnackbar.showInfo(
+            context,
+            'Support chat is not available yet',
+          ),
           child: const Text('Problem / Support'),
         ),
       ],

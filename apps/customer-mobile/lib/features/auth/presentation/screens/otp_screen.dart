@@ -1,5 +1,4 @@
-// Planned: add paste-from-SMS autofill (sms_autofill) and haptic feedback in a
-// later sprint. Mock OTP UI only — any 6-digit code is accepted.
+// Planned: add paste-from-SMS autofill (sms_autofill) and haptic feedback.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,7 +15,7 @@ import '../../../../core/widgets/inputs/otp_boxes.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/phone_input_field.dart';
 
-/// Mock OTP verification screen with 6 digit boxes and a resend timer.
+/// OTP verification screen with 6 digit boxes and a resend timer.
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
 
@@ -92,7 +91,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       if (mounted) {
         context.go('/home');
       }
-    } on ValidationFailure catch (e) {
+    } on Failure catch (e) {
       _autoSubmit?.cancel();
       _controller.clear();
       if (mounted) {
@@ -103,10 +102,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     }
   }
 
-  void _resend() {
+  Future<void> _resend() async {
+    final phone = ref.read(authProvider).phoneNumber;
+    if (phone == null || phone.isEmpty) return;
     setState(() => _secondsLeft = _resendSeconds);
-    AppSnackbar.showInfo(context, 'OTP resent (mock)');
-    _focusNode.requestFocus();
+    try {
+      await ref.read(authProvider.notifier).sendOtp(phone);
+      if (mounted) {
+        AppSnackbar.showInfo(context, 'A new code is on its way.');
+        _focusNode.requestFocus();
+      }
+    } on Failure catch (e) {
+      if (mounted) AppSnackbar.showError(context, e.message);
+    }
   }
 
   @override
@@ -151,9 +159,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -221,9 +227,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.background,
                                 borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: AppColors.divider,
-                                ),
+                                border: Border.all(color: AppColors.divider),
                               ),
                               child: const Text(
                                 'Step 2 of 2 · Code',
@@ -244,9 +248,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.divider,
-                              ),
+                              border: Border.all(color: AppColors.divider),
                               boxShadow: AppColors.cardShadow,
                             ),
                             child: Column(
@@ -270,8 +272,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                         onTap: _resend,
                                         child: Text(
                                           'Resend code',
-                                          style:
-                                              TextStyles.body.copyWith(
+                                          style: TextStyles.body.copyWith(
                                             color: AppColors.primaryDark,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -296,7 +297,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
-                            'Demo build — any 6-digit code works',
+                            'Check your SMS inbox',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
                               color: AppColors.textDisabled,

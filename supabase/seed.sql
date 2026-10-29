@@ -184,6 +184,19 @@ insert into auth.users (
    'fleet.owner@safeshift.local', extensions.crypt('SafeshiftDev!2026', extensions.gen_salt('bf')), now(), '+255714000001', now(),
    '{"provider":"email","providers":["email"]}'::jsonb, '{"full_name":"Mariam Mtei","country_code":"TZ"}'::jsonb, now(), now());
 
+-- GoTrue's password grant scans these columns into strings. Recent GoTrue
+-- versions reject NULL, even though older seeds omitted them.
+update auth.users
+   set confirmation_token = coalesce(confirmation_token, ''),
+       recovery_token = coalesce(recovery_token, ''),
+       email_change_token_new = coalesce(email_change_token_new, ''),
+       email_change_token_current = coalesce(email_change_token_current, ''),
+       phone_change_token = coalesce(phone_change_token, ''),
+       email_change = coalesce(email_change, ''),
+       phone_change = coalesce(phone_change, ''),
+       reauthentication_token = coalesce(reauthentication_token, '')
+ where email like '%@safeshift.local';
+
 -- Password sign-in support (best effort; local GoTrue versions differ).
 do $$
 begin

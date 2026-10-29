@@ -1,5 +1,4 @@
-// Planned: wire the Terms/Privacy links to real documents and add final logo
-// artwork in a later sprint. Mock login UI only — no backend calls.
+// Terms/Privacy links still need final document URLs and logo artwork.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +12,7 @@ import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/phone_input_field.dart';
 
-/// Mock login screen: enter a +255 phone number, request an OTP.
+/// Phone entry screen: enter a +255 phone number and request an OTP.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -52,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         context.push('/otp');
       }
-    } on ValidationFailure catch (e) {
+    } on Failure catch (e) {
       if (mounted) {
         AppSnackbar.showError(context, e.message);
       }
@@ -88,9 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -154,9 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.divider,
-                              ),
+                              border: Border.all(color: AppColors.divider),
                               boxShadow: AppColors.cardShadow,
                             ),
                             child: Column(
@@ -213,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
-                            'Demo build — any 9-digit number works',
+                            'Standard SMS rates may apply',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
                               color: AppColors.textDisabled,

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:safeshift_driver/core/config/mock_mode.dart';
 import 'package:safeshift_driver/features/home/domain/entities/driver_status.dart';
 import 'package:safeshift_driver/features/home/providers/home_provider.dart';
 
@@ -21,7 +22,9 @@ Future<void> _waitUntil(
 void main() {
   group('HomeNotifier incoming-job countdown', () {
     test('countdown ticks down from 15 after a job arrives', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [mockEnabledProvider.overrideWithValue(true)],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(homeProvider.notifier);
 
@@ -47,7 +50,9 @@ void main() {
     });
 
     test('countdown expiry auto-declines back to searching', () async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [mockEnabledProvider.overrideWithValue(true)],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(homeProvider.notifier);
 
