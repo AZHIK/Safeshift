@@ -324,7 +324,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                     ),
                   ),
                   const SizedBox(height: AppSizes.md),
-                  Text('Identity & licence', style: TextStyles.title),
+                  const Text('Identity & licence', style: TextStyles.title),
                   const SizedBox(height: AppSizes.sm),
                   TextFormField(controller: _nationalId, decoration: const InputDecoration(labelText: 'National ID number *'), validator: (v) => (v ?? '').trim().isEmpty ? 'National ID is required' : null),
                   const SizedBox(height: AppSizes.sm),
@@ -344,7 +344,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   _documentTile('national_id', 'National ID photo *', Icons.badge_outlined),
                   _documentTile('driving_licence', 'Driving licence photo *', Icons.drive_eta_outlined),
                   const SizedBox(height: AppSizes.md),
-                  Text('Vehicle', style: TextStyles.title),
+                  const Text('Vehicle', style: TextStyles.title),
                   const SizedBox(height: AppSizes.sm),
                   DropdownButtonFormField<String>(
                     initialValue: _vehicleTypeId,
@@ -374,7 +374,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   ),
                   _documentTile('vehicle_registration', 'Vehicle registration photo *', Icons.description_outlined),
                   const SizedBox(height: AppSizes.md),
-                  Text('Insurance', style: TextStyles.title),
+                  const Text('Insurance', style: TextStyles.title),
                   const SizedBox(height: AppSizes.sm),
                   TextFormField(controller: _insuranceProvider, decoration: const InputDecoration(labelText: 'Insurance provider *'), validator: (v) => (v ?? '').trim().isEmpty ? 'Insurance provider is required' : null),
                   const SizedBox(height: AppSizes.sm),
@@ -563,7 +563,7 @@ class _NotificationPreferencesScreenState extends ConsumerState<NotificationPref
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Quiet hours', style: TextStyles.title),
+                      const Text('Quiet hours', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       Row(
                         children: [
@@ -673,7 +673,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Contact details', style: TextStyles.title),
+                      const Text('Contact details', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
                       const SizedBox(height: AppSizes.sm),
@@ -735,7 +735,7 @@ class PrivacyDataScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Your data rights', style: TextStyles.title),
+                    const Text('Your data rights', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
                     Text('Request a copy of your data or ask us to delete your account. Identity is verified before processing.', style: TextStyles.body.copyWith(color: AppColors.textSecondary)),
                     const SizedBox(height: AppSizes.md),
@@ -746,7 +746,7 @@ class PrivacyDataScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSizes.md),
-              Text('Requests', style: TextStyles.title),
+              const Text('Requests', style: TextStyles.title),
               const SizedBox(height: AppSizes.sm),
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(child: CircularProgressIndicator())
@@ -790,7 +790,7 @@ class DisputesListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               return Card(
@@ -988,7 +988,7 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                     ),
                     if (attachments.isNotEmpty) ...[
                       const SizedBox(height: AppSizes.md),
-                      Text('Evidence', style: TextStyles.title),
+                      const Text('Evidence', style: TextStyles.title),
                       ...attachments.map((attachment) => ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.photo_outlined),
@@ -997,7 +997,7 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                           )),
                     ],
                     const SizedBox(height: AppSizes.md),
-                    Text('Conversation', style: TextStyles.title),
+                    const Text('Conversation', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
                     if (messages.isEmpty)
                       Text('No messages yet.', style: TextStyles.body.copyWith(color: AppColors.textSecondary))
@@ -1061,7 +1061,7 @@ class SupportHomeScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               final category = row['support_categories'] as Map?;
@@ -1330,7 +1330,7 @@ class EmergencyContactsScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               return Card(

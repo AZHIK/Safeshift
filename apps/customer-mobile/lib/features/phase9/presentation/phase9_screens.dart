@@ -109,7 +109,7 @@ class BusinessHubScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Business account', style: TextStyles.title),
+                    const Text('Business account', style: TextStyles.title),
                     const SizedBox(height: 4),
                     Text(
                       'Register your company to book recurring jobs, add team members, and receive invoices.',
@@ -353,7 +353,7 @@ class RecurringTemplatesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(AppSizes.lg, AppSizes.lg, AppSizes.lg, 100),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               final jobs = (row['scheduled_jobs'] as List?) ?? const [];
@@ -435,7 +435,7 @@ class RecurringTemplatesScreen extends ConsumerWidget {
             child: ListView(
               shrinkWrap: true,
               children: [
-                Text('New recurring template', style: TextStyles.headline),
+                const Text('New recurring template', style: TextStyles.headline),
                 const SizedBox(height: AppSizes.md),
                 DropdownButtonFormField<String>(
                   initialValue: accountId,
@@ -614,7 +614,7 @@ class _NotificationPreferencesScreenState extends ConsumerState<NotificationPref
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Quiet hours', style: TextStyles.title),
+                      const Text('Quiet hours', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       Row(
                         children: [
@@ -736,7 +736,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Contact details', style: TextStyles.title),
+                      const Text('Contact details', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
                       const SizedBox(height: AppSizes.sm),
@@ -755,14 +755,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Sessions', style: TextStyles.title),
+                      const Text('Sessions', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       FutureBuilder<List<Map<String, dynamic>>>(
                         future: ref.read(supabaseProvider).from('user_sessions').select('id, device_name, platform, last_seen_at, revoked_at').eq('profile_id', _userId(ref)).order('last_seen_at', ascending: false),
                         builder: (context, snapshot) {
                           final sessions = snapshot.data ?? const <Map<String, dynamic>>[];
                           if (snapshot.connectionState == ConnectionState.waiting) return const LinearProgressIndicator();
-                          if (sessions.isEmpty) return Text('No active sessions found.', style: TextStyles.body);
+                          if (sessions.isEmpty) return const Text('No active sessions found.', style: TextStyles.body);
                           return Column(
                             children: sessions.map((session) => ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -842,7 +842,7 @@ class PrivacyDataScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Your data rights', style: TextStyles.title),
+                    const Text('Your data rights', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
                     Text('Request a portable copy of your data or ask us to delete your account. Identity is verified before processing.', style: TextStyles.body.copyWith(color: AppColors.textSecondary)),
                     const SizedBox(height: AppSizes.md),
@@ -853,7 +853,7 @@ class PrivacyDataScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSizes.md),
-              Text('Requests', style: TextStyles.title),
+              const Text('Requests', style: TextStyles.title),
               const SizedBox(height: AppSizes.sm),
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(child: CircularProgressIndicator())
@@ -901,7 +901,7 @@ class DisputesListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               return Card(
@@ -1104,7 +1104,7 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                     ),
                     if (attachments.isNotEmpty) ...[
                       const SizedBox(height: AppSizes.md),
-                      Text('Evidence', style: TextStyles.title),
+                      const Text('Evidence', style: TextStyles.title),
                       const SizedBox(height: AppSizes.sm),
                       ...attachments.map((attachment) => ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -1114,7 +1114,7 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                           )),
                     ],
                     const SizedBox(height: AppSizes.md),
-                    Text('Conversation', style: TextStyles.title),
+                    const Text('Conversation', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
                     if (messages.isEmpty)
                       Text('No messages yet.', style: TextStyles.body.copyWith(color: AppColors.textSecondary))
@@ -1178,7 +1178,7 @@ class SupportHomeScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               final category = row['support_categories'] as Map?;
@@ -1448,7 +1448,7 @@ class EmergencyContactsScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               return Card(
@@ -1635,7 +1635,7 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSizes.sm),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.sm),
             itemBuilder: (context, index) {
               final row = rows[index];
               final category = row['rating_categories'] as Map?;
