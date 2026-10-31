@@ -5,6 +5,7 @@ import { type FetchLike, requestJson, type SleepLike } from './base.ts';
 export interface GoogleMapsConfig {
   apiKey: string;
   baseUrl?: string;
+  routesBaseUrl?: string;
   fetchImpl?: FetchLike;
   sleep?: SleepLike;
   requestId?: string;
@@ -15,13 +16,41 @@ interface LatLng {
   lng: number;
 }
 
+interface RouteMatrixElement {
+  originIndex?: number;
+  destinationIndex?: number;
+  status?: {
+    code?: number;
+    message?: string;
+  };
+  condition?: string;
+  distanceMeters?: number;
+  duration?: string;
+}
+
+const ROUTE_TRAVEL_MODES: Record<string, string> = {
+  driving: 'DRIVE',
+  walking: 'WALK',
+  bicycling: 'BICYCLE',
+  transit: 'TRANSIT',
+};
+
+function parseDurationSeconds(value: string | undefined): number | null {
+  if (!value) return null;
+  const match = value.match(/^(\d+(?:\.\d+)?)s$/);
+  return match ? Number(match[1]) : null;
+}
+
 export class GoogleMapsClient {
   private readonly baseUrl: string;
+  private readonly routesBaseUrl: string;
   private readonly config: GoogleMapsConfig;
 
   constructor(config: GoogleMapsConfig) {
     this.config = config;
     this.baseUrl = (config.baseUrl ?? 'https://maps.googleapis.com').replace(/\/$/, '');
+    this.routesBaseUrl = (config.routesBaseUrl ?? config.baseUrl ?? 'https://routes.googleapis.com')
+      .replace(/\/$/, '');
   }
 
   async calculateDistance(
@@ -29,38 +58,67 @@ export class GoogleMapsClient {
     destinations: LatLng[],
     mode = 'driving',
   ): Promise<DistanceResult> {
-    const originParam = origins.map((point) => `${point.lat},${point.lng}`).join('|');
-    const destinationParam = destinations.map((point) => `${point.lat},${point.lng}`).join('|');
-    const url =
-      `${this.baseUrl}/maps/api/distancematrix/json?origins=${encodeURIComponent(originParam)}` +
-      `&destinations=${encodeURIComponent(destinationParam)}&mode=${encodeURIComponent(mode)}` +
-      `&key=${encodeURIComponent(this.config.apiKey)}`;
+    const travelMode = ROUTE_TRAVEL_MODES[mode] ?? 'DRIVE';
+    const body: Record<string, unknown> = {
+      origins: origins.map((point) => ({
+        waypoint: {
+          location: { latLng: { latitude: point.lat, longitude: point.lng } },
+        },
+      })),
+      destinations: destinations.map((point) => ({
+        waypoint: {
+          location: { latLng: { latitude: point.lat, longitude: point.lng } },
+        },
+      })),
+      travelMode,
+    };
+    if (travelMode === 'DRIVE') body.routingPreference = 'TRAFFIC_AWARE';
 
-    const { data } = await requestJson<Record<string, unknown>>('google_maps', url, {
-      method: 'GET',
+    const url = `${this.routesBaseUrl}/distanceMatrix/v2:computeRouteMatrix`;
+    const { data } = await requestJson<RouteMatrixElement[]>('google_maps', url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.config.apiKey,
+        'X-Goog-FieldMask':
+          'originIndex,destinationIndex,duration,distanceMeters,status,condition',
+      },
+      body: JSON.stringify(body),
     }, {
       fetchImpl: this.config.fetchImpl,
       sleep: this.config.sleep,
       requestId: this.config.requestId,
     });
 
-    if (String(data.status) !== 'OK') {
-      throw new ProviderError('google_maps', `Distance Matrix returned ${data.status}`);
+    const elements = Array.isArray(data) ? data : [];
+    const element = elements.find((item) =>
+      (item.originIndex ?? 0) === 0 && (item.destinationIndex ?? 0) === 0
+    ) ?? elements[0];
+    if (!element) {
+      throw new ProviderError('google_maps', 'Routes API returned no route matrix elements');
     }
-
-    const rows = (data.rows ?? []) as Array<Record<string, unknown>>;
-    const elements = (rows[0]?.elements ?? []) as Array<Record<string, unknown>>;
-    const element = elements[0] ?? {};
-    if (String(element.status) !== 'OK') {
-      throw new ProviderError('google_maps', `Distance element returned ${element.status}`);
+    if (element.status?.code) {
+      throw new ProviderError(
+        'google_maps',
+        `Routes API element returned ${element.status.code}: ${
+          element.status.message ?? 'unknown error'
+        }`,
+      );
     }
-
-    const distance = element.distance as { value?: number } | undefined;
-    const duration = element.duration as { value?: number } | undefined;
+    if (element.condition && element.condition !== 'ROUTE_EXISTS') {
+      throw new ProviderError('google_maps', `Routes API element returned ${element.condition}`);
+    }
+    if (typeof element.distanceMeters !== 'number') {
+      throw new ProviderError('google_maps', 'Routes API element is missing distanceMeters');
+    }
+    const durationSeconds = parseDurationSeconds(element.duration);
+    if (durationSeconds === null) {
+      throw new ProviderError('google_maps', 'Routes API element is missing duration');
+    }
 
     return {
-      distance_km: Math.round(((distance?.value ?? 0) / 1_000) * 100) / 100,
-      duration_min: Math.round(((duration?.value ?? 0) / 60) * 100) / 100,
+      distance_km: Math.round((element.distanceMeters / 1_000) * 100) / 100,
+      duration_min: Math.round((durationSeconds / 60) * 100) / 100,
     };
   }
 

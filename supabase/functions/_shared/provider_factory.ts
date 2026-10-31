@@ -127,6 +127,7 @@ export async function googleMapsClient(
   return new GoogleMapsClient({
     apiKey,
     baseUrl: Deno.env.get('GOOGLE_MAPS_BASE_URL') ?? undefined,
+    routesBaseUrl: Deno.env.get('GOOGLE_MAPS_ROUTES_BASE_URL') ?? undefined,
     requestId,
     fetchImpl,
   });

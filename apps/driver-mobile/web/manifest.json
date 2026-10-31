@@ -1,6 +1,6 @@
 {
-    "name": "safeshift_driver",
-    "short_name": "safeshift_driver",
+    "name": "safeshift driver",
+    "short_name": "safeshift driver",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

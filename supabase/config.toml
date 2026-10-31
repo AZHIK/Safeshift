@@ -75,7 +75,8 @@ enabled = true
 # Phase 5 seed depends on Phase 1–4 identifiers and runs fifth.
 # Phase 6 seed depends on Phase 1–5 identifiers and runs sixth.
 # Phase 9 seed adds fleet-owner, support, and safety reference data.
-sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql", "./seed-phase-9.sql"]
+# Local SMS seed installs the development-only OTP capture hook.
+sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql", "./seed-phase-9.sql", "./seed-local-sms.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -262,8 +263,9 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = false
+# Local sandbox: allow sign-ups so new phone numbers can be tested. The local
+# Send SMS hook below captures the OTP instead of delivering a real SMS.
+enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
@@ -293,13 +295,22 @@ max_frequency = "5s"
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token_hook"
 
+# Local sandbox only: write OTPs to public.local_sms_outbox instead of sending
+# SMS. The hook function is installed by ./seed-local-sms.sql. Do not push this
+# hook config to a hosted project.
+[auth.hook.send_sms]
+enabled = true
+uri = "pg-functions://postgres/public/send_sms_hook"
+
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+# Local sandbox: the CLI only enables phone auth when an SMS provider is
+# configured. These are dummy Twilio values; the send_sms hook above intercepts
+# every message before Twilio is called. Do not use these values in production.
 [auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
-# DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
-auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+enabled = true
+account_sid = "AC00000000000000000000000000000000"
+message_service_sid = "MG00000000000000000000000000000000"
+auth_token = "local-sandbox-not-used"
 
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]

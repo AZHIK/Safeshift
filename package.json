@@ -22,6 +22,7 @@
     "db:reset": "npx --yes supabase db reset",
     "db:types": "npx --yes supabase gen types typescript --local --schema public > packages/shared-types/src/database.generated.ts",
     "db:verify": "bash scripts/verify-db.sh",
+    "db:watch-otp": "bash scripts/watch-local-otp.sh",
     "flutter:get": "melos bootstrap",
     "flutter:analyze": "melos run analyze",
     "flutter:test": "melos run test --no-select",

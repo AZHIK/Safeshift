@@ -28,7 +28,7 @@ apps must never hold provider credentials or call provider APIs directly.
 | ------------------------------ | --------------------- | ----------------------------------------------- |
 | `health`                       | public                | Liveness and Vault/database readiness.          |
 | `auth-validate`                | JWT                   | Return role, country, and hydrated permissions. |
-| `maps-distance`                | JWT                   | Google Distance Matrix with a seven-day cache.  |
+| `maps-distance`                | JWT                   | Google Routes API with a seven-day cache.       |
 | `maps-geocode`                 | JWT                   | Forward/reverse geocoding with a 30-day cache.  |
 | `quote-calculate`              | JWT (customer)        | Phase 4 quote RPC.                              |
 | `sms-send`                     | permission / internal | Beem SMS with Africa's Talking fallback.        |

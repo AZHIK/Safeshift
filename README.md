@@ -11,14 +11,18 @@ Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 
 ## Status
 
-- Phase 1–8 database layer complete: 123 migrations, six local seed files, and
-  schema gates for every phase.
+- Phase 1–9 database layer complete: 127 migrations, seven local demo seeds,
+  the local SMS sandbox seed, and schema gates for every phase.
 - Latest verified gate results: Phase 1 `151 PASS`, Phase 2 `166 PASS`, Phase 3
   `150 PASS`, Phase 4 `154 PASS`, Phase 5 `81 PASS`, Phase 6 `154 PASS`, all
-  with `0 FAIL`; Phase 7 and Phase 8 gates are run by `pnpm db:verify`.
+  with `0 FAIL`; Phase 7–9 schema gates are run by `pnpm db:verify`, with
+  function and integration gates run separately.
 - Flutter customer and driver apps are wired to Supabase: OTP auth, Riverpod
   data providers, Hive offline cache, Realtime/polling, Storage uploads,
   delivery OTP, push-token registration, and deep links.
+- Phase 9 marketplace flows are implemented locally: driver onboarding,
+  business accounts, recurring jobs, fleet portal, admin console, disputes,
+  support, safety, and trip sharing.
 - Phase 7 provider integrations and Edge Functions are implemented locally but
   not deployed. Phase 8 staging, real SMS/FCM, universal links, Maps, and
   payment-provider checks still require external credentials and devices.
@@ -52,7 +56,7 @@ safeshift/
 │   └── shared-types/         # Shared TypeScript contracts + generated DB types
 ├── supabase/
 │   ├── migrations/           # SQL migrations — source of truth
-│   ├── scripts/              # Phase 1–8 schema and integration gates
+│   ├── scripts/              # Phase 1–9 schema and integration gates
 │   ├── functions/            # Deno Edge Functions
 │   └── seed*.sql             # Seed fixtures
 ├── docs/
@@ -95,7 +99,7 @@ Melos 7.8.0
 # from the repo root
 corepack enable --install-directory "$HOME/.local/bin" pnpm
 export PATH="$HOME/.local/bin:$PATH"
-corepack pnpm setup        # installs Node deps and bootstraps Melos
+corepack pnpm run setup    # installs Node deps and bootstraps Melos
 ```
 
 If `melos` is not on your PATH:
@@ -125,9 +129,13 @@ flutter run --dart-define=ENV=dev
 # Flutter driver app (local Supabase stack)
 cd apps/driver-mobile
 flutter run --dart-define=ENV=dev
+
+# Admin console (local Supabase stack)
+corepack pnpm --filter @safeshift/admin-console dev
 ```
 
-The web app runs at <http://localhost:3000>.
+The web app runs at <http://localhost:3000>; the admin console runs at
+<http://localhost:3001>.
 
 ## Local database
 
@@ -137,12 +145,15 @@ corepack pnpm db:reset
 corepack pnpm db:verify
 ```
 
-`db:reset` applies all 123 migrations and all six local seed files. `db:verify`
-runs the Phase 1–8 schema gates in order and fails on the first `FAIL`. The
-Phase 8 live integration gate runs separately:
+`db:reset` applies all 127 migrations and all local seed files, including the
+local SMS sandbox. `db:verify` runs the Phase 1–9 schema gates in order and
+fails on the first `FAIL`. The Phase 8 and Phase 9 live integration gates run
+separately:
 
 ```bash
 supabase/scripts/verify-phase-8-integration.sh
+supabase/scripts/verify-phase-9-functions.sh
+supabase/scripts/verify-phase-9-integration.sh
 ```
 
 If the `supabase` binary is not installed, the root scripts use `npx --yes
@@ -205,8 +216,8 @@ cp apps/web/.env.example apps/web/.env.local
 
 1. Node workspace — frozen install, typecheck, lint, build.
 2. Flutter workspace — Melos bootstrap, analyze, test.
-3. Database gates — Supabase start, reset, Phase 1–8 verification, and the
-   Phase 8 live integration script.
+3. Database gates — Supabase start, reset, Phase 1–9 schema verification, and
+   the Phase 8 live integration script.
 
 ## Documentation
 
@@ -218,8 +229,11 @@ cp apps/web/.env.example apps/web/.env.local
 - `docs/architecture/0008`–`0013` — Phase 1–6 design records
 - `docs/architecture/0014-monorepo-conventions.md` — workspace tooling
 - `docs/architecture/0015`–`0016` — Phase 7 integration and Edge Functions
+- `docs/architecture/0016-phase-9-remaining-flows.md` — Phase 9 marketplace flows
 - `docs/architecture/0017-phase-8-client-integration.md` — Phase 8 mobile clients
 - `docs/runbooks/phase-8-staging-and-qa.md` — staging setup and manual QA
+- `docs/runbooks/running-apps-and-hosted-supabase-testing.md` — run all apps and
+  test against a hosted Supabase test project
 
 ## License
 

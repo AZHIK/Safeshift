@@ -38,7 +38,7 @@ in-memory Supabase, auth, provider, and cache fakes. Directories beginning with
 | --- | --- | --- | --- |
 | 1 | `health` | public | Database/Vault readiness. |
 | 2 | `auth-validate` | JWT | Hydrated role, country, permissions. |
-| 3 | `maps-distance` | JWT | Distance Matrix + cache. |
+| 3 | `maps-distance` | JWT | Routes API + cache. |
 | 4 | `maps-geocode` | JWT | Forward/reverse geocode + cache. |
 | 5 | `quote-calculate` | JWT | Phase 4 quote RPC. |
 | 6 | `sms-send` | permission/internal | Beem SMS, Africa's Talking fallback. |
@@ -168,7 +168,7 @@ All clients implement small interfaces in `_shared/providers/`:
 - **Resend:** transactional email.
 - **FCM:** OAuth2 service-account JWT (RS256 via WebCrypto
   `RSASSA-PKCS1-v1_5`), token and topic sends.
-- **Google Maps:** Distance Matrix and Geocoding.
+- **Google Maps:** Routes API and Geocoding.
 
 Clients accept an injectable `fetch` and sleep function so tests never hit the
 network. Response bodies are never logged.

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.safeshift" "\0"
-            VALUE "FileDescription", "safeshift_driver" "\0"
+            VALUE "FileDescription", "safeshift driver" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "safeshift_driver" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.safeshift. All rights reserved." "\0"
             VALUE "OriginalFilename", "safeshift_driver.exe" "\0"
-            VALUE "ProductName", "safeshift_driver" "\0"
+            VALUE "ProductName", "safeshift driver" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

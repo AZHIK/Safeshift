@@ -1,6 +1,6 @@
 # maps-distance
 
-Returns Google Distance Matrix results for up to 25 origins and 25 destinations.
+Returns Google Routes API `computeRouteMatrix` results for up to 25 origins and 25 destinations.
 
 - **Auth:** bearer JWT.
 - **Method:** `POST`.
