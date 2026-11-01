@@ -23,9 +23,11 @@ Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 - Phase 9 marketplace flows are implemented locally: driver onboarding,
   business accounts, recurring jobs, fleet portal, admin console, disputes,
   support, safety, and trip sharing.
-- Phase 7 provider integrations and Edge Functions are implemented locally but
-  not deployed. Phase 8 staging, real SMS/FCM, universal links, Maps, and
-  payment-provider checks still require external credentials and devices.
+- Phase 7 provider integrations and Edge Functions are implemented locally. The
+  Maps Edge Functions are deployed to the hosted test project; the remaining
+  functions are not deployed. Phase 8 staging, real SMS/FCM, universal links,
+  mobile Maps, and payment-provider checks still require external credentials
+  and devices.
 - Next.js web workspace is scaffolded.
 
 ## Stack
@@ -198,6 +200,136 @@ cp apps/web/.env.example apps/web/.env.local
   through `--dart-define`.
 - Staging is a separate Supabase project seeded with configuration only:
   `supabase/seed-staging.sql`.
+
+## Google Maps server key
+
+The Google Cloud credential named **Maps Platform API key** is the API key.
+There is no separate “server key” object. Use that key for the SafeShift server:
+
+1. In Google Cloud Console, enable **Geocoding API** and **Routes API**.
+2. Open **APIs & Services → Credentials → Maps Platform API key**.
+3. Set **Application restrictions** to **None**.
+4. If you restrict the key by API, select **Geocoding API** and **Routes API**.
+5. Copy the key.
+
+`Maps Platform API key` is only the credential name; it can call any enabled
+Maps Platform API. The API restriction list shows only APIs that are already
+enabled in the project. If **Geocoding API** or **Routes API** is missing from
+that list, enable it first in **APIs & Services → Library**, then reopen the key.
+You can also leave the key unrestricted while testing and restrict it afterward.
+
+Run the commands below from the repository root. They use the local-only
+`apps/customer-mobile/.env.hosted-test` file for the hosted test project. The
+key is written to `supabase/functions/.env.local`, which is gitignored, and to
+the hosted Edge Function secrets. No real secret is committed.
+
+Load the hosted test project and prompt for the server key:
+
+```bash
+export TEST_SUPABASE_URL="$(sed -n 's/^SUPABASE_URL=//p' apps/customer-mobile/.env.hosted-test)"
+export TEST_PROJECT_REF="$(printf '%s' "$TEST_SUPABASE_URL" | sed -E 's#^https://([^.]+)\.supabase\.co/?$#\1#')"
+export TEST_ANON_KEY="$(sed -n 's/^SUPABASE_ANON_KEY=//p' apps/customer-mobile/.env.hosted-test)"
+
+printf 'Google Maps server key: '
+read -rs GOOGLE_MAPS_API_KEY
+printf '\n'
+```
+
+Test **Geocoding API**. Stop if the status is not `OK`:
+
+```bash
+printf 'Geocoding API: '
+curl -sS --get 'https://maps.googleapis.com/maps/api/geocode/json' \
+  --data-urlencode 'address=Kariakoo Market, Dar es Salaam' \
+  --data-urlencode "key=$GOOGLE_MAPS_API_KEY" |
+python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print(d.get("status"), "|", (d.get("results") or [{}])[0].get("formatted_address", ""))
+raise SystemExit(0 if d.get("status") == "OK" else 1)
+'
+```
+
+Test **Routes API**. Stop if the condition is not `ROUTE_EXISTS`:
+
+```bash
+printf 'Routes API: '
+curl -sS -X POST 'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix' \
+  -H 'Content-Type: application/json' \
+  -H "X-Goog-Api-Key: $GOOGLE_MAPS_API_KEY" \
+  -H 'X-Goog-FieldMask: originIndex,destinationIndex,duration,distanceMeters,status,condition' \
+  -d '{"origins":[{"waypoint":{"location":{"latLng":{"latitude":-6.8180,"longitude":39.2700}}}}],"destinations":[{"waypoint":{"location":{"latLng":{"latitude":-6.7750,"longitude":39.2250}}}}],"travelMode":"DRIVE","routingPreference":"TRAFFIC_AWARE"}' |
+python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+if isinstance(d, dict):
+    print(d)
+    raise SystemExit(1)
+e = d[0] if d else {}
+print(e.get("condition"), "|", e.get("distanceMeters"), "|", e.get("duration"))
+raise SystemExit(0 if e.get("condition") == "ROUTE_EXISTS" else 1)
+'
+```
+
+Store the key locally and in the hosted test project, then deploy the Maps
+functions:
+
+```bash
+printf 'GOOGLE_MAPS_API_KEY=%s\n' "$GOOGLE_MAPS_API_KEY" > supabase/functions/.env.local
+npx --yes supabase secrets set --project-ref "$TEST_PROJECT_REF" \
+  --env-file supabase/functions/.env.local
+npx --yes supabase functions deploy maps-geocode --project-ref "$TEST_PROJECT_REF"
+npx --yes supabase functions deploy maps-distance --project-ref "$TEST_PROJECT_REF"
+unset GOOGLE_MAPS_API_KEY
+```
+
+Test the deployed functions with the hosted test OTP user. This uses the test
+phone and Test OTP configured for the hosted test project only:
+
+```bash
+USER_JWT="$(curl -sS -X POST "$TEST_SUPABASE_URL/auth/v1/verify" \
+  -H "apikey: $TEST_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"sms","phone":"+255712345678","token":"123456"}' \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))')"
+
+if [ -z "$USER_JWT" ]; then
+  echo 'No JWT returned. Check the hosted Test OTP configuration.'
+else
+  curl -sS -X POST "$TEST_SUPABASE_URL/functions/v1/maps-geocode" \
+    -H "apikey: $TEST_ANON_KEY" \
+    -H "Authorization: Bearer $USER_JWT" \
+    -H "Content-Type: application/json" \
+    -d '{"address":"Kariakoo Market, Dar es Salaam"}' | python3 -m json.tool
+
+  curl -sS -X POST "$TEST_SUPABASE_URL/functions/v1/maps-distance" \
+    -H "apikey: $TEST_ANON_KEY" \
+    -H "Authorization: Bearer $USER_JWT" \
+    -H "Content-Type: application/json" \
+    -d '{"origins":[{"lat":-6.8180,"lng":39.2700}],"destinations":[{"lat":-6.7750,"lng":39.2250}],"mode":"driving"}' | python3 -m json.tool
+fi
+```
+
+Expected results:
+
+- `maps-geocode` returns a formatted address.
+- `maps-distance` returns `distance_km` and `duration_min`.
+- `Google Maps API key is not configured` means the hosted secret was not set.
+- `The provided API key is invalid` or `API_KEY_INVALID` means the key was
+  copied incorrectly or deleted. Copy it again from Google Cloud Credentials.
+- `REQUEST_DENIED` or `PERMISSION_DENIED` means billing, API enablement, or key
+  restrictions are wrong.
+
+Clean up the shell variables:
+
+```bash
+unset USER_JWT TEST_ANON_KEY TEST_SUPABASE_URL TEST_PROJECT_REF
+```
+
+Use a **separate mobile key** later for Android/iOS. Do not put this server key
+in a Flutter app or browser. See
+`docs/runbooks/running-apps-and-hosted-supabase-testing.md` §8 for mobile key
+placement.
 
 ## Shared code rules
 
