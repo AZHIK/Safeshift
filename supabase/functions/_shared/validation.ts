@@ -99,6 +99,12 @@ export const mapsDistanceSchema = z.object({
   mode: z.enum(['driving', 'walking', 'bicycling', 'transit']).default('driving'),
 });
 
+export const mapsRouteSchema = z.object({
+  origin: coordinateSchema,
+  destination: coordinateSchema,
+  mode: z.enum(['driving']).default('driving'),
+});
+
 export const mapsGeocodeSchema = z.union([
   z.object({ address: z.string().trim().min(1).max(500) }),
   z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }),

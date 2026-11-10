@@ -1,5 +1,10 @@
 import { ProviderError } from '../errors.ts';
-import type { AutocompletePrediction, DistanceResult, GeocodeResult } from '../types/index.ts';
+import type {
+  AutocompletePrediction,
+  DistanceResult,
+  GeocodeResult,
+  RouteResult,
+} from '../types/index.ts';
 import { type FetchLike, requestJson, type SleepLike } from './base.ts';
 
 export interface GoogleMapsConfig {
@@ -28,12 +33,30 @@ interface RouteMatrixElement {
   duration?: string;
 }
 
+interface ComputeRouteCandidate {
+  distanceMeters?: number;
+  duration?: string;
+  polyline?: {
+    encodedPolyline?: string;
+  };
+  routeLabels?: string[];
+}
+
+interface ComputeRoutesResponse {
+  routes?: ComputeRouteCandidate[];
+}
+
 const ROUTE_TRAVEL_MODES: Record<string, string> = {
   driving: 'DRIVE',
   walking: 'WALK',
   bicycling: 'BICYCLE',
   transit: 'TRANSIT',
 };
+
+function roundTo(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
 
 function parseDurationSeconds(value: string | undefined): number | null {
   if (!value) return null;

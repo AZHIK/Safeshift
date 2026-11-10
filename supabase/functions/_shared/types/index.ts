@@ -86,6 +86,19 @@ export interface DistanceResult {
   duration_min: number;
 }
 
+export interface RouteResult {
+  /** Road distance returned by the routing provider. */
+  distance_km: number;
+  /** Estimated driving time in minutes. */
+  duration_min: number;
+  /** Google encoded polyline describing the road geometry. */
+  encoded_polyline: string;
+  /** Provider label such as DEFAULT_ROUTE, when available. */
+  route_label?: string;
+  /** True when the route was calculated with traffic-aware routing. */
+  traffic_aware: boolean;
+}
+
 export interface GeocodeResult {
   lat: number;
   lng: number;
