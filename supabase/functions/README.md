@@ -30,6 +30,7 @@ apps must never hold provider credentials or call provider APIs directly.
 | `auth-validate`                | JWT                   | Return role, country, and hydrated permissions. |
 | `maps-distance`                | JWT                   | Google Routes API with a seven-day cache.       |
 | `maps-geocode`                 | JWT                   | Forward/reverse geocoding with a 30-day cache.  |
+| `maps-route`                   | JWT                   | Google Compute Routes geometry, distance, duration. |
 | `quote-calculate`              | JWT (customer)        | Phase 4 quote RPC.                              |
 | `sms-send`                     | permission / internal | Beem SMS with Africa's Talking fallback.        |
 | `email-send`                   | permission / internal | Resend transactional email.                     |

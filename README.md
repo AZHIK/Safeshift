@@ -280,6 +280,7 @@ npx --yes supabase secrets set --project-ref "$TEST_PROJECT_REF" \
   --env-file supabase/functions/.env.local
 npx --yes supabase functions deploy maps-geocode --project-ref "$TEST_PROJECT_REF"
 npx --yes supabase functions deploy maps-distance --project-ref "$TEST_PROJECT_REF"
+npx --yes supabase functions deploy maps-route --project-ref "$TEST_PROJECT_REF"
 unset GOOGLE_MAPS_API_KEY
 ```
 

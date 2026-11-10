@@ -33,6 +33,7 @@ FUNCTIONS=(
   auth-validate
   maps-distance
   maps-geocode
+  maps-route
   quote-calculate
   sms-send
   email-send

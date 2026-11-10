@@ -72,8 +72,11 @@ export class GoogleMapsClient {
   constructor(config: GoogleMapsConfig) {
     this.config = config;
     this.baseUrl = (config.baseUrl ?? 'https://maps.googleapis.com').replace(/\/$/, '');
-    this.routesBaseUrl = (config.routesBaseUrl ?? config.baseUrl ?? 'https://routes.googleapis.com')
-      .replace(/\/$/, '');
+    // The Routes API lives on its own host. It must never fall back to
+    // `baseUrl`, which is the Geocoding/Places host: posting a Compute Routes
+    // request to it 404s with an empty body and is indistinguishable from a
+    // missing API key.
+    this.routesBaseUrl = (config.routesBaseUrl ?? 'https://routes.googleapis.com').replace(/\/$/, '');
   }
 
   async calculateDistance(
@@ -111,6 +114,7 @@ export class GoogleMapsClient {
       fetchImpl: this.config.fetchImpl,
       sleep: this.config.sleep,
       requestId: this.config.requestId,
+      timeoutMs: 60_000,
     });
 
     const elements = Array.isArray(data) ? data : [];
@@ -211,5 +215,86 @@ export class GoogleMapsClient {
       description: String(prediction.description ?? ''),
       place_id: String(prediction.place_id ?? ''),
     }));
+  }
+
+  /**
+   * Computes a single driving route between one origin and one destination using
+   * Google Routes API `Compute Routes`.
+   *
+   * Returns road distance, duration, and the encoded polyline geometry. A
+   * synthetic route label is derived from the provider's route label so the
+   * client can surface it when supported.
+   */
+  async calculateRoute(
+    origin: { lat: number; lng: number },
+    destination: { lat: number; lng: number },
+    mode = 'driving',
+  ): Promise<RouteResult> {
+    const travelMode = ROUTE_TRAVEL_MODES[mode] ?? 'DRIVE';
+    const routingPreference =
+      travelMode === 'DRIVE' ? 'TRAFFIC_AWARE' : undefined;
+
+    const body: Record<string, unknown> = {
+      origin: {
+        location: { latLng: { latitude: origin.lat, longitude: origin.lng } },
+      },
+      destination: {
+        location: { latLng: { latitude: destination.lat, longitude: destination.lng } },
+      },
+      travelMode,
+      computeAlternativeRoutes: false,
+      // `PolylineQuality` is an enum: the accepted values are
+      // POLYLINE_QUALITY_UNSPECIFIED, LOW, MEDIUM and HIGH_QUALITY. The bare
+      // string "HIGH" is not a member and is rejected with INVALID_ARGUMENT.
+      polylineQuality: 'HIGH_QUALITY',
+      polylineEncoding: 'ENCODED_POLYLINE',
+    };
+    if (routingPreference) body.routingPreference = routingPreference;
+
+    // Compute Routes is served from /directions/v2 on the Routes API host.
+    // There is no /v1:computeRoutes path; requesting it 404s with an empty
+    // body, which is impossible to tell apart from a disabled API.
+    const url = `${this.routesBaseUrl}/directions/v2:computeRoutes`;
+    const { data } = await requestJson<ComputeRoutesResponse>('google_maps', url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.config.apiKey,
+        'X-Goog-FieldMask':
+          'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.routeLabels',
+      },
+      body: JSON.stringify(body),
+    }, {
+      fetchImpl: this.config.fetchImpl,
+      sleep: this.config.sleep,
+      requestId: this.config.requestId,
+      timeoutMs: 60_000,
+    });
+
+    const routes = Array.isArray(data?.routes) ? data.routes : [];
+    const route = routes[0];
+    if (!route || typeof route.distanceMeters !== 'number') {
+      throw new ProviderError('google_maps', 'Routes API returned no route');
+    }
+    const encodedPolyline =
+      typeof route.polyline?.encodedPolyline === 'string' &&
+      route.polyline.encodedPolyline.length > 0
+        ? route.polyline.encodedPolyline
+        : '';
+    if (encodedPolyline.length === 0) {
+      throw new ProviderError('google_maps', 'Routes API returned an empty polyline');
+    }
+    const durationSeconds = parseDurationSeconds(route.duration);
+    if (durationSeconds === null) {
+      throw new ProviderError('google_maps', 'Routes API is missing route duration');
+    }
+    const routeLabels = Array.isArray(route.routeLabels) ? route.routeLabels : [];
+    return {
+      distance_km: roundTo(route.distanceMeters / 1_000, 2),
+      duration_min: roundTo(durationSeconds / 60, 2),
+      encoded_polyline: encodedPolyline,
+      route_label: routeLabels.includes('DEFAULT_ROUTE') ? 'DEFAULT_ROUTE' : undefined,
+      traffic_aware: routingPreference !== undefined,
+    };
   }
 }

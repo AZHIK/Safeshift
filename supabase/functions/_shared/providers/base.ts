@@ -27,6 +27,34 @@ function providerLog(
 }
 
 /**
+ * Extract the actionable part of a Google-style provider error envelope.
+ *
+ * Only the canonical `error.status` and `error.message` are kept. The full
+ * body is never returned because it can echo request coordinates. Coordinate
+ * shaped numbers are scrubbed from the message for the same reason.
+ */
+function extractProviderError(body: unknown): { status?: string; message?: string } {
+  if (!body || typeof body !== 'object') return {};
+  const envelope = (body as { error?: unknown }).error;
+  if (!envelope || typeof envelope !== 'object') return {};
+
+  const rawStatus = (envelope as { status?: unknown }).status;
+  const rawMessage = (envelope as { message?: unknown }).message;
+  const result: { status?: string; message?: string } = {};
+
+  if (typeof rawStatus === 'string' && rawStatus.trim()) {
+    result.status = rawStatus.trim();
+  }
+  if (typeof rawMessage === 'string' && rawMessage.trim()) {
+    result.message = rawMessage
+      .trim()
+      .replace(/-?\d+\.\d{3,}/g, '[redacted]')
+      .slice(0, 200);
+  }
+  return result;
+}
+
+/**
  * Perform a provider HTTP call with timeout, retry, and structured logging.
  * Response bodies are never logged because they can contain customer PII.
  */
@@ -75,19 +103,23 @@ export function requestJson<T>(
       });
 
       if (!response.ok) {
+        // Provider error envelopes carry the actionable detail
+        // (INVALID_ARGUMENT, PERMISSION_DENIED, API_KEY_INVALID, ...).
+        // Without it a wrong endpoint path and a bad enum value look
+        // identical from the outside.
+        const providerError = extractProviderError(body);
+        const details = {
+          status: response.status,
+          ...(providerError.status ? { provider_status: providerError.status } : {}),
+          ...(providerError.message ? { provider_message: providerError.message } : {}),
+        };
         if (response.status === 429) {
-          throw new ProviderUnavailableError(provider, `${provider} rate limited`, {
-            status: response.status,
-          });
+          throw new ProviderUnavailableError(provider, `${provider} rate limited`, details);
         }
         if (response.status >= 500) {
-          throw new ProviderUnavailableError(provider, `${provider} returned ${response.status}`, {
-            status: response.status,
-          });
+          throw new ProviderUnavailableError(provider, `${provider} returned ${response.status}`, details);
         }
-        throw new ProviderError(provider, `${provider} rejected the request`, {
-          status: response.status,
-        });
+        throw new ProviderError(provider, `${provider} rejected the request`, details);
       }
 
       return { data: body as T, status: response.status };

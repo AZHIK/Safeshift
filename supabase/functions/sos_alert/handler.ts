@@ -34,6 +34,33 @@ interface ContactRow {
   notify_on_sos: boolean;
 }
 
+interface QuoteRequestAddresses {
+  pickup_address: string;
+  destination_address: string;
+}
+
+/**
+ * Read the pickup/destination addresses out of a nested PostgREST embed.
+ *
+ * `job -> quote -> quote_request` are many-to-one relationships, so PostgREST
+ * returns objects, while the generated row types model them as arrays.
+ * Normalize both shapes so the SMS body always carries a real route.
+ */
+function firstQuoteRequest(value: unknown): QuoteRequestAddresses | null {
+  if (!value) return null;
+  const candidates = Array.isArray(value) ? value : [value];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const nested = (candidate as { quote_request?: unknown }).quote_request;
+    if (!nested) continue;
+    const rows = Array.isArray(nested) ? nested : [nested];
+    for (const row of rows) {
+      if (row && typeof row === 'object') return row as QuoteRequestAddresses;
+    }
+  }
+  return null;
+}
+
 async function optionalClients(): Promise<DeliveryClients> {
   const clients: DeliveryClients = {};
   try {
@@ -84,9 +111,7 @@ export async function handle(
   if (jobError) throw jobError;
   if (!jobData) throw new NotFoundError('Job not found');
 
-  const quoteRequest = (jobData as {
-    quote: { quote_request: { pickup_address: string; destination_address: string } };
-  }).quote?.quote_request;
+  const quoteRequest = firstQuoteRequest((jobData as { quote?: unknown }).quote);
   const route = quoteRequest
     ? `${quoteRequest.pickup_address} → ${quoteRequest.destination_address}`
     : 'an active SafeShift trip';

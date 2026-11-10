@@ -455,6 +455,9 @@ verify_jwt = false
 [functions.maps-geocode]
 verify_jwt = false
 
+[functions.maps-route]
+verify_jwt = false
+
 [functions.quote-calculate]
 verify_jwt = false
 
