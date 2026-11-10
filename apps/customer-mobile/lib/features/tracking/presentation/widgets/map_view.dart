@@ -1,113 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../ride/providers/ride_provider.dart';
 
-class MapView extends StatelessWidget {
+/// Google Maps view for tracking, driven by real ride/job state.
+class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => Container(
-      width: double.infinity,
-      color: const Color(0xFFEAF0F3),
-      child: Stack(
-        children: <Widget>[
-          const Center(
-            child: Text(
-              'Map view — coming soon',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          CustomPaint(
-            size: Size(constraints.maxWidth, constraints.maxHeight),
-            painter: _MockRoutePainter(),
-          ),
-          const Positioned(
-            left: 34,
-            bottom: 34,
-            child: _MapMarker(
-              icon: Icons.trip_origin_rounded,
-              color: AppColors.success,
-            ),
-          ),
-          const Positioned(
-            right: 44,
-            top: 45,
-            child: _MapMarker(
-              icon: Icons.location_on_rounded,
-              color: AppColors.error,
-            ),
-          ),
-          const Positioned(
-            left: 130,
-            top: 95,
-            child: _MapMarker(
-              icon: Icons.local_shipping_rounded,
-              color: AppColors.primaryDark,
-              filled: true,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+  ConsumerState<MapView> createState() => _MapViewState();
 }
 
-class _MapMarker extends StatelessWidget {
-  const _MapMarker({
-    required this.icon,
-    required this.color,
-    this.filled = false,
-  });
-  final IconData icon;
-  final Color color;
-  final bool filled;
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 38,
-    height: 38,
-    decoration: BoxDecoration(
-      color: filled ? Colors.white : Colors.white.withValues(alpha: 0.9),
-      shape: BoxShape.circle,
-      boxShadow: const <BoxShadow>[
-        BoxShadow(
-          color: Color(0x22000000),
-          blurRadius: 8,
-          offset: Offset(0, 2),
+class _MapViewState extends ConsumerState<MapView> {
+  GoogleMapController? _controller;
+  static const _defaultCenter = LatLng(-6.7924, 39.2083);
+
+  Set<Marker> _markers(RideState state) {
+    final markers = <Marker>{};
+    final pickup = state.pickup;
+    if (pickup != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: LatLng(pickup.latitude, pickup.longitude),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: InfoWindow(title: pickup.name),
         ),
-      ],
-    ),
-    child: Icon(icon, color: color, size: 21),
-  );
-}
-
-class _MockRoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.primaryDark
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    const dash = 8.0;
-    const gap = 6.0;
-    final start = Offset(60, size.height - 52);
-    final end = Offset(size.width - 62, 64);
-    final control = Offset(size.width * 0.48, size.height * 0.45);
-    final path = Path()
-      ..moveTo(start.dx, start.dy)
-      ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(metric.extractPath(distance, distance + dash), paint);
-        distance += dash + gap;
-      }
+      );
     }
+    final destination = state.destination;
+    if (destination != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: LatLng(destination.latitude, destination.longitude),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(title: destination.name),
+        ),
+      );
+    }
+    if (state.driverLatitude != null && state.driverLongitude != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: LatLng(state.driverLatitude!, state.driverLongitude!),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: InfoWindow(title: state.driver?.name ?? 'Driver'),
+        ),
+      );
+    }
+    return markers;
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(rideProvider);
+    final target = state.pickup != null
+        ? LatLng(state.pickup!.latitude, state.pickup!.longitude)
+        : _defaultCenter;
+    return GoogleMap(
+      onMapCreated: (GoogleMapController controller) => _controller = controller,
+      initialCameraPosition: CameraPosition(target: target, zoom: 13),
+      markers: _markers(state),
+      polylines: state.pickup != null && state.destination != null
+          ? {
+              Polyline(
+                polylineId: const PolylineId('route'),
+                points: [
+                  LatLng(state.pickup!.latitude, state.pickup!.longitude),
+                  LatLng(
+                    state.destination!.latitude,
+                    state.destination!.longitude,
+                  ),
+                ],
+                color: AppColors.primaryDark,
+                width: 5,
+              ),
+            }
+          : const <Polyline>{},
+      mapType: MapType.normal,
+      myLocationEnabled: true,
+      myLocationButtonEnabled: true,
+    );
+  }
 }

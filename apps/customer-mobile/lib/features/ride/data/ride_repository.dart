@@ -3,9 +3,8 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../shared/mock/mock_cargo_categories.dart';
-import '../../../shared/mock/mock_locations.dart';
-import '../../../shared/mock/mock_vehicle_classes.dart';
+import '../../../shared/models/catalog_option.dart';
+import '../../../shared/models/ride_place.dart';
 
 class QuoteSnapshot {
   const QuoteSnapshot({
@@ -91,43 +90,15 @@ class RideRepository {
 
   final SupabaseClient _client;
 
-  static const Map<String, String> _cargoCodeByMockId = <String, String>{
-    'household': 'household_goods',
-    'furniture': 'furniture',
-    'appliances': 'appliances',
-    'building_materials': 'building_materials',
-    'commercial_goods': 'electronics',
-  };
-
   Future<QuoteSnapshot> requestQuote({
     required String customerId,
-    required MockLocation pickup,
-    required MockLocation destination,
-    required MockVehicleClass vehicle,
-    MockCargoCategory? cargo,
+    required RidePlace pickup,
+    required RidePlace destination,
+    required VehicleTypeOption vehicle,
+    CargoTypeOption? cargo,
     double? weightKg,
     int? valueTzs,
   }) async {
-    final vehicleType = await _client
-        .from('vehicle_types')
-        .select('id')
-        .eq('code', vehicle.id)
-        .maybeSingle();
-    if (vehicleType == null) {
-      throw StateError('Vehicle type ${vehicle.id} is not configured.');
-    }
-
-    String? cargoTypeId;
-    final cargoCode = _cargoCodeByMockId[cargo?.id];
-    if (cargoCode != null) {
-      final cargoType = await _client
-          .from('cargo_types')
-          .select('id')
-          .eq('code', cargoCode)
-          .maybeSingle();
-      cargoTypeId = cargoType?['id'] as String?;
-    }
-
     final route = _routeMetrics(pickup, destination);
 
     final quoteId = await _client.rpc<String>(
@@ -138,8 +109,8 @@ class RideRepository {
         'p_pickup_address': pickup.name,
         'p_destination_location': _point(destination),
         'p_destination_address': destination.name,
-        'p_vehicle_type_id': vehicleType['id'],
-        'p_cargo_type_id': cargoTypeId,
+        'p_vehicle_type_id': vehicle.id,
+        'p_cargo_type_id': cargo?.id,
         'p_cargo_weight_kg': weightKg,
         'p_distance_km': route.distanceKm,
         'p_duration_min': route.durationMin,
@@ -339,25 +310,18 @@ class RideRepository {
       driverPhone: row['driver_phone'] as String?,
       driverRating: money(row['driver_rating']),
       driverVerified: row['driver_verified'] as bool? ?? false,
-      driverLat: money(row['driver_lat']) == 0
-          ? null
-          : money(row['driver_lat']),
-      driverLng: money(row['driver_lng']) == 0
-          ? null
-          : money(row['driver_lng']),
+      driverLat: money(row['driver_lat']) == 0 ? null : money(row['driver_lat']),
+      driverLng: money(row['driver_lng']) == 0 ? null : money(row['driver_lng']),
       vehicleType: row['vehicle_type'] as String?,
       cargoType: row['cargo_type'] as String?,
       paymentMethod: row['payment_method'] as String?,
     );
   }
 
-  static String _point(MockLocation location) =>
+  static String _point(RidePlace location) =>
       'SRID=4326;POINT(${location.longitude} ${location.latitude})';
 
-  static _RouteMetrics _routeMetrics(
-    MockLocation pickup,
-    MockLocation destination,
-  ) {
+  static _RouteMetrics _routeMetrics(RidePlace pickup, RidePlace destination) {
     const earthRadiusKm = 6371.0;
     final dLat = _radians(destination.latitude - pickup.latitude);
     final dLng = _radians(destination.longitude - pickup.longitude);

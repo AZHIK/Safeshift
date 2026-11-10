@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Handles `safeshift://` and universal links for the driver app.
 ///
@@ -36,15 +37,40 @@ class DeepLinkService {
     _router = null;
   }
 
-  void _handle(Uri uri) {
+  void _handle(Uri uri) async {
     final router = _router;
     if (router == null) return;
+
+    // OAuth callback (e.g. safeshift://login-callback?code=...)
+    if (_isAuthCallback(uri)) {
+      try {
+        await Supabase.instance.client.auth.getSessionFromUrl(uri);
+        // Session stored; router guards will take over.
+        return;
+      } catch (error) {
+        debugPrint('OAuth callback handling failed: $error');
+      }
+      return;
+    }
+
     final location = deepLinkLocation(uri);
     if (location == null) {
       debugPrint('Unhandled deep link: $uri');
       return;
     }
     router.go(location);
+  }
+
+  bool _isAuthCallback(Uri uri) {
+    // Match the redirectTo you configure, e.g. safeshift://login-callback
+    if (uri.scheme == 'safeshift' && uri.host == 'login-callback') return true;
+    // Defensive: some flows may include auth params in fragment/query.
+    if (uri.queryParameters.containsKey('code') ||
+        uri.queryParameters.containsKey('error') ||
+        uri.fragment.contains('access_token=')) {
+      return true;
+    }
+    return false;
   }
 }
 

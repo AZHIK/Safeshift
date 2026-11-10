@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 import '../../../core/errors/failures.dart';
@@ -81,6 +82,13 @@ class AuthService {
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  Future<void> signInWithGoogle() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : 'safeshift://login-callback',
+    );
+  }
 
   User? currentUser() {
     final authUser = _client.auth.currentUser;

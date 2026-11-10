@@ -19,10 +19,7 @@ abstract final class SupabaseInit {
   }
 
   static Future<void> _initialize() async {
-    if (Supabase.instance.isInitialized) {
-      _client = Supabase.instance.client;
-      return;
-    }
+    if (_client != null) return;
 
     final env = EnvConfig.current;
     env.validate();
@@ -38,7 +35,7 @@ abstract final class SupabaseInit {
         localStorage: SecureLocalStorage(
           persistSessionKey: 'sb-$host-auth-token',
         ),
-        // OTP-only auth. Deep links are owned by DeepLinkHandler, not the SDK.
+        // Deep links are handled by DeepLinkService (getSessionFromUrl for OAuth).
         detectSessionInUri: false,
         autoRefreshToken: true,
         persistSession: true,
@@ -58,10 +55,6 @@ abstract final class SupabaseInit {
   static SupabaseClient get client {
     final existing = _client;
     if (existing != null) return existing;
-    if (Supabase.instance.isInitialized) {
-      _client = Supabase.instance.client;
-      return _client!;
-    }
     throw StateError('SupabaseInit.ensureInitialized() must be called first.');
   }
 }

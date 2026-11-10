@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shared/mock/mock_cargo_categories.dart';
-import '../../../shared/mock/mock_locations.dart';
-import '../../../shared/mock/mock_vehicle_classes.dart';
+import '../../../shared/models/catalog_option.dart';
+import '../../../shared/models/ride_place.dart';
 
 class BookingDraft {
   const BookingDraft({
@@ -13,10 +12,10 @@ class BookingDraft {
     required this.scheduledTime,
   });
 
-  final MockLocation pickup;
-  final MockLocation destination;
-  final MockCargoCategory? cargoCategory;
-  final MockVehicleClass vehicleClass;
+  final RidePlace pickup;
+  final RidePlace destination;
+  final CargoTypeOption? cargoCategory;
+  final VehicleTypeOption vehicleClass;
   final DateTime? scheduledTime;
 }
 

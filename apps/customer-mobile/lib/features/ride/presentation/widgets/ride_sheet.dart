@@ -7,25 +7,26 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
-import '../../../../shared/mock/mock_cargo_categories.dart';
-import '../../../../shared/mock/mock_drivers.dart';
-import '../../../../shared/mock/mock_locations.dart';
-import '../../../../shared/mock/mock_quotes.dart';
-import '../../../../shared/mock/mock_vehicle_classes.dart';
+import '../../../../shared/models/catalog_option.dart';
+import '../../../../shared/models/ride_place.dart';
 import '../../providers/ride_provider.dart';
 import 'parcel_dialog.dart';
 import 'payment_dialog.dart';
 
 final _tzs = NumberFormat('#,##0');
 
-int _totalFor(RideState ride, String vehicleId) {
-  if (vehicleId == ride.vehicleClass.id && ride.quoteTotal != null) {
+int? _totalFor(RideState ride, String? vehicleId) {
+  if (vehicleId != null &&
+      vehicleId == ride.vehicleClass?.id &&
+      ride.quoteTotal != null) {
     return ride.quoteTotal!.round();
   }
-  for (final q in mockQuotes) {
-    if (q.vehicleClassId == vehicleId) return q.total.round();
-  }
-  return mockVehicleClasses.first.basePriceTzs;
+  return null;
+}
+
+String _formatTzs(int? amount) {
+  if (amount == null) return 'Get quote';
+  return 'TZS ${_tzs.format(amount)}';
 }
 
 /// The morphing bottom sheet content. One widget, all stages.
@@ -37,6 +38,12 @@ class RideSheetBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
+    final vehiclesAsync = ref.watch(rideVehicleTypesProvider);
+    vehiclesAsync.whenData((vehicles) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(rideProvider.notifier).ensureVehicleSelected(vehicles);
+      });
+    });
     // Bottom inset = system gesture + nav height allowance so the
     // Confirm CTA is never hidden behind the bottom NavigationBar.
     final bottomInset =
@@ -60,8 +67,12 @@ class RideSheetBody extends ConsumerWidget {
           duration: const Duration(milliseconds: 280),
           child: switch (ride.stage) {
             RideStage.idle => const _IdleSearch(key: ValueKey('idle')),
-            RideStage.route || RideStage.vehicle || RideStage.confirm =>
-              const _RouteAndVehicles(key: ValueKey('route')),
+            RideStage.route ||
+            RideStage.vehicle ||
+            RideStage.confirm => _RouteAndVehicles(
+              key: const ValueKey('route'),
+              vehiclesAsync: vehiclesAsync,
+            ),
             RideStage.searching => const _SearchingView(
               key: ValueKey('searching'),
             ),
@@ -82,6 +93,7 @@ class _IdleSearch extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
     final notifier = ref.read(rideProvider.notifier);
+    final savedPlacesAsync = ref.watch(rideSavedPlacesProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -95,10 +107,14 @@ class _IdleSearch extends ConsumerWidget {
         _RouteInputs(
           onPickup: () => showAddressSuggestionSheet(
             context: context,
+            title: 'Choose pickup',
+            hintText: 'Search pickup location',
             onSelected: notifier.setPickup,
           ),
           onDestination: () => showAddressSuggestionSheet(
             context: context,
+            title: 'Where to?',
+            hintText: 'Search destination',
             onSelected: notifier.setDestination,
           ),
         ),
@@ -112,25 +128,39 @@ class _IdleSearch extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _SavedPlaceTile(
-          icon: Icons.home_rounded,
-          title: 'Home',
-          subtitle: 'Tabata Kimanga, Ilala',
-          onTap: () => notifier.setDestination(_byId('tabata') ?? _first()),
-        ),
-        const SizedBox(height: 8),
-        _SavedPlaceTile(
-          icon: Icons.work_rounded,
-          title: 'Work',
-          subtitle: 'Kariakoo Market, Ilala',
-          onTap: () => notifier.setDestination(_byId('kariakoo') ?? _first()),
-        ),
-        const SizedBox(height: 8),
-        _SavedPlaceTile(
-          icon: Icons.flight_rounded,
-          title: 'Airport',
-          subtitle: 'Julius Nyerere International, Ilala',
-          onTap: () => notifier.setDestination(_byId('airport') ?? _first()),
+        savedPlacesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          error: (_, _) => Text(
+            'Could not load saved places.',
+            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          ),
+          data: (places) => places.isEmpty
+              ? Text(
+                  'Save addresses in your profile to use them here.',
+                  style: TextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (final place in places.take(5)) ...[
+                      _SavedPlaceTile(
+                        icon: _savedPlaceIcon(place),
+                        title: place.label?.isNotEmpty == true
+                            ? place.label!
+                            : place.name,
+                        subtitle: place.district.isNotEmpty
+                            ? place.district
+                            : place.name,
+                        onTap: () => notifier.setDestination(place),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
         ),
         if (ride.hasRoute) ...[
           const SizedBox(height: 14),
@@ -145,23 +175,40 @@ class _IdleSearch extends ConsumerWidget {
   }
 }
 
+IconData _savedPlaceIcon(RidePlace place) {
+  final label = (place.label ?? '').toLowerCase();
+  if (label.contains('home')) return Icons.home_rounded;
+  if (label.contains('work') || label.contains('office')) {
+    return Icons.work_rounded;
+  }
+  if (label.contains('airport')) return Icons.flight_rounded;
+  return Icons.place_rounded;
+}
+
 class _RouteAndVehicles extends ConsumerWidget {
-  const _RouteAndVehicles({super.key});
+  const _RouteAndVehicles({super.key, required this.vehiclesAsync});
+  final AsyncValue<List<VehicleTypeOption>> vehiclesAsync;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
     final notifier = ref.read(rideProvider.notifier);
-    final total = _totalFor(ride, ride.vehicleClass.id);
+    final cargoAsync = ref.watch(rideCargoTypesProvider);
+    final total = _totalFor(ride, ride.vehicleClass?.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _RouteInputs(
           onPickup: () => showAddressSuggestionSheet(
             context: context,
+            title: 'Choose pickup',
+            hintText: 'Search pickup location',
             onSelected: notifier.setPickup,
           ),
           onDestination: () => showAddressSuggestionSheet(
             context: context,
+            title: 'Where to?',
+            hintText: 'Search destination',
             onSelected: notifier.setDestination,
           ),
           showSwap: true,
@@ -177,34 +224,43 @@ class _RouteAndVehicles extends ConsumerWidget {
           style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
-        // Cargo chips.
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: mockCargoCategories.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final c = mockCargoCategories[i];
-              final sel = c.id == ride.cargo?.id;
-              return ChoiceChip(
-                label: Text(c.name),
-                avatar: Icon(
-                  c.icon,
-                  size: 16,
-                  color: sel ? Colors.white : AppColors.textSecondary,
-                ),
-                selected: sel,
-                showCheckmark: false,
-                selectedColor: AppColors.primaryDeep,
-                labelStyle: TextStyle(
-                  color: sel ? Colors.white : AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
-                onSelected: (_) => notifier.selectCargo(c),
-              );
-            },
+        cargoAsync.when(
+          loading: () => const SizedBox(
+            height: 38,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          error: (_, _) => Text(
+            'Could not load cargo types.',
+            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          ),
+          data: (cargoTypes) => SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: cargoTypes.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final c = cargoTypes[i];
+                final sel = c.id == ride.cargo?.id;
+                return ChoiceChip(
+                  label: Text(c.name),
+                  avatar: Icon(
+                    c.icon,
+                    size: 16,
+                    color: sel ? Colors.white : AppColors.textSecondary,
+                  ),
+                  selected: sel,
+                  showCheckmark: false,
+                  selectedColor: AppColors.primaryDeep,
+                  labelStyle: TextStyle(
+                    color: sel ? Colors.white : AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
+                  onSelected: (_) => notifier.selectCargo(c),
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -226,13 +282,27 @@ class _RouteAndVehicles extends ConsumerWidget {
           style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
-        for (final v in mockVehicleClasses)
-          _VehicleTile(
-            vehicle: v,
-            selected: v.id == ride.vehicleClass.id,
-            price: _totalFor(ride, v.id),
-            onTap: () => notifier.selectVehicle(v),
+        vehiclesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
           ),
+          error: (e, _) => Text(
+            'Could not load vehicle types.',
+            style: TextStyles.caption.copyWith(color: AppColors.error),
+          ),
+          data: (vehicles) => Column(
+            children: [
+              for (final v in vehicles)
+                _VehicleTile(
+                  vehicle: v,
+                  selected: v.id == ride.vehicleClass?.id,
+                  price: _totalFor(ride, v.id),
+                  onTap: () => notifier.selectVehicle(v),
+                ),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
         // Quote preview (always visible once route set — Bolt style).
         InfoCard(
@@ -260,7 +330,7 @@ class _RouteAndVehicles extends ConsumerWidget {
                   ),
                   const Spacer(),
                   Text(
-                    'TZS ${_tzs.format(total)}',
+                    _formatTzs(total),
                     style: const TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.w800,
@@ -273,14 +343,14 @@ class _RouteAndVehicles extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    ride.vehicleClass.icon,
+                    ride.vehicleClass?.icon ?? Icons.local_shipping_outlined,
                     size: 16,
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '${ride.vehicleClass.name} · ${ride.vehicleClass.capacityLabel} · ${ride.scheduledLabel}',
+                      '${ride.vehicleClass?.name ?? 'Vehicle'} · ${ride.vehicleClass?.capacityLabel ?? ''} · ${ride.scheduledLabel}',
                       style: TextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -343,10 +413,13 @@ class _RouteAndVehicles extends ConsumerWidget {
         _PaymentTile(onTap: () => showPaymentDialog(context)),
         const SizedBox(height: 12),
         PrimaryButton(
-          label: 'Confirm Move · TZS ${_tzs.format(total)}',
+          label: total == null
+              ? 'Confirm Move'
+              : 'Confirm Move · TZS ${_tzs.format(total)}',
           icon: Icons.bolt_rounded,
           isLoading: ride.isSubmitting || ride.isQuoting,
-          onPressed: ride.hasRoute && !ride.isQuoting
+          onPressed:
+              ride.hasRoute && !ride.isQuoting && ride.vehicleClass != null
               ? () => ref.read(rideProvider.notifier).confirmAndFindDriver()
               : null,
         ),
@@ -558,9 +631,6 @@ class _InputRow extends StatelessWidget {
   );
 }
 
-/// Bolt-style large saved-place row: full-width, 52px icon tile,
-/// 13px title + 11px subtitle. Replaces the old small chips whose
-/// 11px label was getting lost.
 class _SavedPlaceTile extends StatelessWidget {
   const _SavedPlaceTile({
     required this.icon,
@@ -642,9 +712,9 @@ class _VehicleTile extends StatelessWidget {
     required this.price,
     required this.onTap,
   });
-  final MockVehicleClass vehicle;
+  final VehicleTypeOption vehicle;
   final bool selected;
-  final int price;
+  final int? price;
   final VoidCallback onTap;
 
   @override
@@ -696,7 +766,9 @@ class _VehicleTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${vehicle.capacityLabel} · ${vehicle.description}',
+                    vehicle.description.isNotEmpty
+                        ? '${vehicle.capacityLabel} · ${vehicle.description}'
+                        : vehicle.capacityLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -713,7 +785,7 @@ class _VehicleTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'TZS ${_tzs.format(price)}',
+                  _formatTzs(price),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
@@ -721,7 +793,7 @@ class _VehicleTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  selected ? 'Selected' : '7 min away',
+                  selected ? 'Selected' : vehicle.capacityLabel,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -979,7 +1051,7 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
         ),
         const SizedBox(height: 4),
         Text(
-          'Verified vehicles within 5 km',
+          'Looking for verified vehicles near your pickup',
           style: TextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
         if (ride.errorMessage != null) ...[
@@ -1018,7 +1090,7 @@ class _TrackingView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
-    final driver = ride.driver ?? mockDrivers.first;
+    final driver = ride.driver;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1081,7 +1153,14 @@ class _TrackingView extends ConsumerWidget {
                 radius: 26,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 child: Text(
-                  driver.name.split(' ').map((e) => e[0]).take(2).join(),
+                  driver == null
+                      ? '?'
+                      : driver.name
+                            .split(' ')
+                            .where((e) => e.isNotEmpty)
+                            .map((e) => e[0])
+                            .take(2)
+                            .join(),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -1094,7 +1173,7 @@ class _TrackingView extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            driver.name,
+                            driver?.name ?? 'SafeShift driver',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
@@ -1109,7 +1188,7 @@ class _TrackingView extends ConsumerWidget {
                       ],
                     ),
                     Text(
-                      '${driver.rating.toStringAsFixed(1)} · ${driver.vehicleClass} · TZS ${_tzs.format(_totalFor(ride, ride.vehicleClass.id))}',
+                      '${(driver?.rating ?? 0).toStringAsFixed(1)} · ${driver?.vehicleClass ?? ride.vehicleClass?.name ?? 'Vehicle'} · ${_formatTzs(_totalFor(ride, ride.vehicleClass?.id))}',
                       style: TextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -1251,7 +1330,7 @@ class _DoneView extends ConsumerWidget {
           style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
         ),
         Text(
-          '${ride.pickup?.name ?? ''} to ${ride.destination?.name ?? ''}',
+          '${ride.pickup?.name ?? ride.pickupAddress ?? ''} to ${ride.destination?.name ?? ride.destinationAddress ?? ''}',
           textAlign: TextAlign.center,
           style: TextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
@@ -1263,13 +1342,4 @@ class _DoneView extends ConsumerWidget {
       ],
     );
   }
-}
-
-MockLocation _first() => mockLocations.first;
-
-MockLocation? _byId(String id) {
-  for (final l in mockLocations) {
-    if (l.id == id) return l;
-  }
-  return null;
 }

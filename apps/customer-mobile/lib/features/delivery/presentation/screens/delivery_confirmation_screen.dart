@@ -11,9 +11,7 @@ import '../../../../core/widgets/cards/receipt_card.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../../core/widgets/feedback/rating_dialog.dart';
 import '../../../../core/widgets/inputs/otp_boxes.dart';
-import '../../../booking/providers/booking_provider.dart';
-import '../../../booking/providers/quote_provider.dart';
-import '../../../../shared/mock/mock_drivers.dart';
+import '../../../ride/providers/ride_provider.dart';
 import '../../providers/delivery_provider.dart';
 
 class DeliveryConfirmationScreen extends ConsumerStatefulWidget {
@@ -35,14 +33,14 @@ class _DeliveryConfirmationScreenState
     super.dispose();
   }
 
-  Future<void> _rateDriver() async {
+  Future<void> _rateDriver(String driverName) async {
     await showDialog<void>(
       context: context,
       builder: (_) => RatingDialog(
-        driverName: mockDrivers.first.name,
+        driverName: driverName,
         onRatingSubmitted: (rating) => AppSnackbar.showSuccess(
           context,
-          'Thanks for rating ${mockDrivers.first.name} $rating stars.',
+          'Thanks for rating $driverName $rating stars.',
         ),
       ),
     );
@@ -51,9 +49,13 @@ class _DeliveryConfirmationScreenState
   @override
   Widget build(BuildContext context) {
     final delivery = ref.watch(deliveryProvider);
-    final booking = ref.watch(bookingProvider);
-    final quote = ref.watch(quoteProvider);
+    final ride = ref.watch(rideProvider);
     final isReceipt = delivery.phase == DeliveryPhase.receipt;
+    final driverName = ride.driver?.name ?? 'SafeShift driver';
+    final pickup = ride.pickupAddress ?? ride.pickup?.name ?? 'Pickup';
+    final destination =
+        ride.destinationAddress ?? ride.destination?.name ?? 'Destination';
+    final total = (ride.quoteTotal ?? 0).toDouble();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Confirm Delivery'),
@@ -99,14 +101,13 @@ class _DeliveryConfirmationScreenState
                   ),
                   const SizedBox(height: AppSizes.lg),
                   ReceiptCard(
-                    jobId: 'SF-2026-001234',
+                    jobId: ride.jobId ?? '—',
                     date: DateTime.now(),
-                    driverName: mockDrivers.first.name,
-                    pickup: booking?.pickup.name ?? 'Morocco Junction',
-                    destination:
-                        booking?.destination.name ?? 'Mlimani City Mall',
-                    total: quote?.total ?? 52000,
-                    paymentMethod: 'M-Pesa',
+                    driverName: driverName,
+                    pickup: pickup,
+                    destination: destination,
+                    total: total,
+                    paymentMethod: ride.paymentMethod.name,
                   ),
                 ]
               : <Widget>[
@@ -178,7 +179,10 @@ class _DeliveryConfirmationScreenState
               ? Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    PrimaryButton(label: 'Rate Driver', onPressed: _rateDriver),
+                    PrimaryButton(
+                      label: 'Rate Driver',
+                      onPressed: () => _rateDriver(driverName),
+                    ),
                     TextButton(
                       onPressed: () => context.go('/home'),
                       child: const Text('Back to Home'),

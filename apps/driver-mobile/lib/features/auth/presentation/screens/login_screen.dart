@@ -206,6 +206,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   : null,
                             ),
                           ),
+                          ElevatedButton.icon(
+                            onPressed: authState.isLoading
+                                ? null
+                                : () async {
+                                      final notifier = ref.read(authProvider.notifier);
+                                      await notifier.signInWithGoogle();
+                                      if (!context.mounted) return;
+                                      AppSnackbar.showInfo(
+                                        context,
+                                        'Opening Google sign‑in…',
+                                      );
+                                    },
+                             icon: const Icon(Icons.gesture, size: 20),
+                             label: const Text(
+                               'Continue with Google',
+                               style: TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.w600,
+                               ),
+                             ),
+                             style: ElevatedButton.styleFrom(
+                               minimumSize: const Size(double.infinity,
+                                   AppSizes.buttonHeight),
+                               backgroundColor: AppColors.primary,
+                               shape: RoundedRectangleBorder(
+                                 borderRadius:
+                                     BorderRadius.circular(20),
+                               ),
+                             ),
+                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
                             'Standard SMS rates may apply',

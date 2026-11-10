@@ -92,6 +92,32 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<void> sendEmailOtp(String email) async {
+    state = state.copyWith(
+      status: AuthStatus.authenticating,
+      isLoading: true,
+      clearFailure: true,
+    );
+    try {
+      await _service.sendEmailOtp(email);
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        isLoading: false,
+        clearFailure: true,
+      );
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
+  }
+
   Future<User> verifyOtp(String code) async {
     final phone = state.phoneNumber;
     if (phone == null || phone.isEmpty) {
@@ -130,6 +156,66 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (error, stack) {
       final failure = ErrorHandler.map(error, stackTrace: stack);
       if (!ref.mounted) throw failure;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
+  }
+
+  Future<User> verifyEmailOtp(String email, String code) async {
+    state = state.copyWith(
+      status: AuthStatus.authenticating,
+      isLoading: true,
+      clearFailure: true,
+    );
+    try {
+      final user = await _service.verifyEmailOtp(email, code);
+      final driverRegistered = appRole == 'driver'
+          ? await _service.hasDriverProfile(userId: user.id)
+          : null;
+      if (!ref.mounted) return user;
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        currentUser: user,
+        driverRegistered: driverRegistered,
+        isInitialized: true,
+      );
+      unawaited(
+        ref
+            .read(pushServiceProvider)
+            .registerForUser(user.id, ref.read(supabaseProvider)),
+      );
+      return user;
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) throw failure;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(
+      status: AuthStatus.authenticating,
+      isLoading: true,
+      clearFailure: true,
+    );
+    try {
+      await _service.signInWithGoogle();
+      // OAuth completes via browser redirect + deep link; the auth state
+      // subscription (_onAuthEvent) will load the profile and update state.
+      if (!ref.mounted) return;
+      state = state.copyWith(isLoading: false);
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) return;
       state = state.copyWith(
         status: AuthStatus.error,
         isLoading: false,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 import '../../../core/errors/failures.dart';
@@ -8,9 +9,9 @@ class AuthService {
   AuthService(this._client, {this.appRole = 'customer'});
 
   final SupabaseClient _client;
-  final String appRole;
 
   SupabaseClient get client => _client;
+  final String appRole;
 
   /// Normalizes a Tanzanian number to E.164. Accepts `0712345678`,
   /// `712345678`, `255712345678`, or `+255712345678`.
@@ -32,6 +33,17 @@ class AuthService {
     }
     await _client.auth.signInWithOtp(
       phone: normalized,
+      shouldCreateUser: true,
+    );
+  }
+
+  Future<void> sendEmailOtp(String email) async {
+    final normalized = email.trim().toLowerCase();
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(normalized)) {
+      throw const ValidationFailure('Enter a valid email address');
+    }
+    await _client.auth.signInWithOtp(
+      email: normalized,
       shouldCreateUser: true,
     );
   }
@@ -61,6 +73,49 @@ class AuthService {
       );
     }
     return profile;
+  }
+
+  Future<User> verifyEmailOtp(String email, String otp) async {
+    final code = otp.replaceAll(RegExp(r'\D'), '');
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      throw const ValidationFailure('Enter the 6-digit code');
+    }
+
+    final normalized = email.trim().toLowerCase();
+    final response = await _client.auth.verifyOTP(
+      email: normalized,
+      token: code,
+      type: OtpType.email,
+    );
+
+    final authUser = response.user;
+    if (authUser == null) {
+      throw const AuthFailure('Sign-in failed. Please request a new code.');
+    }
+
+    await _ensureProfile(authUser.userMetadata?['full_name'] as String?);
+    final profile = await fetchUserProfile(userId: authUser.id);
+    if (profile == null) {
+      throw const AuthFailure(
+        'Your account was created but the profile is still syncing. Try again.',
+      );
+    }
+    return profile;
+  }
+
+  Future<void> signInWithGoogle() async {
+    // Initiate the Google OAuth flow. The browser/webview will open and the user
+    // will be redirected back to the app via the deep link (safeshift://login-callback).
+    // The session will be stored by the deep‑link handler (see DeepLinkService).
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : 'safeshift://login-callback',
+      // authScreenLaunchMode defaults to LaunchMode.platformDefault; on mobile we
+      // want externalApplication so the browser opens fully.
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+    // The method itself does not throw; the result is observed via
+    // onAuthStateChange (AuthChangeEvent.signedIn) after the deep link is processed.
   }
 
   Future<void> signOut() => _client.auth.signOut();

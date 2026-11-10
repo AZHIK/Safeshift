@@ -1,15 +1,15 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_handler.dart';
 import '../../../core/network/supabase_client.dart';
-import '../../../shared/mock/mock_cargo_categories.dart';
-import '../../../shared/mock/mock_locations.dart';
 import '../../../shared/mock/mock_payment_methods.dart';
-import '../../../shared/mock/mock_vehicle_classes.dart';
+import '../../../shared/models/catalog_option.dart';
+import '../../../shared/models/ride_place.dart';
+import '../../../shared/providers/places_provider.dart';
+import '../../../shared/repositories/catalog_repository.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../tracking/domain/entities/driver.dart';
 import '../data/ride_repository.dart';
@@ -44,13 +44,13 @@ class RideState {
     this.stage = RideStage.idle,
     this.pickup,
     this.destination,
-    MockVehicleClass? vehicleClass,
+    this.vehicleClass,
     this.cargo,
     this.scheduledLabel = 'Now',
     this.driver,
     this.etaMin = 7,
-    this.distanceKm = 8.2,
-    this.durationMin = 32,
+    this.distanceKm = 0,
+    this.durationMin = 0,
     this.parcelDescription,
     this.parcelWeightKg,
     this.parcelValueTzs,
@@ -70,18 +70,13 @@ class RideState {
     this.isSubmitting = false,
     this.driverLatitude,
     this.driverLongitude,
-  }) : vehicleClass =
-           vehicleClass ??
-           (mockVehicleClasses.length > 1
-               ? mockVehicleClasses[1]
-               : mockVehicleClasses.first),
-       paymentMethod = paymentMethod ?? mockPaymentMethods.first;
+  }) : paymentMethod = paymentMethod ?? mockPaymentMethods.first;
 
   final RideStage stage;
-  final MockLocation? pickup;
-  final MockLocation? destination;
-  final MockVehicleClass vehicleClass;
-  final MockCargoCategory? cargo;
+  final RidePlace? pickup;
+  final RidePlace? destination;
+  final VehicleTypeOption? vehicleClass;
+  final CargoTypeOption? cargo;
   final String scheduledLabel;
   final Driver? driver;
   final int etaMin;
@@ -119,10 +114,10 @@ class RideState {
 
   RideState copyWith({
     RideStage? stage,
-    MockLocation? pickup,
-    MockLocation? destination,
-    MockVehicleClass? vehicleClass,
-    MockCargoCategory? cargo,
+    RidePlace? pickup,
+    RidePlace? destination,
+    VehicleTypeOption? vehicleClass,
+    CargoTypeOption? cargo,
     String? scheduledLabel,
     Driver? driver,
     int? etaMin,
@@ -153,13 +148,14 @@ class RideState {
     bool clearJob = false,
     bool clearOtp = false,
     bool clearError = false,
+    bool clearCargo = false,
   }) {
     return RideState(
       stage: stage ?? this.stage,
       pickup: pickup ?? this.pickup,
       destination: destination ?? this.destination,
       vehicleClass: vehicleClass ?? this.vehicleClass,
-      cargo: cargo ?? this.cargo,
+      cargo: clearCargo ? null : (cargo ?? this.cargo),
       scheduledLabel: scheduledLabel ?? this.scheduledLabel,
       driver: clearDriver ? null : (driver ?? this.driver),
       etaMin: etaMin ?? this.etaMin,
@@ -216,7 +212,13 @@ class RideNotifier extends Notifier<RideState> {
     return RideState();
   }
 
-  void setPickup(MockLocation location) {
+  void ensureVehicleSelected(List<VehicleTypeOption> vehicles) {
+    if (state.vehicleClass != null || vehicles.isEmpty) return;
+    final preferred = vehicles.length > 1 ? vehicles[1] : vehicles.first;
+    state = state.copyWith(vehicleClass: preferred);
+  }
+
+  void setPickup(RidePlace location) {
     state = state.copyWith(
       pickup: location,
       clearQuote: true,
@@ -228,7 +230,7 @@ class RideNotifier extends Notifier<RideState> {
     }
   }
 
-  void setDestination(MockLocation location) {
+  void setDestination(RidePlace location) {
     state = state.copyWith(
       destination: location,
       clearQuote: true,
@@ -253,7 +255,7 @@ class RideNotifier extends Notifier<RideState> {
     unawaited(refreshQuote());
   }
 
-  void selectVehicle(MockVehicleClass vehicle) {
+  void selectVehicle(VehicleTypeOption vehicle) {
     state = state.copyWith(
       vehicleClass: vehicle,
       stage: RideStage.confirm,
@@ -263,7 +265,7 @@ class RideNotifier extends Notifier<RideState> {
     unawaited(refreshQuote());
   }
 
-  void selectCargo(MockCargoCategory cargo) {
+  void selectCargo(CargoTypeOption cargo) {
     state = state.copyWith(cargo: cargo, clearQuote: true, clearError: true);
     if (state.hasRoute) unawaited(refreshQuote());
   }
@@ -302,8 +304,14 @@ class RideNotifier extends Notifier<RideState> {
   Future<void> refreshQuote() async {
     final pickup = state.pickup;
     final destination = state.destination;
+    final vehicle = state.vehicleClass;
     final user = ref.read(authProvider).currentUser;
-    if (pickup == null || destination == null || user == null) return;
+    if (pickup == null ||
+        destination == null ||
+        vehicle == null ||
+        user == null) {
+      return;
+    }
 
     final gen = ++_quoteGen;
     state = state.copyWith(isQuoting: true, clearError: true);
@@ -312,7 +320,7 @@ class RideNotifier extends Notifier<RideState> {
         customerId: user.id,
         pickup: pickup,
         destination: destination,
-        vehicle: state.vehicleClass,
+        vehicle: vehicle,
         cargo: state.cargo,
         weightKg: state.parcelWeightKg,
         valueTzs: state.parcelValueTzs,
@@ -613,7 +621,7 @@ class RideNotifier extends Notifier<RideState> {
       driver = Driver(
         id: job.driverId!,
         name: job.driverName ?? 'SafeShift driver',
-        vehicleClass: job.vehicleType ?? state.vehicleClass.name,
+        vehicleClass: job.vehicleType ?? state.vehicleClass?.name ?? 'Vehicle',
         rating: job.driverRating,
         phone: job.driverPhone ?? '',
         completedTrips: 0,
@@ -674,5 +682,16 @@ final rideProvider = NotifierProvider<RideNotifier, RideState>(
   RideNotifier.new,
 );
 
-@visibleForTesting
-int quoteTotalFor(String vehicleId, int fallback) => fallback;
+final rideVehicleTypesProvider = FutureProvider<List<VehicleTypeOption>>((ref) {
+  return CatalogRepository(ref.watch(supabaseProvider)).getVehicleTypes();
+});
+
+final rideCargoTypesProvider = FutureProvider<List<CargoTypeOption>>((ref) {
+  return CatalogRepository(ref.watch(supabaseProvider)).getCargoTypes();
+});
+
+final rideSavedPlacesProvider = FutureProvider<List<RidePlace>>((ref) async {
+  final user = ref.watch(authProvider).currentUser;
+  if (user == null) return const <RidePlace>[];
+  return ref.watch(placesRepositoryProvider).getSavedPlaces(user.id);
+});

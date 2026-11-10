@@ -208,6 +208,30 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(
+      status: AuthStatus.authenticating,
+      isLoading: true,
+      clearFailure: true,
+    );
+    try {
+      await _service.signInWithGoogle();
+      // OAuth completes via browser redirect + deep link; the auth state
+      // subscription (_onAuthEvent) will load the profile and update state.
+      if (!ref.mounted) return;
+      state = state.copyWith(isLoading: false);
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
+  }
+
   void reset() {
     if (ref.mounted) state = const AuthState();
   }

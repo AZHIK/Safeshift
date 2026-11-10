@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../ride/providers/ride_provider.dart';
 import '../../tracking/domain/entities/driver.dart';
-import '../../../shared/mock/mock_drivers.dart';
 
 class MatchingState {
   const MatchingState({this.isSearching = false, this.driver});
@@ -9,18 +9,24 @@ class MatchingState {
   final Driver? driver;
 }
 
+/// Legacy matching provider backed by real ride state (no mock data).
 class MatchingNotifier extends Notifier<MatchingState> {
   @override
-  MatchingState build() => const MatchingState();
-
-  Future<void> findDriver() async {
-    if (state.isSearching || state.driver != null) return;
-    state = const MatchingState(isSearching: true);
-    await Future<void>.delayed(const Duration(seconds: 3));
-    state = MatchingState(driver: mockDrivers.first);
+  MatchingState build() {
+    final ride = ref.watch(rideProvider);
+    return MatchingState(
+      isSearching: ride.stage == RideStage.searching,
+      driver: ride.driver,
+    );
   }
 
-  void reset() => state = const MatchingState();
+  Future<void> findDriver() async {
+    // Real matching is handled by RideProvider/dispatch.
+  }
+
+  void reset() {
+    ref.read(rideProvider.notifier).reset();
+  }
 }
 
 final matchingProvider = NotifierProvider<MatchingNotifier, MatchingState>(

@@ -1,4 +1,7 @@
-// Boots the customer app: Hive cache, Supabase, push, then the router.
+// Boots the customer app: Hive cache, Supabase, then the router.
+// Push notifications are initialized after first frame to reduce startup jank.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,9 +14,10 @@ import 'shared/services/storage_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await CacheService.init();
-  await SupabaseInit.ensureInitialized();
-  await PushService.initialize();
+  await Future.wait<void>([
+    CacheService.init(),
+    SupabaseInit.ensureInitialized(),
+  ]);
   final onboardingCompleted =
       await StorageService().readValue('onboarding_completed') == 'true';
   runApp(
@@ -26,4 +30,6 @@ Future<void> main() async {
       child: const SafeShiftApp(),
     ),
   );
+  // Defer non-critical push setup so the first frame renders sooner.
+  unawaited(PushService.initialize());
 }

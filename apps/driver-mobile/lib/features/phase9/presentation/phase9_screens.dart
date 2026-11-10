@@ -111,6 +111,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
   String? _countryId;
   String? _cityId;
   List<Map<String, dynamic>> _vehicleTypes = const [];
+  List<Map<String, dynamic>> _countries = const [];
   bool _loading = true;
   bool _saving = false;
 
@@ -124,18 +125,59 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     try {
       final client = ref.read(supabaseProvider);
       final profile = await _myProfile(ref);
-      _countryId = profile['default_country_id'] as String?;
-      if (_countryId != null) {
-        final city = await client.from('cities').select('id').eq('country_id', _countryId!).limit(1).maybeSingle();
-        _cityId = city?['id'] as String?;
-      }
-      final types = await client.from('vehicle_types').select('id, name, code').eq('is_active', true).order('display_order');
-      _vehicleTypes = types.map((row) => Map<String, dynamic>.from(row)).toList();
-      _vehicleTypeId = _vehicleTypes.isNotEmpty ? _vehicleTypes.first['id'].toString() : null;
+      final countries = await client
+          .from('countries')
+          .select('id, name, iso_code')
+          .eq('is_active', true)
+          .order('name');
+      _countries = countries.map((row) => Map<String, dynamic>.from(row)).toList();
+
+      final profileCountryId = profile['default_country_id'] as String?;
+      _countryId = profileCountryId != null && _countries.any((row) => row['id'].toString() == profileCountryId)
+          ? profileCountryId
+          : (_countries.isNotEmpty ? _countries.first['id'].toString() : null);
+
+      await _loadCountryContext();
     } catch (error) {
       if (mounted) AppSnackbar.showError(context, error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadCountryContext() async {
+    final client = ref.read(supabaseProvider);
+    _cityId = null;
+    if (_countryId != null) {
+      final city = await client
+          .from('cities')
+          .select('id')
+          .eq('country_id', _countryId!)
+          .eq('is_active', true)
+          .order('name')
+          .limit(1)
+          .maybeSingle();
+      _cityId = city?['id'] as String?;
+    }
+
+    final typesQuery = client.from('vehicle_types').select('id, name, code').eq('is_active', true);
+    final types = _countryId == null
+        ? await typesQuery.order('display_order')
+        : await typesQuery.or('country_id.is.null,country_id.eq.$_countryId').order('display_order');
+    _vehicleTypes = types.map((row) => Map<String, dynamic>.from(row)).toList();
+    if (_vehicleTypeId == null || !_vehicleTypes.any((row) => row['id'].toString() == _vehicleTypeId)) {
+      _vehicleTypeId = _vehicleTypes.isNotEmpty ? _vehicleTypes.first['id'].toString() : null;
+    }
+  }
+
+  Future<void> _onCountryChanged(String? value) async {
+    if (value == null || value == _countryId) return;
+    setState(() => _countryId = value);
+    try {
+      await _loadCountryContext();
+      if (mounted) setState(() {});
+    } catch (error) {
+      if (mounted) AppSnackbar.showError(context, error.toString());
     }
   }
 
@@ -153,8 +195,14 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_vehicleTypeId == null || _countryId == null) {
-      AppSnackbar.showError(context, 'Vehicle type and country are required. Contact support if your profile has no country.');
+    if (_countryId == null) {
+      AppSnackbar.showError(context, 'Select your operating country to continue.');
+      return;
+    }
+    if (_vehicleTypeId == null) {
+      AppSnackbar.showError(context, _vehicleTypes.isEmpty
+          ? 'No vehicle types are available for the selected country. Contact support.'
+          : 'Select your vehicle type to continue.');
       return;
     }
     if (_licenceExpiry == null || _insuranceExpiry == null) {
@@ -169,6 +217,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
     try {
       final client = ref.read(supabaseProvider);
       final uid = _userId(ref);
+      await client.from('profiles').update({'default_country_id': _countryId}).eq('id', uid);
       final documentTypes = await client
           .from('document_types')
           .select('id, code')
@@ -347,11 +396,44 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   const Text('Vehicle', style: TextStyles.title),
                   const SizedBox(height: AppSizes.sm),
                   DropdownButtonFormField<String>(
-                    initialValue: _vehicleTypeId,
-                    decoration: const InputDecoration(labelText: 'Vehicle type *'),
-                    items: _vehicleTypes.map((row) => DropdownMenuItem(value: row['id'].toString(), child: Text(row['name'].toString()))).toList(),
-                    onChanged: (value) => setState(() => _vehicleTypeId = value),
+                    value: _countryId,
+                    decoration: const InputDecoration(labelText: 'Operating country *'),
+                    items: _countries
+                        .map((row) => DropdownMenuItem(
+                              value: row['id'].toString(),
+                              child: Text(row['name'].toString()),
+                            ))
+                        .toList(),
+                    onChanged: _countries.isEmpty ? null : _onCountryChanged,
                   ),
+                  if (_countries.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSizes.xs),
+                      child: Text(
+                        'No operating countries are available right now. Contact support.',
+                        style: TextStyles.caption.copyWith(color: AppColors.error),
+                      ),
+                    ),
+                  const SizedBox(height: AppSizes.sm),
+                  DropdownButtonFormField<String>(
+                    value: _vehicleTypeId,
+                    decoration: const InputDecoration(labelText: 'Vehicle type *'),
+                    items: _vehicleTypes
+                        .map((row) => DropdownMenuItem(
+                              value: row['id'].toString(),
+                              child: Text(row['name'].toString()),
+                            ))
+                        .toList(),
+                    onChanged: _vehicleTypes.isEmpty ? null : (value) => setState(() => _vehicleTypeId = value),
+                  ),
+                  if (_countryId != null && _vehicleTypes.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSizes.xs),
+                      child: Text(
+                        'No vehicle types are available for the selected country. Contact support.',
+                        style: TextStyles.caption.copyWith(color: AppColors.error),
+                      ),
+                    ),
                   const SizedBox(height: AppSizes.sm),
                   TextFormField(controller: _registration, decoration: const InputDecoration(labelText: 'Registration / plate number *'), validator: (v) => (v ?? '').trim().isEmpty ? 'Registration number is required' : null),
                   const SizedBox(height: AppSizes.sm),

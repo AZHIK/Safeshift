@@ -13,7 +13,8 @@ The app is connected to Supabase through `supabase_flutter` and Riverpod:
 phone OTP auth, quote and job creation, dispatch matching, live tracking,
 delivery codes, history, storage uploads, push-token registration, and
 `safeshift://` / `https://safeshift.app` deep links. Hive provides cache-first
-offline rendering. Set `MOCK_MODE=true` to open the design-only mock flows.
+offline rendering. Payment method selection remains a mock UI (no live charge);
+all other app data is loaded from the database.
 
 ## Stack
 
@@ -44,5 +45,5 @@ production launch commands.
 ## Project layout
 
 Clean-architecture features under `lib/features/` (auth, home, ride, tracking,
-history, profile), shared primitives under `lib/core/`, and design-only mock
-data under `lib/shared/mock/`.
+history, profile) and shared primitives under `lib/core/`. Payment method
+selection UI uses `lib/shared/mock/mock_payment_methods.dart` (mock UI only).

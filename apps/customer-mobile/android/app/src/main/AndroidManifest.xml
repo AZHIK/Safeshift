@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="safeshift"
         android:name="${applicationName}"
@@ -32,7 +34,7 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="safeshift"/>
+                <data android:scheme="safeshift" android:host="login-callback"/>
             </intent-filter>
             <!-- Universal links: https://safeshift.app/... -->
             <intent-filter android:autoVerify="true">
@@ -42,6 +44,10 @@
                 <data android:scheme="https" android:host="safeshift.app"/>
             </intent-filter>
         </activity>
+        <!-- Google Maps API key (replace with your key; restrict by Android app + SHA-1 in Google Cloud Console) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyA3qYqQTzO26VZSjEPz8_RtdPWkjUMPIiQ" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

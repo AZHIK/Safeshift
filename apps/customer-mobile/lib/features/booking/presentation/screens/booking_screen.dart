@@ -9,9 +9,9 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
-import '../../../../shared/mock/mock_cargo_categories.dart';
-import '../../../../shared/mock/mock_locations.dart';
-import '../../../../shared/mock/mock_vehicle_classes.dart';
+import '../../../../shared/models/catalog_option.dart';
+import '../../../../shared/models/ride_place.dart';
+import '../../../ride/providers/ride_provider.dart';
 import '../../providers/booking_provider.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
@@ -22,10 +22,10 @@ class BookingScreen extends ConsumerStatefulWidget {
 }
 
 class _BookingScreenState extends ConsumerState<BookingScreen> {
-  MockLocation? _pickup;
-  MockLocation? _destination;
-  MockCargoCategory? _cargo;
-  late MockVehicleClass _vehicle;
+  RidePlace? _pickup;
+  RidePlace? _destination;
+  CargoTypeOption? _cargo;
+  VehicleTypeOption? _vehicle;
   DateTime? _scheduledTime;
 
   @override
@@ -35,13 +35,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _pickup = draft?.pickup;
     _destination = draft?.destination;
     _cargo = draft?.cargoCategory;
-    _vehicle = draft?.vehicleClass ?? mockVehicleClasses.first;
+    _vehicle = draft?.vehicleClass;
     _scheduledTime = draft?.scheduledTime;
   }
 
   Future<void> _chooseAddress({required bool pickup}) async {
     await showAddressSuggestionSheet(
       context: context,
+      title: pickup ? 'Choose pickup' : 'Choose destination',
+      hintText: pickup ? 'Search pickup location' : 'Search destination',
       onSelected: (location) => setState(() {
         if (pickup) {
           _pickup = location;
@@ -122,7 +124,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   void _getQuote() {
     final pickup = _pickup;
     final destination = _destination;
-    if (pickup == null || destination == null) return;
+    final vehicle = _vehicle;
+    if (pickup == null || destination == null || vehicle == null) return;
     ref
         .read(bookingProvider.notifier)
         .save(
@@ -130,7 +133,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             pickup: pickup,
             destination: destination,
             cargoCategory: _cargo,
-            vehicleClass: _vehicle,
+            vehicleClass: vehicle,
             scheduledTime: _scheduledTime,
           ),
         );
@@ -139,7 +142,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canContinue = _pickup != null && _destination != null;
+    final vehiclesAsync = ref.watch(rideVehicleTypesProvider);
+    final cargoAsync = ref.watch(rideCargoTypesProvider);
+    vehiclesAsync.whenData((vehicles) {
+      if (_vehicle == null && vehicles.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _vehicle == null) {
+            setState(
+              () =>
+                  _vehicle = vehicles.length > 1 ? vehicles[1] : vehicles.first,
+            );
+          }
+        });
+      }
+    });
+    final canContinue =
+        _pickup != null && _destination != null && _vehicle != null;
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Booking'),
@@ -179,32 +197,36 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             subtitle: 'Choose the closest cargo type.',
           ),
           const SizedBox(height: AppSizes.md),
-          SizedBox(
-            height: 42,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: mockCargoCategories.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSizes.sm),
-              itemBuilder: (context, index) {
-                final category = mockCargoCategories[index];
-                final selected = category.id == _cargo?.id;
-                return ChoiceChip(
-                  avatar: Icon(
-                    category.icon,
-                    size: 17,
-                    color: selected ? Colors.white : AppColors.textSecondary,
-                  ),
-                  label: Text(category.name),
-                  selected: selected,
-                  showCheckmark: false,
-                  selectedColor: AppColors.primary,
-                  labelStyle: TextStyle(
-                    color: selected ? Colors.white : AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  onSelected: (_) => setState(() => _cargo = category),
-                );
-              },
+          cargoAsync.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (_, _) => const Text('Could not load cargo types.'),
+            data: (categories) => SizedBox(
+              height: 42,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length,
+                separatorBuilder: (_, _) => const SizedBox(width: AppSizes.sm),
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final selected = category.id == _cargo?.id;
+                  return ChoiceChip(
+                    avatar: Icon(
+                      category.icon,
+                      size: 17,
+                      color: selected ? Colors.white : AppColors.textSecondary,
+                    ),
+                    label: Text(category.name),
+                    selected: selected,
+                    showCheckmark: false,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    onSelected: (_) => setState(() => _cargo = category),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: AppSizes.lg),
@@ -213,14 +235,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             subtitle: 'Pick a size that fits your load.',
           ),
           const SizedBox(height: AppSizes.md),
-          for (final vehicle in mockVehicleClasses) ...<Widget>[
-            _VehicleOption(
-              vehicle: vehicle,
-              selected: _vehicle.id == vehicle.id,
-              onTap: () => setState(() => _vehicle = vehicle),
+          vehiclesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const Text('Could not load vehicle types.'),
+            data: (vehicles) => Column(
+              children: [
+                for (final vehicle in vehicles) ...<Widget>[
+                  _VehicleOption(
+                    vehicle: vehicle,
+                    selected: _vehicle?.id == vehicle.id,
+                    onTap: () => setState(() => _vehicle = vehicle),
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                ],
+              ],
             ),
-            const SizedBox(height: AppSizes.sm),
-          ],
+          ),
           const SizedBox(height: AppSizes.md),
           InkWell(
             onTap: _chooseSchedule,
@@ -309,7 +339,7 @@ class _AddressCard extends StatelessWidget {
     required this.onTap,
   });
   final String label;
-  final MockLocation? location;
+  final RidePlace? location;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -371,7 +401,7 @@ class _VehicleOption extends StatelessWidget {
     required this.selected,
     required this.onTap,
   });
-  final MockVehicleClass vehicle;
+  final VehicleTypeOption vehicle;
   final bool selected;
   final VoidCallback onTap;
   @override
@@ -416,38 +446,19 @@ class _VehicleOption extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                Text(
-                  vehicle.description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                if (vehicle.description.isNotEmpty)
+                  Text(
+                    vehicle.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           const SizedBox(width: AppSizes.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text(
-                'From',
-                style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                'TZS ${NumberFormat('#,##0').format(vehicle.basePriceTzs)}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: AppSizes.xs),
           Icon(
             selected
                 ? Icons.radio_button_checked_rounded

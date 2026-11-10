@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/cards/glass_card.dart';
+import '../../../../shared/models/user_location.dart';
+import '../../../../shared/providers/location_provider.dart';
 import '../../providers/ride_provider.dart';
 import '../widgets/ride_sheet.dart';
 import '../widgets/shiny_map_view.dart';
@@ -19,6 +21,38 @@ class RideScreen extends ConsumerStatefulWidget {
 }
 
 class _RideScreenState extends ConsumerState<RideScreen> {
+  final GlobalKey<ShinyMapViewState> _mapKey = GlobalKey<ShinyMapViewState>();
+
+  Future<void> _goToMyLocation() async {
+    final location = await ref.read(currentLocationProvider.notifier).refresh();
+    if (!mounted) return;
+    if (location == null) {
+      final state = ref.read(currentLocationProvider);
+      final notifier = ref.read(currentLocationProvider.notifier);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            state.message ?? 'Your location is unavailable right now.',
+          ),
+          action: state.needsSettings
+              ? SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () {
+                    if (state.status == LocationStatus.serviceDisabled) {
+                      notifier.openLocationSettings();
+                    } else {
+                      notifier.openAppSettings();
+                    }
+                  },
+                )
+              : null,
+        ),
+      );
+      return;
+    }
+    await _mapKey.currentState?.moveTo(location.latitude, location.longitude);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ride = ref.watch(rideProvider);
@@ -28,7 +62,9 @@ class _RideScreenState extends ConsumerState<RideScreen> {
       body: Stack(
         children: [
           // 1. Full-screen shiny map.
-          Positioned.fill(child: ShinyMapView(state: ride)),
+          Positioned.fill(
+            child: ShinyMapView(key: _mapKey, state: ride),
+          ),
 
           // 2. Top floating bar: avatar + SafeShift + notifications.
           Positioned(
@@ -116,7 +152,10 @@ class _RideScreenState extends ConsumerState<RideScreen> {
             top: 132,
             child: Column(
               children: [
-                _RoundIcon(icon: Icons.my_location_rounded, onTap: () {}),
+                _RoundIcon(
+                  icon: Icons.my_location_rounded,
+                  onTap: _goToMyLocation,
+                ),
                 const SizedBox(height: 10),
                 _RoundIcon(
                   icon: Icons.swap_vert_rounded,
@@ -141,10 +180,7 @@ class _RideScreenState extends ConsumerState<RideScreen> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(28),
                 ),
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1.2,
-                ),
+                border: Border.all(color: Colors.white, width: 1.2),
                 boxShadow: [
                   const BoxShadow(
                     color: Color(0x334E5E73),

@@ -1,23 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shared/mock/mock_drivers.dart';
+import '../../ride/providers/ride_provider.dart';
 import '../domain/entities/driver_location.dart';
 
 class TrackingData {
-  const TrackingData({required this.driverLocation, required this.currentStep});
-  final DriverLocation driverLocation;
+  const TrackingData({this.driverLocation, this.currentStep = 0});
+  final DriverLocation? driverLocation;
   final int currentStep;
 }
 
+/// Derived from real ride state (no mock data).
 final trackingProvider = Provider<TrackingData>((ref) {
-  final driver = mockDrivers.first;
+  final ride = ref.watch(rideProvider);
+  final lat = ride.driverLatitude;
+  final lng = ride.driverLongitude;
+  final driverId = ride.driver?.id;
   return TrackingData(
-    driverLocation: DriverLocation(
-      driverId: driver.id,
-      latitude: -6.7882,
-      longitude: 39.2514,
-      updatedAt: DateTime.now(),
-    ),
-    currentStep: 3,
+    driverLocation: lat != null && lng != null && driverId != null
+        ? DriverLocation(
+            driverId: driverId,
+            latitude: lat,
+            longitude: lng,
+            updatedAt: DateTime.now(),
+          )
+        : null,
+    currentStep: switch (ride.jobStatus) {
+      'accepted' || 'heading_to_pickup' => 0,
+      'arrived' => 1,
+      'loading' => 2,
+      'in_transit' => 3,
+      'delivered' || 'completed' => 4,
+      _ => 0,
+    },
   );
 });

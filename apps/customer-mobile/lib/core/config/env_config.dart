@@ -23,6 +23,12 @@ class EnvConfig {
     'SUPABASE_ANON_KEY',
   );
 
+  /// Client-side Google Maps/Places key. This is a restricted mobile key, not
+  /// a server secret. Pass it with `--dart-define=GOOGLE_MAPS_API_KEY=...`.
+  static const String googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+  );
+
   /// Local Supabase CLI defaults. The anon key is public by design and is
   /// only used when ENV=dev and no explicit value was supplied.
   static const String localSupabaseUrl = 'http://127.0.0.1:54321';

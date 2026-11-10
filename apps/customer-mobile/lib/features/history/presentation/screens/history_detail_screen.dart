@@ -10,11 +10,9 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/driver_avatar_card.dart';
 import '../../../../core/widgets/cards/receipt_card.dart';
-import '../../../../shared/mock/mock_locations.dart';
-import '../../../../shared/mock/mock_vehicle_classes.dart';
 import '../../../booking/domain/entities/job.dart';
-import '../../../booking/providers/booking_provider.dart';
 import '../../../ride/data/ride_repository.dart';
+import '../../../ride/providers/ride_provider.dart';
 import '../../../tracking/domain/entities/driver.dart';
 import '../../providers/history_provider.dart';
 
@@ -90,41 +88,27 @@ class HistoryDetailScreen extends ConsumerWidget {
                   AppSizes.md,
                 ),
                 child: PrimaryButton(
-                  label: 'Book Again',
+                  label: snapshotIsActive(asyncJob.value!)
+                      ? 'View trip'
+                      : 'Start new move',
                   onPressed: () {
-                    final job = _jobFrom(asyncJob.value!);
-                    final pickup = mockLocations.firstWhere(
-                      (location) => location.name == job.pickupAddress,
-                      orElse: () => mockLocations.first,
-                    );
-                    final destination = mockLocations.firstWhere(
-                      (location) => location.name == job.destinationAddress,
-                      orElse: () => mockLocations[1],
-                    );
-                    final vehicle = mockVehicleClasses.firstWhere(
-                      (item) =>
-                          item.id == job.vehicleClassId ||
-                          item.name == job.vehicleClassId,
-                      orElse: () => mockVehicleClasses.first,
-                    );
-                    ref
-                        .read(bookingProvider.notifier)
-                        .save(
-                          BookingDraft(
-                            pickup: pickup,
-                            destination: destination,
-                            cargoCategory: null,
-                            vehicleClass: vehicle,
-                            scheduledTime: null,
-                          ),
-                        );
-                    context.push('/booking');
+                    final snapshot = asyncJob.value!;
+                    if (snapshotIsActive(snapshot)) {
+                      ref.read(rideProvider.notifier).loadJob(snapshot.id);
+                      context.go('/home');
+                      return;
+                    }
+                    ref.read(rideProvider.notifier).reset();
+                    context.go('/home');
                   },
                 ),
               ),
             ),
     );
   }
+
+  static bool snapshotIsActive(CustomerJobSnapshot snapshot) =>
+      !snapshot.isTerminal;
 
   Job _jobFrom(CustomerJobSnapshot snapshot) => Job(
     id: snapshot.id,

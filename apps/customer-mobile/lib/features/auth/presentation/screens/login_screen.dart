@@ -7,14 +7,24 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/text_styles.dart';
-import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/phone_input_field.dart';
 
-/// Phone entry screen: enter a +255 phone number and request an OTP.
+// Authentication mode selection
+enum LoginMode { phone, email }
+
+/// Login screen with phone and email OTP authentication options.
+///
+/// Phone is the default method. User can switch between modes using the
+/// mode toggle buttons at the top.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    super.key,
+    this.loginMode = LoginMode.phone,
+  });
+
+  final LoginMode loginMode;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -23,10 +33,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final TextEditingController _controller;
   String _digits = '';
+  LoginMode _currentMode = LoginMode.phone;
 
   @override
   void initState() {
     super.initState();
+    _currentMode = widget.loginMode;
     final saved = ref.read(authProvider).phoneNumber;
     _digits = saved ?? '';
     _controller = TextEditingController(
@@ -47,9 +59,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     try {
-      await ref.read(authProvider.notifier).sendOtp(_digits);
+      if (_currentMode == LoginMode.phone) {
+        await ref.read(authProvider.notifier).sendOtp(_digits);
+      } else if (_currentMode == LoginMode.email) {
+        final email = _controller.text.trim();
+        await ref.read(authProvider.notifier).sendEmailOtp(email);
+      }
       if (mounted) {
-        context.push('/otp');
+        context.go('/otp');
       }
     } on Failure catch (e) {
       if (mounted) {
@@ -65,7 +82,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Soft brand tint up top + faint orbs — matches onboarding/ride.
           const Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -78,10 +94,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: -60,
             top: -40,
-            child: _TintOrb(size: 200, color: Color(0x222E9BFF)),
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0x222E9BFF),
+              ),
+            ),
           ),
           SafeArea(
             child: LayoutBuilder(
@@ -134,16 +157,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
-                          Text(
-                            'Enter your phone number',
-                            style: TextStyles.title.copyWith(fontSize: 16),
-                          ),
-                          const SizedBox(height: AppSizes.xs),
-                          Text(
-                            "We'll send you a verification code",
-                            style: TextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          // Mode toggle
+                          _ModeToggle(
+                            currentMode: _currentMode,
+                            onModeChanged: (mode) {
+                              setState(() => _currentMode = mode);
+                            },
                           ),
                           const SizedBox(height: AppSizes.md),
                           Container(
@@ -156,56 +175,125 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             child: Column(
                               children: [
-                                PhoneInputField(
-                                  controller: _controller,
-                                  onChanged: (raw) =>
-                                      setState(() => _digits = raw),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      _isValid
-                                          ? Icons.check_circle_rounded
-                                          : Icons.info_outline_rounded,
-                                      size: 15,
-                                      color: _isValid
-                                          ? AppColors.success
-                                          : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
+                                // Phone input section
+                                if (_currentMode == LoginMode.phone) ...[
+                                  PhoneInputField(
+                                    controller: _controller,
+                                    onChanged: (raw) =>
+                                        setState(() => _digits = raw),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Icon(
                                         _isValid
-                                            ? 'Valid Tanzanian number — ready to send'
-                                            : '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed',
-                                        style: TextStyles.caption.copyWith(
-                                          color: _isValid
-                                              ? AppColors.success
-                                              : AppColors.textSecondary,
-                                          fontWeight: FontWeight.w600,
+                                            ? Icons.check_circle_rounded
+                                            : Icons.info_outline_rounded,
+                                        size: 15,
+                                        color: _isValid
+                                            ? AppColors.success
+                                            : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          _isValid
+                                              ? 'Valid Tanzanian number — ready to send'
+                                              : '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed',
+                                          style: TextStyles.caption.copyWith(
+                                            color: _isValid
+                                                ? AppColors.success
+                                                : AppColors.textSecondary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                ]
+                                // Email input section
+                                else ...[
+                                  TextField(
+                                    decoration: const InputDecoration(
+                                      labelText: 'Email address',
+                                      hintText: 'example@domain.com',
+                                      border: OutlineInputBorder(),
                                     ),
-                                  ],
-                                ),
+                                    keyboardType: TextInputType.emailAddress,
+                                    onChanged: (value) {
+                                      setState(() {});
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'We\'ll send a 6-digit code to your email',
+                                    style: TextStyles.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
-                          const Spacer(),
-                          const SizedBox(height: AppSizes.lg),
-                          SizedBox(
-                            height: AppSizes.buttonHeight,
-                            width: double.infinity,
-                            child: PrimaryButton(
-                              label: 'Send OTP',
-                              icon: Icons.bolt_rounded,
-                              isLoading: authState.isLoading,
-                              onPressed: _isValid && !authState.isLoading
-                                  ? _send
-                                  : null,
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed:
+                                _isValid && !authState.isLoading ? _send : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity,
+                                  AppSizes.buttonHeight),
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(20),
+                              ),
                             ),
+                            child: _currentMode == LoginMode.email
+                                ? const Text(
+                                    'Send OTP to Email',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                : const Text(
+                                        'Send OTP',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                           ),
+                          ElevatedButton.icon(
+                            onPressed: authState.isLoading
+                                ? null
+                                : () async {
+                                      final notifier = ref.read(authProvider.notifier);
+                                      await notifier.signInWithGoogle();
+                                      if (!context.mounted) return;
+                                      AppSnackbar.showInfo(
+                                        context,
+                                        'Opening Google sign‑in…',
+                                      );
+                                    },
+                             icon: const Icon(Icons.gesture, size: 20),
+                             label: const Text(
+                               'Continue with Google',
+                               style: TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.w600,
+                               ),
+                             ),
+                             style: ElevatedButton.styleFrom(
+                               minimumSize: const Size(double.infinity,
+                                   AppSizes.buttonHeight),
+                               backgroundColor: AppColors.primary,
+                               shape: RoundedRectangleBorder(
+                                 borderRadius:
+                                     BorderRadius.circular(20),
+                               ),
+                             ),
+                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
                             'Standard SMS rates may apply',
@@ -231,19 +319,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _TintOrb extends StatelessWidget {
-  const _TintOrb({required this.size, required this.color});
-  final double size;
-  final Color color;
+class _ModeToggle extends StatelessWidget {
+  const _ModeToggle({
+    required this.currentMode,
+    required this.onModeChanged,
+  });
+
+  final LoginMode currentMode;
+  final void Function(LoginMode) onModeChanged;
+
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      gradient: RadialGradient(colors: [color, Colors.transparent]),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final isPhone = currentMode == LoginMode.phone;
+    final isEmail = currentMode == LoginMode.email;
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ModeButton(
+            label: 'Phone',
+            isActive: isPhone,
+            onTap: () => onModeChanged(LoginMode.phone),
+          ),
+          _ModeButton(label: 'Email', isActive: isEmail, onTap: () => onModeChanged(LoginMode.email)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeButton extends StatelessWidget {
+  const _ModeButton({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyles.caption.copyWith(
+      color: isActive ? AppColors.primary : AppColors.textSecondary,
+      fontWeight: FontWeight.w600,
+    );
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Text(label, style: style),
+      ),
+    );
+  }
 }
 
 class _TermsText extends StatelessWidget {
@@ -277,4 +415,5 @@ class _TermsText extends StatelessWidget {
       ],
     );
   }
+
 }
