@@ -56,6 +56,35 @@ class _MapViewState extends ConsumerState<MapView> {
     return markers;
   }
 
+  Set<Polyline> _polylines(RideState state) {
+    // Prefer the computed road route. Fall back to a straight line only when
+    // no road route is available yet.
+    if (state.routePoints.isNotEmpty) {
+      return {
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: state.routePoints,
+          color: AppColors.primaryDark,
+          width: 5,
+        ),
+      };
+    }
+    final pickup = state.pickup;
+    final destination = state.destination;
+    if (pickup == null || destination == null) return const <Polyline>{};
+    return {
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: [
+          LatLng(pickup.latitude, pickup.longitude),
+          LatLng(destination.latitude, destination.longitude),
+        ],
+        color: AppColors.primaryDark,
+        width: 5,
+      ),
+    };
+  }
+
   @override
   void dispose() {
     _controller?.dispose();
@@ -72,22 +101,7 @@ class _MapViewState extends ConsumerState<MapView> {
       onMapCreated: (GoogleMapController controller) => _controller = controller,
       initialCameraPosition: CameraPosition(target: target, zoom: 13),
       markers: _markers(state),
-      polylines: state.pickup != null && state.destination != null
-          ? {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                points: [
-                  LatLng(state.pickup!.latitude, state.pickup!.longitude),
-                  LatLng(
-                    state.destination!.latitude,
-                    state.destination!.longitude,
-                  ),
-                ],
-                color: AppColors.primaryDark,
-                width: 5,
-              ),
-            }
-          : const <Polyline>{},
+      polylines: _polylines(state),
       mapType: MapType.normal,
       myLocationEnabled: true,
       myLocationButtonEnabled: true,

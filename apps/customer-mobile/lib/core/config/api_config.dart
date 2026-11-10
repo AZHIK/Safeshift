@@ -10,6 +10,7 @@ abstract final class ApiConfig {
   static const String quoteCalculate = 'quote-calculate';
   static const String mapsGeocode = 'maps-geocode';
   static const String mapsDistance = 'maps-distance';
+  static const String mapsRoute = 'maps-route';
   static const String paymentSelcomInitiate = 'payment-selcom-initiate';
   static const String dataExport = 'data-export';
   static const String authValidate = 'auth-validate';

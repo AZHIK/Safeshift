@@ -401,6 +401,19 @@ class _RouteAndVehicles extends ConsumerWidget {
             padding: EdgeInsets.only(top: 8),
             child: LinearProgressIndicator(minHeight: 3),
           ),
+        if (ride.isRouting)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: LinearProgressIndicator(minHeight: 3),
+          ),
+        if (ride.routeError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              ride.routeError!,
+              style: TextStyles.caption.copyWith(color: AppColors.error),
+            ),
+          ),
         if (ride.errorMessage != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),

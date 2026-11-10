@@ -84,20 +84,20 @@ class ShinyMapViewState extends State<ShinyMapView> {
   }
 
   Set<Polyline> _polylinesFor(RideState state) {
-    final pickup = state.pickup;
-    final destination = state.destination;
-    if (pickup == null || destination == null) return const <Polyline>{};
-    return <Polyline>{
-      Polyline(
-        polylineId: const PolylineId('route'),
-        points: <LatLng>[
-          LatLng(pickup.latitude, pickup.longitude),
-          LatLng(destination.latitude, destination.longitude),
-        ],
-        color: AppColors.primaryDark,
-        width: 5,
-      ),
-    };
+    // Render the actual road-following route when one has been computed.
+    // Never fall back to a straight line: if no route is available yet, draw
+    // nothing so the driver is not shown an inaccurate path.
+    if (state.routePoints.isNotEmpty) {
+      return <Polyline>{
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: state.routePoints,
+          color: AppColors.primaryDark,
+          width: 5,
+        ),
+      };
+    }
+    return const <Polyline>{};
   }
 
   LatLng _initialTarget(RideState state) {
@@ -110,11 +110,17 @@ class ShinyMapViewState extends State<ShinyMapView> {
     final controller = _controller;
     if (controller == null) return;
     final points = <LatLng>[];
-    final pickup = widget.state.pickup;
-    final destination = widget.state.destination;
-    if (pickup != null) points.add(LatLng(pickup.latitude, pickup.longitude));
-    if (destination != null) {
-      points.add(LatLng(destination.latitude, destination.longitude));
+    // Fit to the full road route when available so the entire driving path is
+    // visible, not just the endpoints.
+    if (widget.state.routePoints.isNotEmpty) {
+      points.addAll(widget.state.routePoints);
+    } else {
+      final pickup = widget.state.pickup;
+      final destination = widget.state.destination;
+      if (pickup != null) points.add(LatLng(pickup.latitude, pickup.longitude));
+      if (destination != null) {
+        points.add(LatLng(destination.latitude, destination.longitude));
+      }
     }
     if (widget.state.driverLatitude != null &&
         widget.state.driverLongitude != null) {

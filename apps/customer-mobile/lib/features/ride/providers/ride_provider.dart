@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_handler.dart';
@@ -10,9 +11,11 @@ import '../../../shared/models/catalog_option.dart';
 import '../../../shared/models/ride_place.dart';
 import '../../../shared/providers/places_provider.dart';
 import '../../../shared/repositories/catalog_repository.dart';
+import '../../../shared/utils/polyline.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../tracking/domain/entities/driver.dart';
 import '../data/ride_repository.dart';
+import '../data/route_service.dart';
 
 /// Single-screen Bolt-style flow. Everything happens on RideScreen,
 /// the bottom sheet just morphs through these stages.
@@ -66,8 +69,11 @@ class RideState {
     this.quoteVat,
     this.deliveryOtp,
     this.errorMessage,
+    this.routeError,
     this.isQuoting = false,
     this.isSubmitting = false,
+    this.isRouting = false,
+    this.routePoints = const <LatLng>[],
     this.driverLatitude,
     this.driverLongitude,
   }) : paymentMethod = paymentMethod ?? mockPaymentMethods.first;
@@ -100,8 +106,14 @@ class RideState {
   final double? quoteVat;
   final String? deliveryOtp;
   final String? errorMessage;
+  /// User-facing message when road-route calculation fails.
+  final String? routeError;
   final bool isQuoting;
   final bool isSubmitting;
+  /// True while a road route is being calculated for the current endpoints.
+  final bool isRouting;
+  /// Decoded road-following polyline between pickup and destination.
+  final List<LatLng> routePoints;
   final double? driverLatitude;
   final double? driverLongitude;
 
@@ -138,16 +150,20 @@ class RideState {
     double? quoteVat,
     String? deliveryOtp,
     String? errorMessage,
+    String? routeError,
     bool? isQuoting,
     bool? isSubmitting,
+    bool? isRouting,
     double? driverLatitude,
     double? driverLongitude,
+    List<LatLng>? routePoints,
     bool clearDriver = false,
     bool clearParcel = false,
     bool clearQuote = false,
     bool clearJob = false,
     bool clearOtp = false,
     bool clearError = false,
+    bool clearRouteError = false,
     bool clearCargo = false,
   }) {
     return RideState(
@@ -186,8 +202,11 @@ class RideState {
       quoteVat: clearQuote ? null : (quoteVat ?? this.quoteVat),
       deliveryOtp: clearOtp ? null : (deliveryOtp ?? this.deliveryOtp),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      routeError: clearRouteError ? null : (routeError ?? this.routeError),
       isQuoting: isQuoting ?? this.isQuoting,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isRouting: isRouting ?? this.isRouting,
+      routePoints: routePoints ?? this.routePoints,
       driverLatitude: clearDriver
           ? null
           : (driverLatitude ?? this.driverLatitude),
@@ -200,11 +219,14 @@ class RideState {
 
 class RideNotifier extends Notifier<RideState> {
   int _quoteGen = 0;
+  int _routeGen = 0;
+  Timer? _routeTimer;
   RealtimeChannel? _channel;
   Timer? _poll;
   String? _otpIssuedFor;
 
   RideRepository get _repo => RideRepository(ref.read(supabaseProvider));
+  RouteService get _routeService => ref.read(routeServiceProvider);
 
   @override
   RideState build() {
@@ -223,10 +245,13 @@ class RideNotifier extends Notifier<RideState> {
       pickup: location,
       clearQuote: true,
       clearError: true,
+      clearRouteError: true,
+      routePoints: const <LatLng>[],
     );
     if (state.hasRoute) {
       state = state.copyWith(stage: RideStage.vehicle);
       unawaited(refreshQuote());
+      _scheduleRouteCalculation();
     }
   }
 
@@ -235,10 +260,13 @@ class RideNotifier extends Notifier<RideState> {
       destination: location,
       clearQuote: true,
       clearError: true,
+      clearRouteError: true,
+      routePoints: const <LatLng>[],
     );
     if (state.hasRoute) {
       state = state.copyWith(stage: RideStage.vehicle);
       unawaited(refreshQuote());
+      _scheduleRouteCalculation();
     }
   }
 
@@ -251,8 +279,70 @@ class RideNotifier extends Notifier<RideState> {
       destination: p,
       clearQuote: true,
       clearError: true,
+      clearRouteError: true,
+      routePoints: const <LatLng>[],
     );
     unawaited(refreshQuote());
+    _scheduleRouteCalculation();
+  }
+
+  /// Debounces route recalculation so rapid endpoint changes do not fire a
+  /// request on every keystroke or pin drag.
+  void _scheduleRouteCalculation() {
+    _routeTimer?.cancel();
+    final gen = ++_routeGen;
+    _routeTimer = Timer(const Duration(milliseconds: 400), () async {
+      if (gen != _routeGen) return;
+      await _computeRoute(gen);
+    });
+  }
+
+  /// Calculates the road route for the current endpoints and stores the decoded
+  /// polyline, distance, and duration. Stale results are discarded when a
+  /// newer calculation supersedes them.
+  Future<void> _computeRoute(int generation) async {
+    final pickup = state.pickup;
+    final destination = state.destination;
+    if (pickup == null ||
+        destination == null ||
+        !pickup.hasCoordinates ||
+        !destination.hasCoordinates) {
+      return;
+    }
+
+    state = state.copyWith(isRouting: true, clearRouteError: true);
+    try {
+      final result = await _routeService.computeRoute(
+        originLat: pickup.latitude,
+        originLng: pickup.longitude,
+        destinationLat: destination.latitude,
+        destinationLng: destination.longitude,
+      );
+      // Ignore results from superseded requests.
+      if (generation != _routeGen || !ref.mounted) return;
+      final points = decodePolyline(result.encodedPolyline);
+      state = state.copyWith(
+        isRouting: false,
+        routePoints: points,
+        distanceKm: result.distanceKm,
+        durationMin: result.durationMin,
+        clearRouteError: true,
+      );
+    } on RouteException catch (error) {
+      if (generation != _routeGen || !ref.mounted) return;
+      state = state.copyWith(
+        isRouting: false,
+        routePoints: const <LatLng>[],
+        routeError: error.message,
+      );
+    } catch (error, stack) {
+      if (generation != _routeGen || !ref.mounted) return;
+      state = state.copyWith(
+        isRouting: false,
+        routePoints: const <LatLng>[],
+        routeError: ErrorHandler.map(error, stackTrace: stack).message,
+      );
+    }
   }
 
   void selectVehicle(VehicleTypeOption vehicle) {
@@ -326,13 +416,17 @@ class RideNotifier extends Notifier<RideState> {
         valueTzs: state.parcelValueTzs,
       );
       if (gen != _quoteGen) return;
+      // The quote is priced on the straight-line distance. Once a road route
+      // has been computed, keep the real road distance and duration so the
+      // sheet does not flip back to the estimate.
+      final hasRoadRoute = state.routePoints.isNotEmpty;
       state = state.copyWith(
         quoteId: quote.quoteId,
         quoteTotal: quote.total,
         quoteSubtotal: quote.subtotal,
         quoteVat: quote.vat,
-        distanceKm: quote.distanceKm,
-        durationMin: quote.durationMin,
+        distanceKm: hasRoadRoute ? null : quote.distanceKm,
+        durationMin: hasRoadRoute ? null : quote.durationMin,
         isQuoting: false,
       );
     } catch (error, stack) {
@@ -671,6 +765,8 @@ class RideNotifier extends Notifier<RideState> {
   }
 
   void _cleanup() {
+    _routeTimer?.cancel();
+    _routeTimer = null;
     _poll?.cancel();
     _poll = null;
     _channel?.unsubscribe();

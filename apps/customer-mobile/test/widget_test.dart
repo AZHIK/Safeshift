@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safeshift_customer/features/auth/domain/entities/auth_state.dart';
 import 'package:safeshift_customer/features/auth/presentation/screens/login_screen.dart';
+import 'package:safeshift_customer/features/auth/presentation/widgets/phone_input_field.dart';
 import 'package:safeshift_customer/features/auth/providers/auth_provider.dart';
 
 class _FakeAuthNotifier extends AuthNotifier {
@@ -22,7 +23,8 @@ void main() {
     );
 
     expect(find.text('safeshift'), findsOneWidget);
-    expect(find.text('Enter your phone number'), findsOneWidget);
+    expect(find.byType(PhoneInputField), findsOneWidget);
+    expect(find.text('9 more digits needed'), findsOneWidget);
     expect(find.text('Send OTP'), findsOneWidget);
   });
 }
