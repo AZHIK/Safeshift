@@ -10,6 +10,7 @@ class Job {
     this.createdAt,
     this.driverId,
     this.vehicleClassId,
+    this.vehicleClassIconUrl,
     this.paymentMethod,
   });
 
@@ -21,5 +22,9 @@ class Job {
   final DateTime? createdAt;
   final String? driverId;
   final String? vehicleClassId;
+
+  /// Icon path of the vehicle category, served from the catalogue bucket.
+  final String? vehicleClassIconUrl;
+
   final String? paymentMethod;
 }

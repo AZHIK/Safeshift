@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
-import '../../../../shared/models/catalog_option.dart';
 import '../../../../shared/models/ride_place.dart';
 import '../../providers/ride_provider.dart';
 import 'parcel_dialog.dart';
 import 'payment_dialog.dart';
 
 final _tzs = NumberFormat('#,##0');
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 int? _totalFor(RideState ride, String? vehicleId) {
   if (vehicleId != null &&
@@ -233,35 +237,39 @@ class _RouteAndVehicles extends ConsumerWidget {
             'Could not load cargo types.',
             style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
           ),
-          data: (cargoTypes) => SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: cargoTypes.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final c = cargoTypes[i];
-                final sel = c.id == ride.cargo?.id;
-                return ChoiceChip(
-                  label: Text(c.name),
-                  avatar: Icon(
-                    c.icon,
-                    size: 16,
-                    color: sel ? Colors.white : AppColors.textSecondary,
+          data: (cargoTypes) => cargoTypes.isEmpty
+              ? const CatalogEmptyNotice(kind: CatalogKind.cargo)
+              : SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: cargoTypes.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final c = cargoTypes[i];
+                      final sel = c.id == ride.cargo?.id;
+                      return ChoiceChip(
+                        label: Text(c.name),
+                        avatar: CatalogIcon(
+                          iconUrl: c.iconUrl,
+                          supabaseUrl: _iconBaseUrl,
+                          fallbackIcon: Icons.category_rounded,
+                          size: 16,
+                          color: sel ? Colors.white : AppColors.textSecondary,
+                        ),
+                        selected: sel,
+                        showCheckmark: false,
+                        selectedColor: AppColors.primaryDeep,
+                        labelStyle: TextStyle(
+                          color: sel ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                        onSelected: (_) => notifier.selectCargo(c),
+                      );
+                    },
                   ),
-                  selected: sel,
-                  showCheckmark: false,
-                  selectedColor: AppColors.primaryDeep,
-                  labelStyle: TextStyle(
-                    color: sel ? Colors.white : AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                  onSelected: (_) => notifier.selectCargo(c),
-                );
-              },
-            ),
-          ),
+                ),
         ),
         const SizedBox(height: 10),
         _ParcelCard(onTap: () => showParcelDialog(context, ref)),
@@ -291,17 +299,19 @@ class _RouteAndVehicles extends ConsumerWidget {
             'Could not load vehicle types.',
             style: TextStyles.caption.copyWith(color: AppColors.error),
           ),
-          data: (vehicles) => Column(
-            children: [
-              for (final v in vehicles)
-                _VehicleTile(
-                  vehicle: v,
-                  selected: v.id == ride.vehicleClass?.id,
-                  price: _totalFor(ride, v.id),
-                  onTap: () => notifier.selectVehicle(v),
+          data: (vehicles) => vehicles.isEmpty
+              ? const CatalogEmptyNotice(kind: CatalogKind.vehicles)
+              : Column(
+                  children: [
+                    for (final v in vehicles)
+                      _VehicleTile(
+                        vehicle: v,
+                        selected: v.id == ride.vehicleClass?.id,
+                        price: _totalFor(ride, v.id),
+                        onTap: () => notifier.selectVehicle(v),
+                      ),
+                  ],
                 ),
-            ],
-          ),
         ),
         const SizedBox(height: 12),
         // Quote preview (always visible once route set — Bolt style).
@@ -342,8 +352,10 @@ class _RouteAndVehicles extends ConsumerWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(
-                    ride.vehicleClass?.icon ?? Icons.local_shipping_outlined,
+                  CatalogIcon(
+                    iconUrl: ride.vehicleClass?.iconUrl,
+                    supabaseUrl: _iconBaseUrl,
+                    fallbackIcon: Icons.local_shipping_outlined,
                     size: 16,
                     color: AppColors.textSecondary,
                   ),
@@ -759,8 +771,10 @@ class _VehicleTile extends StatelessWidget {
                     : AppColors.background,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                vehicle.icon,
+              child: CatalogIcon(
+                iconUrl: vehicle.iconUrl,
+                supabaseUrl: _iconBaseUrl,
+                fallbackIcon: Icons.local_shipping_outlined,
                 color: selected ? Colors.white : AppColors.primaryDark,
                 size: 28,
               ),

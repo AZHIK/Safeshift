@@ -166,6 +166,175 @@ docker exec -i supabase_db_safeshift psql -U postgres -d postgres -v ON_ERROR_ST
   < supabase/scripts/verify-phase-6-schema.sql
 ```
 
+## Hosted admin accounts
+
+The admin console (`apps/admin-console`) signs in with **email + password** and
+then calls `public.admin_console_role()`. That RPC only returns a role when
+the profile has an active row in `public.admin_roles`, so a superuser needs
+three pieces, not one:
+
+| Piece                | Change                                               |
+| -------------------- | ---------------------------------------------------- |
+| `auth.users`         | email + password, email confirmed                    |
+| `public.profiles`    | `primary_role = 'admin'`, `is_active = true`         |
+| `public.admin_roles` | `role_name = 'super_admin'`, global scope, no expiry |
+
+`supabase/scripts/create-superuser.sh` does all of that in one command, then
+verifies the account can actually sign in and hold admin permissions.
+
+### 1. Make sure the credentials are in place
+
+The script reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
+`SUPABASE_ANON_KEY` from the canonical credential file, so if that file is
+already filled in there is nothing to export:
+
+```bash
+# supabase/functions/.env.local — server-only section
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-or-secret-key>
+SUPABASE_ANON_KEY=<anon-or-publishable-key>
+```
+
+If you would rather not put the key in a file, export it for the one command:
+
+```bash
+export SUPABASE_URL="https://<project-ref>.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="<service-role-or-secret-key>"
+export SUPABASE_ANON_KEY="<anon-or-publishable-key>"
+```
+
+Get the service role key from the dashboard (**Project Settings → API
+Keys → service_role**), or with:
+
+```bash
+npx --yes supabase projects api-keys --project-ref <project-ref>
+```
+
+### 2. Inspect first
+
+```bash
+supabase/scripts/create-superuser.sh --email admin@safeshift.app --dry-run
+```
+
+This validates the key, checks the project is reachable, and reports what it
+would change — without changing anything.
+
+### 3. Create the superuser
+
+```bash
+supabase/scripts/create-superuser.sh \
+  --email admin@safeshift.app \
+  --password 'Use-A-Long-Password-2026!' \
+  --name 'Platform Admin'
+```
+
+Omit `--password` and the script prompts for it (twice, without echo).
+
+Expected output:
+
+```text
+==> Pre-flight checks
+  ok Service role key accepted (role: service_role)
+  ok Project reachable at https://<project-ref>.supabase.co
+  ok 94 admin permissions in the catalogue
+==> Creating the auth user
+  ok Created auth user (…)
+==> Promoting the profile to primary_role = 'admin'
+  ok Profile updated (primary_role = admin, is_active = true)
+==> Granting the 'super_admin' role
+  ok Granted 'super_admin' (global scope, no expiry)
+==> Verifying the account can sign in and hold permissions
+  ok Signed in successfully
+  ok admin_console_role() = super_admin
+  ok current_user_role() = admin
+  ok has_permission('view_all_users') = true
+```
+
+### 4. Sign in
+
+Use the same email and password on the admin console at
+`http://localhost:3001/login`. The console reads the Supabase URL and anon key
+from `apps/admin-console/.env.local`, which `scripts/sync-dart-defines.sh`
+generates from the canonical file.
+
+### Options
+
+| Flag              | Effect                                                                 |
+| ----------------- | ---------------------------------------------------------------------- |
+| `--dry-run`       | Validate the credentials and report what would change.                 |
+| `--role <name>`   | Grant a different `admin_roles.role_name` (default `super_admin`).     |
+| `--phone <e164>`  | Also record a phone number on the profile.                             |
+| `--country <iso>` | Country ISO code used when the profile has to be created by hand.      |
+| `--revoke`        | Remove the role grant and demote the profile back to `customer`.       |
+| `--delete-user`   | With `--revoke`, also delete the auth user.                            |
+| `--no-audit`      | Skip the `admin_actions_log` entry, which keeps the account deletable. |
+
+### Revoke an account
+
+```bash
+supabase/scripts/create-superuser.sh --email admin@safeshift.app --revoke --delete-user
+```
+
+### Troubleshooting
+
+- **`This account has no active admin or fleet-owner role.`** — the grant is
+  missing or expired. Run the script again, or check
+  `select * from public.admin_roles where profile_id = <profile id>;`.
+- **"The email already exists but the user could not be found."** — the script
+  looks the user up through `public.profiles`, because the Admin API list
+  endpoint (`GET /auth/v1/admin/users`) can fail with
+  `500 Database error finding users` on a large auth schema. If the profile
+  row is missing too, create the account with a different email.
+- **"Could not delete the auth user: the audit trail still references it."** —
+  `public.admin_actions_log.admin_profile_id` is `ON DELETE RESTRICT`, so an
+  admin with audit history can never be deleted. The account is de-privileged
+  instead. Pass `--no-audit` on creation to keep it deletable.
+- **"The supplied key has role 'anon', not 'service_role'."** — you passed the
+  anon or publishable key. The script needs the service role key.
+- **"Target '…' is not a hosted Supabase project."** — a warning, not an
+  error. It fires when the URL is not `*.supabase.co`, so you are running
+  against the local stack.
+- **`ENV=dev` pointing at a hosted project** — `scripts/sync-dart-defines.sh`
+  refuses this, because `ENV=dev` makes the apps fall back to the local
+  Supabase stack when no URL is supplied. Use `ENV=staging` or `ENV=prod`.
+- **A server-only key in the client-safe section** —
+  `scripts/sync-dart-defines.sh` refuses this too, so the service role key
+  can never reach an app bundle.
+
+Full reference: [hosted Supabase runbook](docs/runbooks/running-apps-and-hosted-supabase-testing.md).
+
+## Catalogue icons
+
+The vehicle categories and cargo types are database rows, and their artwork
+lives in the public `catalog-icons` storage bucket. The artwork is committed
+to the repository and uploaded with one command:
+
+```bash
+corepack pnpm catalog:icons:dry-run   # list the files
+corepack pnpm catalog:icons           # upload them
+```
+
+The script reads the service role key from `supabase/functions/.env.local`
+and never prints it. `vehicle_types.icon_url` and `cargo_types.icon_url`
+hold the path inside the bucket (`vehicle/pickup.svg`), so the same row works
+on the local stack, on staging, and in production — the apps resolve it
+against their own Supabase project URL.
+
+### Managing the catalogue
+
+The admin console manages both catalogues at **Catalogue** (`/catalog`),
+under the _Marketplace_ group in the sidebar: add a row, edit it, activate or
+deactivate it, and delete it while nothing references it yet.
+
+Nothing is hard-coded in the mobile apps, so a row that is not in the
+database is a row the apps never show. Deactivating every row empties the
+booking flow; an empty catalogue shows an explanation rather than a blank
+screen.
+
+To add a vehicle type or cargo type, add the row, add the SVG under
+`supabase/storage/catalog-icons/`, and upload it. See
+[the Phase 2 architecture note](docs/architecture/0009-phase-2-verification-vehicles-cargo-fleets.md).
+
 ## Workspace commands
 
 | Command                         | Purpose                                          |
@@ -178,6 +347,7 @@ docker exec -i supabase_db_safeshift psql -U postgres -d postgres -v ON_ERROR_ST
 | `corepack pnpm flutter:test`    | Test all Flutter/Dart packages                   |
 | `corepack pnpm flutter:format`  | Format all Dart source                           |
 | `corepack pnpm db:types`        | Regenerate Supabase TypeScript types             |
+| `corepack pnpm catalog:icons`   | Upload the catalogue icons to Supabase Storage   |
 | `corepack pnpm check`           | Typecheck, lint, build, Flutter analyze and test |
 
 ## Environment
@@ -187,6 +357,37 @@ Never commit real secrets.
 ```bash
 cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
+```
+
+### One credential file
+
+`supabase/functions/.env.local` is the **single source of truth** for every
+credential in the repository. It has two sections:
+
+| Section     | Contains                                                            | Used by                             |
+| ----------- | ------------------------------------------------------------------- | ----------------------------------- |
+| Client-safe | Supabase URL + publishable key, Google Maps key, Firebase config    | mobile apps, web app, admin console |
+| Server-only | Supabase service role key, shared gates, payment/SMS/email/FCM keys | Edge Functions only                 |
+
+The client-side files are **generated** from the client-safe section, so the
+service role key can never end up in an app bundle:
+
+```bash
+scripts/sync-dart-defines.sh          # regenerate
+scripts/sync-dart-defines.sh --check  # fail if anything is out of date
+```
+
+It writes `apps/*/dart_defines.local.json`, `apps/*/.env.local`,
+`apps/*/.env.hosted-test` and `apps/admin-console/.env.local`. The script
+refuses to run if the anon key is actually a service role key, if `ENV=dev`
+points at a hosted project, or if a server-only key appears in the
+client-safe section.
+
+Build the apps against the generated file:
+
+```bash
+cd apps/customer-mobile
+flutter run --dart-define-from-file=dart_defines.local.json
 ```
 
 - Flutter `.env.example` files are documentation only; pass the values with

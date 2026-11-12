@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../../core/config/env_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
@@ -11,6 +13,9 @@ import '../../../providers/home_provider.dart';
 import 'sheet_handle.dart';
 
 String _tzs(num amount) => 'TZS ${NumberFormat('#,##0').format(amount)}';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 /// Full-height incoming-job request card with a 15s countdown ring.
 class IncomingJobSheet extends ConsumerWidget {
@@ -107,7 +112,17 @@ class IncomingJobSheet extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _Meta(label: 'Cargo', value: job.cargoClass),
+                    child: _Meta(
+                      label: 'Cargo',
+                      value: job.cargoClass,
+                      leading: CatalogIcon(
+                        iconUrl: job.cargoIconUrl,
+                        supabaseUrl: _iconBaseUrl,
+                        fallbackIcon: Icons.inventory_2_outlined,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
                   Expanded(
                     child: _Meta(
@@ -179,10 +194,13 @@ class IncomingJobSheet extends ConsumerWidget {
 }
 
 class _Meta extends StatelessWidget {
-  const _Meta({required this.label, required this.value});
+  const _Meta({required this.label, required this.value, this.leading});
 
   final String label;
   final String value;
+
+  /// Optional catalogue icon shown next to the value.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +211,15 @@ class _Meta extends StatelessWidget {
           label,
           style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
-        Text(value, style: TextStyles.title),
+        Row(
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 6),
+            ],
+            Flexible(child: Text(value, style: TextStyles.title)),
+          ],
+        ),
       ],
     );
   }

@@ -9,7 +9,7 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/cards/status_pill.dart';
-import '../../../../shared/mock/mock_jobs.dart';
+import '../../../home/domain/entities/driver_job.dart';
 import '../../providers/trips_provider.dart';
 
 String _tzs(num amount) => 'TZS ${NumberFormat('#,##0').format(amount)}';

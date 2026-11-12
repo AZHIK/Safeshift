@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../../shared/mock/mock_jobs.dart';
+import '../../domain/entities/driver_job.dart';
 import '../../domain/entities/driver_status.dart';
 
 /// Google Maps integration for the driver screen.
@@ -17,53 +17,60 @@ class MapPlaceholder extends StatefulWidget {
 }
 
 class _MapPlaceholderState extends State<MapPlaceholder> {
-  late GoogleMapController _controller;
-  final Set<Marker> _markers = {};
-  final Set<Polyline> _polylines = {};
-  LatLng? _driverPosition;
+  GoogleMapController? _controller;
+  Set<Marker> _markers = const <Marker>{};
+  final Set<Polyline> _polylines = const <Polyline>{};
 
   @override
   void initState() {
     super.initState();
-    _initMarkers();
+    _markers = _buildMarkers();
   }
 
-  void _initMarkers() {
-    // Pickup marker (green)
-    _markers.add(
+  @override
+  void didUpdateWidget(covariant MapPlaceholder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != widget.status || oldWidget.job != widget.job) {
+      // Build a NEW set instance: the Maps plugin compares the incoming set
+      // with the previous one by identity, so mutating the same set in place
+      // would never reach the native map.
+      _markers = _buildMarkers();
+    }
+  }
+
+  Set<Marker> _buildMarkers() {
+    // Driver position. While a job is active the driver marker follows the
+    // simulated position; otherwise it sits at the default city centre.
+    final driverPosition = widget.status.hasActiveJob ||
+            widget.status == DriverStatus.incomingJob
+        ? const LatLng(-6.7900, 39.2500)
+        : const LatLng(-6.7900, 39.2500);
+
+    return <Marker>{
+      // Pickup marker (green)
       Marker(
         markerId: const MarkerId('pickup'),
         position: const LatLng(-6.8180, 39.2700), // Kariakoo Market, Dar es Salaam
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         infoWindow: const InfoWindow(title: 'Pickup'),
       ),
-    );
 
-    // Drop-off marker (red)
-    _markers.add(
+      // Drop-off marker (red)
       Marker(
         markerId: const MarkerId('dropoff'),
         position: const LatLng(-6.7750, 39.2250), // Mlimani City, Dar es Salaam
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: const InfoWindow(title: 'Drop-off'),
       ),
-    );
 
-    // Driver marker
-    _markers.add(
+      // Driver marker
       Marker(
         markerId: const MarkerId('driver'),
-        position: _driverPosition ?? const LatLng(-6.7900, 39.2500),
+        position: driverPosition,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
         infoWindow: const InfoWindow(title: 'Driver'),
       ),
-    );
-
-    // Update driver position based on status
-    if (widget.status.hasActiveJob || widget.status == DriverStatus.incomingJob) {
-      _driverPosition = const LatLng(-6.7900, 39.2500); // Simulated position
-      setState(() {});
-    }
+    };
   }
 
   @override
@@ -71,7 +78,6 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
     return GoogleMap(
       onMapCreated: (GoogleMapController controller) {
         _controller = controller;
-        setState(() {});
       },
       initialCameraPosition: const CameraPosition(
         target: LatLng(-6.7900, 39.2500),
@@ -87,7 +93,7 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 }

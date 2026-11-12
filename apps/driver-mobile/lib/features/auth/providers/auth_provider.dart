@@ -44,17 +44,44 @@ class AuthNotifier extends Notifier<AuthState> {
       },
     );
     ref.onDispose(() => _authSubscription?.cancel());
-    unawaited(_restoreSession());
+    // Riverpod 3 forbids reading `state` while the provider is still
+    // building. Supabase.initialize() starts recoverSession() without
+    // awaiting it, so currentSession is still null here and the restore
+    // would write `state` synchronously inside build(), which throws
+    // "Tried to read the state of an uninitialized provider" and leaves
+    // isInitialized false forever, so the router never redirects.
+    // Deferring to a microtask lets build() return first.
+    scheduleMicrotask(() => unawaited(_restoreSession()));
     return const AuthState();
   }
 
   Future<void> _restoreSession() async {
-    final session = _service.client.auth.currentSession;
-    if (session == null) {
-      state = state.copyWith(isInitialized: true);
-      return;
+    // Supabase.initialize() restores a stored session in the background, so
+    // currentSession can still be null a moment after startup. Wait for the
+    // restore to settle before declaring the user signed out, otherwise a
+    // signed-in user is bounced to the login screen first.
+    await _awaitSessionRestore();
+    if (!ref.mounted) return;
+    // A session that arrived in the meantime is handled by _onAuthEvent.
+    if (_service.client.auth.currentSession != null) return;
+    state = state.copyWith(isInitialized: true);
+  }
+
+  /// Waits for the first auth event, or a short grace period.
+  Future<void> _awaitSessionRestore() async {
+    if (_service.client.auth.currentSession != null) return;
+    final completer = Completer<void>();
+    final subscription = _service.onAuthStateChange.listen((_) {
+      if (!completer.isCompleted) completer.complete();
+    });
+    try {
+      await Future.any<void>([
+        completer.future,
+        Future<void>.delayed(const Duration(milliseconds: 500)),
+      ]);
+    } finally {
+      await subscription.cancel();
     }
-    await _loadProfile(showLoading: false);
   }
 
   void _onAuthEvent(supa.AuthState event) {

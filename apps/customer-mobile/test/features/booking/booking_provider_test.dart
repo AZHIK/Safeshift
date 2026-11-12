@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:safeshift_customer/features/booking/providers/booking_provider.dart';
-import 'package:safeshift_customer/shared/models/catalog_option.dart';
 import 'package:safeshift_customer/shared/models/ride_place.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
 void main() {
   test('booking draft starts empty and can be saved', () {
@@ -40,8 +40,7 @@ void main() {
         capacityKgMin: 500,
         capacityKgMax: 1000,
         displayOrder: 1,
-      ),
-      scheduledTime: null,
+      ),      scheduledTime: null,
     );
     container.read(bookingProvider.notifier).save(draft);
 

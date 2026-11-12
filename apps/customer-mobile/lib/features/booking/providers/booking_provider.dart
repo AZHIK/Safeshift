@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
-import '../../../shared/models/catalog_option.dart';
 import '../../../shared/models/ride_place.dart';
 
 class BookingDraft {

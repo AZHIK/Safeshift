@@ -1,4 +1,4 @@
-import '../../../../shared/mock/mock_jobs.dart';
+import 'driver_job.dart';
 import 'driver_status.dart';
 
 /// Local UI state for the single-screen driver home.

@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../shared/mock/mock_jobs.dart';
+import '../domain/entities/driver_job.dart';
 
 class DriverEarningsSnapshot {
   const DriverEarningsSnapshot({
@@ -67,6 +66,9 @@ class DriverVehicleSnapshot {
     required this.registrationNumber,
     required this.vehicleType,
     required this.verificationStatus,
+    this.vehicleTypeId,
+    this.vehicleTypeCode,
+    this.vehicleTypeIconUrl,
     this.make,
     this.model,
     this.year,
@@ -77,8 +79,21 @@ class DriverVehicleSnapshot {
 
   final String id;
   final String registrationNumber;
+
+  /// Display name of the vehicle category (`public.vehicle_types.name`).
   final String vehicleType;
+
   final String verificationStatus;
+
+  /// `public.vehicle_types.id` of the vehicle category.
+  final String? vehicleTypeId;
+
+  /// Durable code of the vehicle category, e.g. `pickup`.
+  final String? vehicleTypeCode;
+
+  /// Icon path of the vehicle category, served from the catalogue bucket.
+  final String? vehicleTypeIconUrl;
+
   final String? make;
   final String? model;
   final int? year;
@@ -117,6 +132,77 @@ class DriverRepository {
         .from('drivers')
         .update(<String, dynamic>{'is_available': available})
         .eq('id', userId);
+  }
+
+  /// The vehicle this driver currently operates, if any.
+  ///
+  /// Dispatch joins on `drivers.current_vehicle_id`, so it must be set before
+  /// the driver can be matched to a job.
+  Future<String?> currentVehicleId() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return null;
+    final rows = await _client
+        .from('drivers')
+        .select('current_vehicle_id')
+        .eq('id', userId)
+        .maybeSingle();
+    return rows?['current_vehicle_id'] as String?;
+  }
+
+  /// The driver's own active, verified vehicles.
+  Future<List<String>> myReadyVehicleIds() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return const <String>[];
+    final rows = await _client
+        .from('vehicles')
+        .select('id')
+        .eq('primary_driver_id', userId)
+        .eq('is_active', true)
+        .eq('verification_status', 'verified');
+    return rows
+        .map((row) => row['id'] as String?)
+        .whereType<String>()
+        .toList(growable: false);
+  }
+
+  /// Points the driver at a vehicle. The server validates ownership.
+  Future<void> setCurrentVehicle(String? vehicleId) async {
+    await _client.rpc<void>(
+      'driver_set_current_vehicle',
+      params: <String, dynamic>{'p_vehicle_id': vehicleId},
+    );
+  }
+
+  /// Ensures the driver has a current vehicle, picking one if needed.
+  ///
+  /// Returns false when the driver has no active, verified vehicle at all,
+  /// in which case dispatch can never match them.
+  Future<bool> ensureCurrentVehicle() async {
+    final current = await currentVehicleId();
+    if (current != null) return true;
+    final ready = await myReadyVehicleIds();
+    final picked = selectCurrentVehicle(
+      currentVehicleId: current,
+      readyVehicleIds: ready,
+    );
+    if (picked == null) return false;
+    await setCurrentVehicle(picked);
+    return true;
+  }
+
+  /// Chooses which vehicle a driver should operate.
+  ///
+  /// An already-assigned vehicle always wins. Otherwise the first active,
+  /// verified vehicle is used, and `null` means the driver cannot be matched
+  /// to any job.
+  @visibleForTesting
+  static String? selectCurrentVehicle({
+    required String? currentVehicleId,
+    required List<String> readyVehicleIds,
+  }) {
+    if (currentVehicleId != null) return currentVehicleId;
+    if (readyVehicleIds.isEmpty) return null;
+    return readyVehicleIds.first;
   }
 
   Future<void> updateLocation({
@@ -364,6 +450,9 @@ class DriverRepository {
       id: raw['id'] as String,
       registrationNumber: raw['registration_number'] as String? ?? '',
       vehicleType: raw['vehicle_type'] as String? ?? 'Vehicle',
+      vehicleTypeId: raw['vehicle_type_id'] as String?,
+      vehicleTypeCode: raw['vehicle_type_code'] as String?,
+      vehicleTypeIconUrl: raw['vehicle_type_icon_url'] as String?,
       verificationStatus: raw['verification_status'] as String? ?? 'pending',
       make: raw['make'] as String?,
       model: raw['model'] as String?,
@@ -403,6 +492,10 @@ class DriverRepository {
       distanceKm: numOf(row['distance_km']),
       estimatedFareTzs: numOf(row['estimated_fare']).round(),
       cargoClass: row['cargo_type'] as String? ?? 'Cargo',
+      cargoTypeId: row['cargo_type_id'] as String?,
+      cargoIconUrl: row['cargo_type_icon_url'] as String?,
+      vehicleTypeId: row['vehicle_type_id'] as String?,
+      vehicleIconUrl: row['vehicle_type_icon_url'] as String?,
       customerName: row['customer_name'] as String? ?? 'SafeShift customer',
       pickupDistanceKm: numOf(row['distance_to_pickup_km']),
       offerId: row['offer_id'] as String?,
@@ -422,6 +515,10 @@ class DriverRepository {
       distanceKm: numOf(row['distance_km']),
       estimatedFareTzs: numOf(row['final_amount']).round(),
       cargoClass: row['cargo_type'] as String? ?? 'Cargo',
+      cargoTypeId: row['cargo_type_id'] as String?,
+      cargoIconUrl: row['cargo_type_icon_url'] as String?,
+      vehicleTypeId: row['vehicle_type_id'] as String?,
+      vehicleIconUrl: row['vehicle_type_icon_url'] as String?,
       customerName: row['customer_name'] as String? ?? 'SafeShift customer',
       pickupDistanceKm: 0,
       status: row['status'] as String?,

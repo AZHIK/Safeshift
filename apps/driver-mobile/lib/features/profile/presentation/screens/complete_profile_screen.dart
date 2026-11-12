@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../../core/widgets/inputs/app_text_field.dart';
-import '../../../../shared/mock/mock_driver.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../catalog/providers/catalog_provider.dart';
+import '../../domain/entities/driver_profile.dart';
 import '../../providers/profile_provider.dart';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 /// Forced first step after OTP when the driver has no profile.
 ///
 /// The form collects the minimum profile fields. Real backend persistence
-/// will replace the mock [DriverProfileState.setProfile] call later.
+/// will replace the mock [DriverProfileNotifier.setProfile] call later.
 class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
 
@@ -28,15 +35,8 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _zoneController;
-  String _vehicleClass = 'Pickup';
+  String? _vehicleTypeId;
   bool _saving = false;
-
-  static const _vehicleOptions = <String>[
-    'Pickup',
-    'Box Truck',
-    'Van',
-    'Motorbike',
-  ];
 
   @override
   void initState() {
@@ -63,12 +63,18 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_saving) return;
+    final vehicleTypeId = _vehicleTypeId;
+    if (vehicleTypeId == null) {
+      AppSnackbar.showError(context, 'Select the vehicle class you drive.');
+      return;
+    }
     setState(() => _saving = true);
     // Mock save delay — replaced by a real API call later.
     await Future<void>.delayed(const Duration(milliseconds: 600));
     final phone = _phoneForProfile.trim().isEmpty
         ? (ref.read(authProvider).phoneNumber ?? '')
         : _phoneForProfile.trim();
+    final vehicle = _selectedVehicle;
     ref.read(driverProfileStateProvider.notifier).setProfile(
           DriverProfile(
             id: 'driver-001',
@@ -78,16 +84,43 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
             rating: 5.0,
             completedTrips: 0,
             verified: false,
-            vehicleClass: _vehicleClass,
+            vehicleTypeId: vehicleTypeId,
+            vehicleClass: vehicle?.name ?? '',
+            vehicleIconUrl: vehicle?.iconUrl,
             zone: _zoneController.text.trim(),
           ),
         );
     if (mounted) context.go('/home');
   }
 
+  /// The vehicle category row the driver picked, if the catalogue loaded.
+  VehicleTypeOption? get _selectedVehicle {
+    final id = _vehicleTypeId;
+    if (id == null) return null;
+    final vehicles = ref.read(vehicleTypesProvider).value;
+    if (vehicles == null) return null;
+    for (final vehicle in vehicles) {
+      if (vehicle.id == id) return vehicle;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final vehiclesAsync = ref.watch(vehicleTypesProvider);
+    vehiclesAsync.whenData((vehicles) {
+      if (vehicles.isEmpty) return;
+      final current = _vehicleTypeId;
+      if (current != null &&
+          vehicles.any((vehicle) => vehicle.id == current)) {
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _vehicleTypeId = vehicles.first.id);
+      });
+    });
     final phoneLabel = authState.currentUser?.phone ??
         (authState.phoneNumber != null ? '+255${authState.phoneNumber}' : '');
 
@@ -180,23 +213,55 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                             : null,
                   ),
                   const SizedBox(height: AppSizes.sm),
-                  DropdownButtonFormField<String>(
-                    initialValue: _vehicleClass,
-                    decoration: const InputDecoration(
-                      labelText: 'Vehicle class',
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.all(Radius.circular(12)),
-                      ),
+                  // The vehicle categories are the database catalogue, so the
+                  // list matches what pricing and dispatch use.
+                  vehiclesAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => Text(
+                      'Could not load the vehicle catalogue.',
+                      style: TextStyles.caption
+                          .copyWith(color: AppColors.textSecondary),
                     ),
-                    items: _vehicleOptions
-                        .map((e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(e),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _vehicleClass = v);
+                    data: (vehicles) {
+                      if (vehicles.isEmpty) {
+                        return const CatalogEmptyNotice(
+                          kind: CatalogKind.vehicles,
+                          message:
+                              'No vehicle categories are published for your market yet. '
+                              'Contact support to get one added.',
+                        );
+                      }
+                      return DropdownButtonFormField<String>(
+                        initialValue: _vehicleTypeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Vehicle class',
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        items: vehicles
+                            .map((vehicle) => DropdownMenuItem(
+                                  value: vehicle.id,
+                                  child: Row(
+                                    children: [
+                                      CatalogIcon(
+                                        iconUrl: vehicle.iconUrl,
+                                        supabaseUrl: _iconBaseUrl,
+                                        fallbackIcon:
+                                            Icons.local_shipping_outlined,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(child: Text(vehicle.name)),
+                                    ],
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) setState(() => _vehicleTypeId = v);
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: AppSizes.lg),

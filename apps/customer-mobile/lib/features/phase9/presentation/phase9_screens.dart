@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -412,7 +413,7 @@ class RecurringTemplatesScreen extends ConsumerWidget {
       AppSnackbar.showInfo(context, 'Verify a business account before creating recurring jobs.');
       return;
     }
-    final vehicleTypes = await client.from('vehicle_types').select('id, name').eq('is_active', true).order('display_order');
+    final vehicleTypes = await CatalogRepository(client).getVehicleTypes();
     if (!context.mounted) return;
     final savedAddresses = await client.from('saved_addresses').select('address_id, label, addresses(line_1)').eq('profile_id', _userId(ref));
     if (!context.mounted) return;
@@ -421,7 +422,7 @@ class RecurringTemplatesScreen extends ConsumerWidget {
     final rule = TextEditingController(text: 'FREQ=WEEKLY;BYDAY=MO');
     final time = TextEditingController(text: '08:00');
     String accountId = verified.first['business_account_id'].toString();
-    String? vehicleTypeId = vehicleTypes.isNotEmpty ? vehicleTypes.first['id'].toString() : null;
+    String? vehicleTypeId = vehicleTypes.isNotEmpty ? vehicleTypes.first.id : null;
     String? pickupId;
     String? destinationId;
     final saved = await showModalBottomSheet<bool>(
@@ -453,7 +454,7 @@ class RecurringTemplatesScreen extends ConsumerWidget {
                 DropdownButtonFormField<String>(
                   initialValue: vehicleTypeId,
                   decoration: const InputDecoration(labelText: 'Vehicle type *'),
-                  items: vehicleTypes.map((row) => DropdownMenuItem(value: row['id'].toString(), child: Text(row['name'].toString()))).toList(),
+                  items: vehicleTypes.map((row) => DropdownMenuItem(value: row.id, child: Text(row.name))).toList(),
                   onChanged: (value) => setModalState(() => vehicleTypeId = value),
                 ),
                 const SizedBox(height: AppSizes.sm),

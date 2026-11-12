@@ -1,11 +1,18 @@
 {
+  "_comment": [
+    "Template only. The real values live in supabase/functions/.env.local",
+    "(client-safe section) and this file is GENERATED from it.",
+    "Edit the source file, then run: scripts/sync-dart-defines.sh",
+    "Never commit secrets."
+  ],
   "ENV": "dev",
-  "SUPABASE_URL": "https://yroxsrmylpqnyuujrxda.supabase.co",
-  "SUPABASE_ANON_KEY": "PASTE_YOUR_SUPABASE_ANON_KEY_HERE",
+  "SUPABASE_URL": "",
+  "SUPABASE_ANON_KEY": "",
   "GOOGLE_MAPS_API_KEY": "",
   "FIREBASE_API_KEY": "",
   "FIREBASE_APP_ID": "",
   "FIREBASE_MESSAGING_SENDER_ID": "",
   "FIREBASE_PROJECT_ID": "",
-  "FIREBASE_STORAGE_BUCKET": ""
+  "FIREBASE_STORAGE_BUCKET": "",
+  "MOCK_MODE": "false"
 }

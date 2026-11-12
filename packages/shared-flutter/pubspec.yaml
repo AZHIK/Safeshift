@@ -12,8 +12,15 @@ dependencies:
   flutter:
     sdk: flutter
   intl: ^0.20.3
+  # Pinned to the exact version supabase_flutter requires, so both resolve to
+  # the same SupabaseClient type.
+  supabase: 2.16.5
+  flutter_svg: ^2.3.0
+  cached_network_image: ^4.0.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Used to answer the catalogue REST calls locally in the tests.
+  http: ^1.6.0

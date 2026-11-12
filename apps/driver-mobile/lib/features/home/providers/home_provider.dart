@@ -15,6 +15,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/mock/mock_earnings.dart';
 import '../../../shared/mock/mock_jobs.dart';
 import '../data/driver_repository.dart';
+import '../domain/entities/driver_job.dart';
 import '../domain/entities/driver_status.dart';
 import '../domain/entities/home_state.dart';
 
@@ -124,6 +125,17 @@ class HomeNotifier extends Notifier<HomeState> {
       clearError: true,
     );
     try {
+      // Dispatch matches on drivers.current_vehicle_id. Without it the driver
+      // is invisible to every job, so make sure it is set before going online.
+      if (!await _repo.ensureCurrentVehicle()) {
+        state = state.copyWith(
+          driverStatus: DriverStatus.offline,
+          isLoading: false,
+          errorMessage:
+              'Add a vehicle and wait for it to be verified before going online.',
+        );
+        return;
+      }
       await _repo.setAvailability(true);
       state = state.copyWith(
         driverStatus: DriverStatus.onlineSearching,
@@ -131,7 +143,12 @@ class HomeNotifier extends Notifier<HomeState> {
       );
       _subscribeOffers();
       _startPolling();
-      await _startLocationUpdates();
+      final locationFailure = await _startLocationUpdates();
+      if (locationFailure != null) {
+        // Still online, but dispatch cannot see this driver until the fix
+        // lands. Say so instead of failing silently.
+        state = state.copyWith(errorMessage: locationFailure);
+      }
       await _checkOffer();
     } catch (error, stack) {
       state = state.copyWith(
@@ -535,26 +552,35 @@ class HomeNotifier extends Notifier<HomeState> {
     });
   }
 
-  Future<void> _startLocationUpdates({String? jobId}) async {
+  Future<String?> _startLocationUpdates({String? jobId}) async {
     _locationTimer?.cancel();
-    await _pushLocation(jobId);
+    final failure = await _pushLocation(jobId);
     _locationTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) => unawaited(_pushLocation(jobId)),
     );
+    return failure;
   }
 
-  Future<void> _pushLocation(String? jobId) async {
-    if (_isMock) return;
+  /// Publishes the driver's GPS fix.
+  ///
+  /// Returns null on success, or a short reason the fix could not be
+  /// published. A driver whose location never lands is invisible to dispatch,
+  /// so the reason is surfaced instead of being swallowed: going "online"
+  /// without a published location looks identical to going offline.
+  Future<String?> _pushLocation(String? jobId) async {
+    if (_isMock) return null;
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return 'Turn on location services so customers can find you nearby.';
+      }
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        return;
+        return 'Allow location access so customers can find you nearby.';
       }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -566,8 +592,9 @@ class HomeNotifier extends Notifier<HomeState> {
         longitude: position.longitude,
         jobId: jobId,
       );
-    } catch (_) {
-      // Location is best-effort; never block dispatch on it.
+      return null;
+    } catch (error, stack) {
+      return ErrorHandler.map(error, stackTrace: stack).message;
     }
   }
 

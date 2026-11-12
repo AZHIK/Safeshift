@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/cache/cache_service.dart';
 import '../../../core/network/supabase_client.dart';
-import '../../../shared/mock/mock_jobs.dart';
+import '../../home/domain/entities/driver_job.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../home/data/driver_repository.dart';
 
@@ -70,6 +70,8 @@ class DriverTripsNotifier extends AsyncNotifier<List<DriverJob>> {
           distanceKm: (map['distance_km'] as num?)?.toDouble() ?? 0,
           estimatedFareTzs: (map['fare'] as num?)?.toInt() ?? 0,
           cargoClass: map['cargo'] as String? ?? 'Cargo',
+          cargoTypeId: map['cargo_type_id'] as String?,
+          cargoIconUrl: map['cargo_icon_url'] as String?,
           customerName: map['customer'] as String? ?? 'Customer',
           pickupDistanceKm: 0,
           status: map['status'] as String?,
@@ -87,6 +89,8 @@ class DriverTripsNotifier extends AsyncNotifier<List<DriverJob>> {
     'distance_km': trip.distanceKm,
     'fare': trip.estimatedFareTzs,
     'cargo': trip.cargoClass,
+    'cargo_type_id': trip.cargoTypeId,
+    'cargo_icon_url': trip.cargoIconUrl,
     'customer': trip.customerName,
     'status': trip.status,
     'completed_at': trip.completedAt?.toIso8601String(),

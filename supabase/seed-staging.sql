@@ -318,13 +318,13 @@ insert into public.vehicle_makes (id, name, country_of_origin) values
   ('21000000-0000-4000-8000-000000000007', 'Nissan', 'Japan'),
   ('21000000-0000-4000-8000-000000000008', 'Suzuki', 'Japan');
 
-insert into public.vehicle_types (id, country_id, code, name, capacity_kg_min, capacity_kg_max, capacity_m3_min, capacity_m3_max, requires_special_licence, requires_equipment, display_order) values
-  ('22000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'small_van', 'Small van', 500, 1500, 3, 12, false, '{}', 10),
-  ('22000000-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', 'pickup', 'Pickup', 1000, 2000, 4, 15, false, '{straps}', 20),
-  ('22000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', 'medium_truck', 'Medium truck', 3000, 7000, 15, 35, false, '{straps,load_bars}', 30),
-  ('22000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', 'large_truck', 'Large truck', 10000, 30000, 40, 80, false, '{straps,load_bars}', 40),
-  ('22000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', 'refrigerated_truck', 'Refrigerated truck', 3000, 10000, 15, 45, true, '{refrigeration_unit,straps}', 50),
-  ('22000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', 'flatbed', 'Flatbed', 5000, 20000, 20, 60, true, '{straps}', 60);
+insert into public.vehicle_types (id, country_id, code, name, icon_url, capacity_kg_min, capacity_kg_max, capacity_m3_min, capacity_m3_max, requires_special_licence, requires_equipment, display_order) values
+  ('22000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'small_van', 'Small van', 'vehicle/small_van.svg', 500, 1500, 3, 12, false, '{}', 10),
+  ('22000000-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', 'pickup', 'Pickup', 'vehicle/pickup.svg', 1000, 2000, 4, 15, false, '{straps}', 20),
+  ('22000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', 'medium_truck', 'Medium truck', 'vehicle/medium_truck.svg', 3000, 7000, 15, 35, false, '{straps,load_bars}', 30),
+  ('22000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', 'large_truck', 'Large truck', 'vehicle/large_truck.svg', 10000, 30000, 40, 80, false, '{straps,load_bars}', 40),
+  ('22000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', 'refrigerated_truck', 'Refrigerated truck', 'vehicle/refrigerated_truck.svg', 3000, 10000, 15, 45, true, '{refrigeration_unit,straps}', 50),
+  ('22000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', 'flatbed', 'Flatbed', 'vehicle/flatbed.svg', 5000, 20000, 20, 60, true, '{straps}', 60);
 
 insert into public.vehicle_models (make_id, name, vehicle_type_id, year_start) values
   ('21000000-0000-4000-8000-000000000001', 'Hiace', '22000000-0000-4000-8000-000000000001', 1990),
@@ -366,17 +366,17 @@ insert into public.cargo_categories (id, code, name, display_order) values
   ('24000000-0000-4000-8000-000000000002', 'commercial', 'Commercial', 20),
   ('24000000-0000-4000-8000-000000000003', 'industrial', 'Industrial', 30);
 
-insert into public.cargo_types (id, country_id, category_id, code, name, requires_special_handling, requires_declared_value, requires_insurance, allowed_vehicle_type_codes, max_value_tzs, display_order) values
-  ('25000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'household_goods', 'Household goods', false, false, false, '{}', null, 10),
-  ('25000000-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'furniture', 'Furniture', false, false, false, '{small_van,pickup,medium_truck,large_truck}', null, 20),
-  ('25000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'appliances', 'Appliances', false, true, false, '{small_van,pickup,medium_truck,large_truck}', null, 30),
-  ('25000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'building_materials', 'Building materials', false, false, false, '{medium_truck,large_truck,flatbed}', null, 40),
-  ('25000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'fresh_produce', 'Fresh produce', true, false, true, '{refrigerated_truck}', null, 50),
-  ('25000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'refrigerated_goods', 'Refrigerated goods', true, false, false, '{refrigerated_truck}', null, 60),
-  ('25000000-0000-4000-8000-000000000007', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'electronics', 'Electronics', false, true, true, '{small_van,pickup,medium_truck}', null, 70),
-  ('25000000-0000-4000-8000-000000000008', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'machinery', 'Machinery', true, true, true, '{flatbed,large_truck}', null, 80),
-  ('25000000-0000-4000-8000-000000000009', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'livestock', 'Livestock', true, false, true, '{}', null, 90),
-  ('25000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'hazardous_materials', 'Hazardous materials', true, true, true, '{flatbed,large_truck}', 5000000, 100);
+insert into public.cargo_types (id, country_id, category_id, code, name, icon_url, requires_special_handling, requires_declared_value, requires_insurance, allowed_vehicle_type_codes, max_value_tzs, display_order) values
+  ('25000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'household_goods', 'Household goods', 'cargo/household_goods.svg', false, false, false, '{}', null, 10),
+  ('25000000-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'furniture', 'Furniture', 'cargo/furniture.svg', false, false, false, '{small_van,pickup,medium_truck,large_truck}', null, 20),
+  ('25000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'appliances', 'Appliances', 'cargo/appliances.svg', false, true, false, '{small_van,pickup,medium_truck,large_truck}', null, 30),
+  ('25000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'building_materials', 'Building materials', 'cargo/building_materials.svg', false, false, false, '{medium_truck,large_truck,flatbed}', null, 40),
+  ('25000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'fresh_produce', 'Fresh produce', 'cargo/fresh_produce.svg', true, false, true, '{refrigerated_truck}', null, 50),
+  ('25000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'refrigerated_goods', 'Refrigerated goods', 'cargo/refrigerated_goods.svg', true, false, false, '{refrigerated_truck}', null, 60),
+  ('25000000-0000-4000-8000-000000000007', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'electronics', 'Electronics', 'cargo/electronics.svg', false, true, true, '{small_van,pickup,medium_truck}', null, 70),
+  ('25000000-0000-4000-8000-000000000008', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'machinery', 'Machinery', 'cargo/machinery.svg', true, true, true, '{flatbed,large_truck}', null, 80),
+  ('25000000-0000-4000-8000-000000000009', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'livestock', 'Livestock', 'cargo/livestock.svg', true, false, true, '{}', null, 90),
+  ('25000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'hazardous_materials', 'Hazardous materials', 'cargo/hazardous_materials.svg', true, true, true, '{flatbed,large_truck}', 5000000, 100);
 
 insert into public.cargo_packaging_options (id, code, name, additional_fee_tzs, display_order) values
   ('26000000-0000-4000-8000-000000000001', 'boxed', 'Boxed', 0, 10),

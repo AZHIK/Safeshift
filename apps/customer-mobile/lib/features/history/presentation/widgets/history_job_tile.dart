@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/cards/status_pill.dart';
 import '../../../booking/domain/entities/job.dart';
 
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
+
 class HistoryJobTile extends StatelessWidget {
   const HistoryJobTile({super.key, required this.job, required this.onTap});
   final Job job;
   final VoidCallback onTap;
-
-  IconData get _vehicleIcon => switch (job.vehicleClassId) {
-    'small_van' => Icons.airport_shuttle_rounded,
-    'medium_truck' || 'large_truck' => Icons.fire_truck_rounded,
-    _ => Icons.local_shipping_rounded,
-  };
 
   @override
   Widget build(BuildContext context) => Card(
@@ -34,7 +33,14 @@ class HistoryJobTile extends StatelessWidget {
                 color: Color(0xFFE8F4FD),
                 shape: BoxShape.circle,
               ),
-              child: Icon(_vehicleIcon, color: AppColors.primaryDark, size: 21),
+              // The icon comes from the vehicle category row in the database.
+              child: CatalogIcon(
+                iconUrl: job.vehicleClassIconUrl,
+                supabaseUrl: _iconBaseUrl,
+                fallbackIcon: Icons.local_shipping_rounded,
+                color: AppColors.primaryDark,
+                size: 21,
+              ),
             ),
             const SizedBox(width: AppSizes.md),
             Expanded(

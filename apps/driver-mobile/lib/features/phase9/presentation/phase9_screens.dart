@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/env_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/network/supabase_client.dart';
@@ -15,6 +17,9 @@ import '../../../core/widgets/feedback/app_empty_state.dart';
 import '../../../core/widgets/feedback/app_error_view.dart';
 import '../../../core/widgets/feedback/app_snackbar.dart';
 import '../../auth/providers/auth_provider.dart';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 String _date(dynamic value) {
   if (value == null) return '—';
@@ -110,7 +115,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
   String? _vehicleTypeId;
   String? _countryId;
   String? _cityId;
-  List<Map<String, dynamic>> _vehicleTypes = const [];
+  List<VehicleTypeOption> _vehicleTypes = const [];
   List<Map<String, dynamic>> _countries = const [];
   bool _loading = true;
   bool _saving = false;
@@ -160,13 +165,14 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
       _cityId = city?['id'] as String?;
     }
 
-    final typesQuery = client.from('vehicle_types').select('id, name, code').eq('is_active', true);
-    final types = _countryId == null
-        ? await typesQuery.order('display_order')
-        : await typesQuery.or('country_id.is.null,country_id.eq.$_countryId').order('display_order');
-    _vehicleTypes = types.map((row) => Map<String, dynamic>.from(row)).toList();
-    if (_vehicleTypeId == null || !_vehicleTypes.any((row) => row['id'].toString() == _vehicleTypeId)) {
-      _vehicleTypeId = _vehicleTypes.isNotEmpty ? _vehicleTypes.first['id'].toString() : null;
+    // The vehicle catalogue is read from the database and scoped to the
+    // country the driver picked, so the form always offers the categories
+    // that are actually configured for that market.
+    _vehicleTypes = await CatalogRepository(client).getVehicleTypes(
+      countryId: _countryId ?? '',
+    );
+    if (_vehicleTypeId == null || !_vehicleTypes.any((row) => row.id == _vehicleTypeId)) {
+      _vehicleTypeId = _vehicleTypes.isNotEmpty ? _vehicleTypes.first.id : null;
     }
   }
 
@@ -396,7 +402,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   const Text('Vehicle', style: TextStyles.title),
                   const SizedBox(height: AppSizes.sm),
                   DropdownButtonFormField<String>(
-                    value: _countryId,
+                    initialValue: _countryId,
                     decoration: const InputDecoration(labelText: 'Operating country *'),
                     items: _countries
                         .map((row) => DropdownMenuItem(
@@ -416,22 +422,35 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                     ),
                   const SizedBox(height: AppSizes.sm),
                   DropdownButtonFormField<String>(
-                    value: _vehicleTypeId,
+                    initialValue: _vehicleTypeId,
                     decoration: const InputDecoration(labelText: 'Vehicle type *'),
                     items: _vehicleTypes
                         .map((row) => DropdownMenuItem(
-                              value: row['id'].toString(),
-                              child: Text(row['name'].toString()),
+                              value: row.id,
+                              child: Row(
+                                children: [
+                                  CatalogIcon(
+                                    iconUrl: row.iconUrl,
+                                    supabaseUrl: _iconBaseUrl,
+                                    fallbackIcon: Icons.local_shipping_outlined,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Flexible(child: Text(row.name)),
+                                ],
+                              ),
                             ))
                         .toList(),
                     onChanged: _vehicleTypes.isEmpty ? null : (value) => setState(() => _vehicleTypeId = value),
                   ),
                   if (_countryId != null && _vehicleTypes.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSizes.xs),
-                      child: Text(
-                        'No vehicle types are available for the selected country. Contact support.',
-                        style: TextStyles.caption.copyWith(color: AppColors.error),
+                    const Padding(
+                      padding: EdgeInsets.only(top: AppSizes.xs),
+                      child: CatalogEmptyNotice(
+                        kind: CatalogKind.vehicles,
+                        message:
+                            'No vehicle categories are published for the selected country. '
+                            'Contact support to get one added.',
                       ),
                     ),
                   const SizedBox(height: AppSizes.sm),

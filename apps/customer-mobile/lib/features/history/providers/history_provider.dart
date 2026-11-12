@@ -84,6 +84,7 @@ class HistoryNotifier extends AsyncNotifier<List<Job>> {
     createdAt: snapshot.createdAt,
     driverId: snapshot.driverId,
     vehicleClassId: snapshot.vehicleType,
+    vehicleClassIconUrl: snapshot.vehicleTypeIconUrl,
     paymentMethod: snapshot.paymentMethod,
   );
 
@@ -97,6 +98,7 @@ class HistoryNotifier extends AsyncNotifier<List<Job>> {
         'created_at': snapshot.createdAt?.toIso8601String(),
         'driver_id': snapshot.driverId,
         'vehicle_type': snapshot.vehicleType,
+        'vehicle_type_icon_url': snapshot.vehicleTypeIconUrl,
         'payment_method': snapshot.paymentMethod,
       };
 
@@ -109,6 +111,7 @@ class HistoryNotifier extends AsyncNotifier<List<Job>> {
     createdAt: DateTime.tryParse('${row['created_at'] ?? ''}'),
     driverId: row['driver_id'] as String?,
     vehicleClassId: row['vehicle_type'] as String?,
+    vehicleClassIconUrl: row['vehicle_type_icon_url'] as String?,
     paymentMethod: row['payment_method'] as String?,
   );
 }

@@ -2,15 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_handler.dart';
 import '../../../core/network/supabase_client.dart';
 import '../../../shared/mock/mock_payment_methods.dart';
-import '../../../shared/models/catalog_option.dart';
 import '../../../shared/models/ride_place.dart';
 import '../../../shared/providers/places_provider.dart';
-import '../../../shared/repositories/catalog_repository.dart';
 import '../../../shared/utils/polyline.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../tracking/domain/entities/driver.dart';
@@ -473,14 +472,14 @@ class RideNotifier extends Notifier<RideState> {
         }
       }
 
-      final job = await _repo.createJob(state.quoteId!);
+      final job = await _createJobWithFreshQuote();
       state = state.copyWith(jobId: job.id, jobStatus: job.status);
       _subscribe(job.id);
       final dispatch = await _repo.dispatch(job.id);
       if (dispatch.count == 0) {
         state = state.copyWith(
           isSubmitting: false,
-          errorMessage: 'No verified drivers are nearby right now. Try again in a moment.',
+          errorMessage: _noDriverMessage(dispatch),
         );
         return;
       }
@@ -492,6 +491,56 @@ class RideNotifier extends Notifier<RideState> {
         isSubmitting: false,
         errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
       );
+    }
+  }
+
+  /// Creates the job, re-quoting once if the quote expired.
+  ///
+  /// A quote is valid for 15 minutes. If the customer leaves the confirmation
+  /// sheet open for longer, the job insert is rejected with SQLSTATE 22023
+  /// ("quote ... has expired"). Re-quote and try again rather than failing.
+  Future<CustomerJobSnapshot> _createJobWithFreshQuote() async {
+    final quoteId = state.quoteId;
+    if (quoteId == null) {
+      throw StateError('Cannot create a job without a quote.');
+    }
+    try {
+      return await _repo.createJob(quoteId);
+    } on PostgrestException catch (error) {
+      if (error.code != '22023') rethrow;
+      await refreshQuote();
+      final freshQuoteId = state.quoteId;
+      if (freshQuoteId == null) rethrow;
+      return _repo.createJob(freshQuoteId);
+    }
+  }
+
+  /// Explains why dispatch found nobody.
+  ///
+  /// The server reports the step that emptied the result, so the customer
+  /// sees the actual cause instead of a generic "no drivers nearby".
+  String _noDriverMessage(DispatchResult dispatch) {
+    final reason = dispatch.reason?.trim();
+    if (reason == null || reason.isEmpty) {
+      return 'No verified drivers are nearby right now. Try again in a moment.';
+    }
+    switch (reason) {
+      case 'no verified drivers are available right now':
+        return 'No verified drivers are online right now. Try again in a moment.';
+      case 'drivers are online but have not shared their location yet':
+        return 'Drivers are online but have not shared their location yet. '
+            'Try again in a moment.';
+      case 'drivers have no verified vehicle attached':
+        return 'The drivers online are still waiting for a vehicle to be '
+            'verified. Try again in a moment.';
+      case 'no online driver has a vehicle of the requested class':
+        return 'No online driver has a vehicle of the class you selected. '
+            'Try a different vehicle, or check back shortly.';
+      case 'no matching driver is within the search radius':
+        return 'No matching driver is within 15 km of your pickup. '
+            'Try again in a moment.';
+      default:
+        return 'No verified drivers are nearby right now. Try again in a moment.';
     }
   }
 
@@ -510,9 +559,7 @@ class RideNotifier extends Notifier<RideState> {
       final result = await _repo.dispatch(jobId);
       state = state.copyWith(
         isSubmitting: false,
-        errorMessage: result.count == 0
-            ? 'Still no verified drivers nearby. Please try again shortly.'
-            : null,
+        errorMessage: result.count == 0 ? _noDriverMessage(result) : null,
       );
       if (result.count > 0) _startPolling(jobId);
     } catch (error, stack) {

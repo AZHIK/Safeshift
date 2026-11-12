@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/errors/error_handler.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../providers/vehicle_provider.dart';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 /// Pushed route: driver's registered vehicle.
 class VehicleScreen extends ConsumerWidget {
@@ -62,8 +67,10 @@ class VehicleScreen extends ConsumerWidget {
                               ),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(
-                              Icons.local_shipping_rounded,
+                            child: CatalogIcon(
+                              iconUrl: vehicle.vehicleTypeIconUrl,
+                              supabaseUrl: _iconBaseUrl,
+                              fallbackIcon: Icons.local_shipping_rounded,
                               size: 32,
                             ),
                           ),

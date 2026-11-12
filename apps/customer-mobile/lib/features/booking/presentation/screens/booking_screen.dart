@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
-import '../../../../shared/models/catalog_option.dart';
 import '../../../../shared/models/ride_place.dart';
 import '../../../ride/providers/ride_provider.dart';
 import '../../providers/booking_provider.dart';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 class BookingScreen extends ConsumerStatefulWidget {
   const BookingScreen({super.key});
@@ -200,34 +204,38 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           cargoAsync.when(
             loading: () => const LinearProgressIndicator(),
             error: (_, _) => const Text('Could not load cargo types.'),
-            data: (categories) => SizedBox(
-              height: 42,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
-                separatorBuilder: (_, _) => const SizedBox(width: AppSizes.sm),
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  final selected = category.id == _cargo?.id;
-                  return ChoiceChip(
-                    avatar: Icon(
-                      category.icon,
-                      size: 17,
-                      color: selected ? Colors.white : AppColors.textSecondary,
+            data: (categories) => categories.isEmpty
+                ? const CatalogEmptyNotice(kind: CatalogKind.cargo)
+                : SizedBox(
+                    height: 42,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: categories.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: AppSizes.sm),
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        final selected = category.id == _cargo?.id;
+                        return ChoiceChip(
+                          avatar: CatalogIcon(
+                            iconUrl: category.iconUrl,
+                            supabaseUrl: _iconBaseUrl,
+                            fallbackIcon: Icons.category_rounded,
+                            size: 17,
+                            color: selected ? Colors.white : AppColors.textSecondary,
+                          ),
+                          label: Text(category.name),
+                          selected: selected,
+                          showCheckmark: false,
+                          selectedColor: AppColors.primary,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          onSelected: (_) => setState(() => _cargo = category),
+                        );
+                      },
                     ),
-                    label: Text(category.name),
-                    selected: selected,
-                    showCheckmark: false,
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(
-                      color: selected ? Colors.white : AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    onSelected: (_) => setState(() => _cargo = category),
-                  );
-                },
-              ),
-            ),
+                  ),
           ),
           const SizedBox(height: AppSizes.lg),
           const _SectionTitle(
@@ -238,18 +246,20 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           vehiclesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => const Text('Could not load vehicle types.'),
-            data: (vehicles) => Column(
-              children: [
-                for (final vehicle in vehicles) ...<Widget>[
-                  _VehicleOption(
-                    vehicle: vehicle,
-                    selected: _vehicle?.id == vehicle.id,
-                    onTap: () => setState(() => _vehicle = vehicle),
+            data: (vehicles) => vehicles.isEmpty
+                ? const CatalogEmptyNotice(kind: CatalogKind.vehicles)
+                : Column(
+                    children: [
+                      for (final vehicle in vehicles) ...<Widget>[
+                        _VehicleOption(
+                          vehicle: vehicle,
+                          selected: _vehicle?.id == vehicle.id,
+                          onTap: () => setState(() => _vehicle = vehicle),
+                        ),
+                        const SizedBox(height: AppSizes.sm),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: AppSizes.sm),
-                ],
-              ],
-            ),
           ),
           const SizedBox(height: AppSizes.md),
           InkWell(
@@ -432,7 +442,13 @@ class _VehicleOption extends StatelessWidget {
                   : AppColors.background,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(vehicle.icon, color: AppColors.primaryDark),
+            child: CatalogIcon(
+              iconUrl: vehicle.iconUrl,
+              supabaseUrl: _iconBaseUrl,
+              fallbackIcon: Icons.local_shipping_outlined,
+              color: AppColors.primaryDark,
+              size: 24,
+            ),
           ),
           const SizedBox(width: AppSizes.md),
           Expanded(

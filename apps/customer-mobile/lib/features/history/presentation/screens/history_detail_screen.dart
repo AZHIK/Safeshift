@@ -119,6 +119,7 @@ class HistoryDetailScreen extends ConsumerWidget {
     createdAt: snapshot.createdAt,
     driverId: snapshot.driverId,
     vehicleClassId: snapshot.vehicleType,
+    vehicleClassIconUrl: snapshot.vehicleTypeIconUrl,
     paymentMethod: snapshot.paymentMethod,
   );
 

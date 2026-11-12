@@ -119,8 +119,11 @@ export async function googleMapsClient(
   requestId?: string,
   fetchImpl?: FetchLike,
 ): Promise<GoogleMapsClient> {
-  const apiKey = (await readOptionalSecret('GOOGLE_MAPS_API_KEY')) ??
-    (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY'));
+  // Prefer a dedicated server key. GOOGLE_MAPS_API_KEY is shared with the
+  // mobile clients and may be restricted to an Android bundle id, which the
+  // Routes API calls from the Edge Function would then be rejected by.
+  const apiKey = (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY')) ??
+    (await readOptionalSecret('GOOGLE_MAPS_API_KEY'));
   if (!apiKey) {
     throw new ProviderUnavailableError('google_maps', 'Google Maps API key is not configured');
   }

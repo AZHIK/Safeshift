@@ -81,6 +81,7 @@ To add a type:
 3. Add the equipment codes the type requires.
 4. Reference the code in `cargo_types.allowed_vehicle_type_codes` / `prohibited_vehicle_type_codes`.
 5. Add any new required document to the country checklist.
+6. Add the artwork and point `icon_url` at it (see [Catalogue icons](#catalogue-icons)).
 
 No enum or mobile release is needed. `vehicles` is the physical asset; it stores registration and capacity, and points at a type, make and model. Ownership is exclusive: `individual`, `fleet`, `business` or `safeshift`, enforced by `vehicles_owner_shape_check`.
 
@@ -95,8 +96,80 @@ To add a cargo type:
 3. Set `allowed_vehicle_type_codes` (empty means all) and any `prohibited_vehicle_type_codes`.
 4. Add restrictions, declared-value/insurance requirements and display order.
 5. Optionally add a packaging option if the existing six do not fit.
+6. Add the artwork and point `icon_url` at it (see [Catalogue icons](#catalogue-icons)).
 
 `public.can_carry_cargo(vehicle_id, cargo_type_id)` is the capability check. It requires an active vehicle, active vehicle type and active cargo type in the same country, rejects prohibited vehicle codes and enforces a non-empty allow-list. It does not check live capacity, route, price or documents; those belong to later job flows.
+
+## Catalogue icons
+
+Both catalogues carry an `icon_url`, so the artwork is data too, not a
+hard-coded list in an app.
+
+| Piece          | Where                                                        |
+| -------------- | ------------------------------------------------------------ |
+| Column         | `vehicle_types.icon_url`, `cargo_types.icon_url`              |
+| Bucket         | `catalog-icons` (public)                                     |
+| Value          | bucket-relative path, e.g. `vehicle/pickup.svg`              |
+| Artwork        | `supabase/storage/catalog-icons/{vehicle,cargo}/*.svg`        |
+| Upload         | `scripts/upload-catalog-icons.sh`                            |
+| Reading        | `CatalogRepository` in `packages/shared-flutter`              |
+| Drawing        | `CatalogIcon` in `packages/shared-flutter`                   |
+
+The stored value is a path rather than an absolute URL, so the same row works
+on the local stack, on staging, and in production: the apps resolve it
+against their own Supabase project URL
+(`<url>/storage/v1/object/public/catalog-icons/<path>`). An absolute
+`https://` value is used as-is, so an operator can point a row at an asset
+hosted anywhere.
+
+SVG and raster (PNG, JPEG, WebP) are both supported. SVG icons are tinted
+with the surrounding text colour, so they are authored in a single flat
+colour and recoloured by the app. A row with no icon, or an icon that fails
+to load, falls back to a Material icon — the UI never shows an empty box.
+
+Only staff holding `manage_vehicle_catalog` or `manage_cargo_catalog` may
+change the artwork.
+
+## Managing the catalogue
+
+The admin console manages both catalogues at **Catalogue** (`/catalog`), under
+the *Marketplace* group in the sidebar.
+
+| What              | Where                                                    |
+| ----------------- | -------------------------------------------------------- |
+| List and add      | `/catalog`                                               |
+| Edit one row      | `/catalog/vehicle-types/<id>`, `/catalog/cargo-types/<id>` |
+| Activate          | inline in the table, or on the edit page                 |
+| Delete            | inline in the table                                       |
+
+The console writes straight to `public.vehicle_types` and
+`public.cargo_types` through the signed-in admin session, so the row-level
+RLS policies are what actually decide who may change the catalogue. The
+`catalog` area in the console only decides who sees the menu entry.
+
+The icon field takes a bucket-relative path (`vehicle/pickup.svg`) or a full
+URL. The console offers the paths already uploaded to the bucket as
+suggestions, and accepts a typed path when the bucket has not been populated
+yet.
+
+Deleting a row fails once something references it — a vehicle, a pricing
+plan, a quote — and the console then says to deactivate it instead.
+Deactivating hides the row from both apps while keeping the history intact.
+
+## An empty catalogue
+
+The apps carry no built-in list of vehicle categories or cargo types, so an
+empty catalogue means an empty screen. Both apps show a
+`CatalogEmptyNotice` in place of the list, and the customer cannot reach the
+confirm step without a vehicle category, because a quote needs one.
+
+In practice:
+
+- Deactivating every row hides everything from the apps at once.
+- Deleting the seeded rows leaves the catalogue empty, but the seeded
+  vehicles, pricing plans and quotes reference them, so the database refuses
+  the delete. Deactivate instead.
+
 
 ## 5. Fleet model
 

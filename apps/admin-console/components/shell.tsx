@@ -19,6 +19,7 @@ const groups: { label: string; items: { href: string; label: string; area: strin
       { href: '/users', label: 'Users', area: 'users', glyph: '◎' },
       { href: '/drivers', label: 'Drivers', area: 'drivers', glyph: '⛟' },
       { href: '/fleets', label: 'Fleets', area: 'fleets', glyph: '▤' },
+      { href: '/catalog', label: 'Catalogue', area: 'catalog', glyph: '⬡' },
     ],
   },
   {

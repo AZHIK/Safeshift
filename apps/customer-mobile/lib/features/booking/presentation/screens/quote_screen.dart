@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:safeshift_shared/safeshift_shared.dart';
 
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/errors/error_handler.dart';
@@ -11,6 +13,9 @@ import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/quote_provider.dart';
+
+/// Supabase project URL used to resolve the icons the catalogue serves.
+final _iconBaseUrl = EnvConfig.current.supabaseUrl;
 
 class QuoteScreen extends ConsumerWidget {
   const QuoteScreen({super.key});
@@ -97,9 +102,12 @@ class QuoteScreen extends ConsumerWidget {
                                       AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(
-                                  draft.vehicleClass.icon,
+                                child: CatalogIcon(
+                                  iconUrl: draft.vehicleClass.iconUrl,
+                                  supabaseUrl: _iconBaseUrl,
+                                  fallbackIcon: Icons.local_shipping_outlined,
                                   color: AppColors.primaryDark,
+                                  size: 24,
                                 ),
                               ),
                               const SizedBox(width: AppSizes.md),

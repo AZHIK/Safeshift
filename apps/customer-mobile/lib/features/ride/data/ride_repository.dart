@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:safeshift_shared/safeshift_shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../shared/models/catalog_option.dart';
 import '../../../shared/models/ride_place.dart';
 
 class QuoteSnapshot {
@@ -52,7 +52,11 @@ class CustomerJobSnapshot {
     this.driverLat,
     this.driverLng,
     this.vehicleType,
+    this.vehicleTypeId,
+    this.vehicleTypeIconUrl,
     this.cargoType,
+    this.cargoTypeId,
+    this.cargoTypeIconUrl,
     this.paymentMethod,
   });
 
@@ -72,7 +76,21 @@ class CustomerJobSnapshot {
   final double? driverLat;
   final double? driverLng;
   final String? vehicleType;
+
+  /// `public.vehicle_types.id` of the booked vehicle category.
+  final String? vehicleTypeId;
+
+  /// Icon path of the vehicle category, served from the catalogue bucket.
+  final String? vehicleTypeIconUrl;
+
   final String? cargoType;
+
+  /// `public.cargo_types.id` of the booked cargo type.
+  final String? cargoTypeId;
+
+  /// Icon path of the cargo type, served from the catalogue bucket.
+  final String? cargoTypeIconUrl;
+
   final String? paymentMethod;
 
   bool get isTerminal => status == 'completed' || status == 'cancelled';
@@ -80,9 +98,20 @@ class CustomerJobSnapshot {
 }
 
 class DispatchResult {
-  const DispatchResult({required this.count, required this.reason});
+  const DispatchResult({
+    required this.count,
+    required this.reason,
+    this.diagnostics,
+  });
+
+  /// Number of drivers the job was offered to.
   final int count;
+
+  /// Why no driver matched, when [count] is zero.
   final String? reason;
+
+  /// How many drivers survived each dispatch filter, for diagnostics.
+  final Map<String, dynamic>? diagnostics;
 }
 
 class RideRepository {
@@ -173,6 +202,7 @@ class RideRepository {
     return DispatchResult(
       count: (response['count'] as num?)?.toInt() ?? 0,
       reason: response['reason'] as String?,
+      diagnostics: (response['diagnostics'] as Map?)?.cast<String, dynamic>(),
     );
   }
 
@@ -313,7 +343,11 @@ class RideRepository {
       driverLat: money(row['driver_lat']) == 0 ? null : money(row['driver_lat']),
       driverLng: money(row['driver_lng']) == 0 ? null : money(row['driver_lng']),
       vehicleType: row['vehicle_type'] as String?,
+      vehicleTypeId: row['vehicle_type_id'] as String?,
+      vehicleTypeIconUrl: row['vehicle_type_icon_url'] as String?,
       cargoType: row['cargo_type'] as String?,
+      cargoTypeId: row['cargo_type_id'] as String?,
+      cargoTypeIconUrl: row['cargo_type_icon_url'] as String?,
       paymentMethod: row['payment_method'] as String?,
     );
   }

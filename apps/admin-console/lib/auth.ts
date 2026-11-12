@@ -48,5 +48,9 @@ export function canSee(role: string, area: string): boolean {
   if (role === 'analyst') {
     return ['dashboard', 'users', 'drivers', 'jobs', 'payments', 'payouts', 'analytics', 'support', 'settings'].includes(area);
   }
-  return ['dashboard', 'users', 'drivers', 'jobs', 'payments', 'payouts', 'disputes', 'support', 'incidents', 'pricing', 'promos', 'analytics', 'fleets', 'data-requests', 'verifications', 'settings', 'audit'].includes(area);
+  // operations_admin and any other staff role. The catalogue is included
+  // because managing the vehicle and cargo catalogues is an operations duty;
+  // the writes themselves are still gated by the 'manage_vehicle_catalog' and
+  // 'manage_cargo_catalog' permissions in the database.
+  return ['dashboard', 'users', 'drivers', 'jobs', 'payments', 'payouts', 'disputes', 'support', 'incidents', 'pricing', 'promos', 'analytics', 'fleets', 'data-requests', 'verifications', 'catalog', 'settings', 'audit'].includes(area);
 }

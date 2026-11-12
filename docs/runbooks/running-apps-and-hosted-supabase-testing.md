@@ -259,6 +259,34 @@ export TEST_DATABASE_URL="<connection-string-from-dashboard>"
 string from the dashboard. If direct connections are IPv6-only on your network,
 use the pooler string.
 
+### 6.1b Put the credentials in one file
+
+`supabase/functions/.env.local` is the single source of truth for every
+credential in the repository. Fill in the client-safe section with the hosted
+project values, then generate the app files from it:
+
+```bash
+# supabase/functions/.env.local
+ENV=staging
+SUPABASE_URL="$TEST_SUPABASE_URL"
+SUPABASE_ANON_KEY="$TEST_ANON_KEY"
+GOOGLE_MAPS_API_KEY="<client-key>"
+
+# server-only section
+SUPABASE_SERVICE_ROLE_KEY="$TEST_SERVICE_ROLE_KEY"
+
+scripts/sync-dart-defines.sh
+```
+
+This writes `apps/*/dart_defines.local.json`, `apps/*/.env.local`,
+`apps/*/.env.hosted-test` and `apps/admin-console/.env.local`. Only the
+client-safe section is copied, so the service role key can never reach an app
+bundle. The script refuses to run if the anon key is really a service role
+key, or if `ENV=dev` points at a hosted project.
+
+> `ENV` must be `staging` or `prod` for a hosted project. `dev` makes the apps
+> fall back to the local Supabase stack when no URL is supplied.
+
 ### 6.2 Link and push migrations
 
 ```bash
@@ -494,6 +522,50 @@ where p.email = 'admin.test@safeshift.example'
   );
 SQL
 ```
+
+#### One-shot script: create a superuser
+
+`supabase/scripts/create-superuser.sh` performs all of the above in one step:
+it creates the auth user, promotes the `profiles` row to `primary_role =
+'admin'`, grants `super_admin`, backfills the role's permission mappings, and
+then verifies the account can sign in and hold admin permissions.
+
+It only needs the **service role key** — no database password and no `psql`.
+
+```bash
+export SUPABASE_URL="https://${TEST_PROJECT_REF}.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="<service-role-or-secret-key>"
+export SUPABASE_ANON_KEY="<anon-or-publishable-key>"   # used for the sign-in check
+
+# Inspect first — makes no changes
+supabase/scripts/create-superuser.sh --email admin@safeshift.app --dry-run
+
+# Create (and verify)
+supabase/scripts/create-superuser.sh \
+  --email admin@safeshift.app \
+  --password 'Use-A-Long-Test-Password-2026!' \
+  --name 'Test Admin'
+```
+
+Useful flags:
+
+| Flag            | Effect                                                                 |
+| --------------- | ---------------------------------------------------------------------- |
+| `--dry-run`     | Validate the credentials and report what would change.                 |
+| `--role <name>` | Grant a different `admin_roles.role_name` (default `super_admin`).     |
+| `--revoke`      | Remove the role grant and demote the profile back to `customer`.       |
+| `--delete-user` | With `--revoke`, also delete the auth user.                            |
+| `--no-audit`    | Skip the `admin_actions_log` entry, which keeps the account deletable. |
+
+Two schema details the script works around:
+
+- `public.admin_actions_log.admin_profile_id` is `ON DELETE RESTRICT`, so an
+  admin with audit history can never be deleted. `--revoke` de-privileges the
+  account instead, and `--no-audit` keeps the account deletable from the start.
+- The Admin API list endpoint (`GET /auth/v1/admin/users`) can fail with
+  `500 Database error finding users` on a large auth schema. The script looks
+  the user up through `public.profiles` instead, because `profiles.id` is a
+  1:1 reference to `auth.users.id`.
 
 #### Optional: create a fleet-owner test account
 
