@@ -28,7 +28,7 @@ async function listAll(
   prefix: string,
 ): Promise<StorageEntry[]> {
   const entries: StorageEntry[] = [];
-  for (let offset = 0;; offset += STORAGE_PAGE_SIZE) {
+  for (let offset = 0; ; offset += STORAGE_PAGE_SIZE) {
     const { data, error } = await bucket.list(prefix, {
       limit: STORAGE_PAGE_SIZE,
       offset,
@@ -48,10 +48,7 @@ function isExpired(entry: StorageEntry, cutoff: number): boolean {
   return Number.isFinite(createdAt) && createdAt < cutoff;
 }
 
-async function cleanupExpiredExportObjects(
-  service: SupabaseClient,
-  now: Date,
-): Promise<number> {
+async function cleanupExpiredExportObjects(service: SupabaseClient, now: Date): Promise<number> {
   const bucket = service.storage.from('data-exports');
   const cutoff = now.getTime() - EXPORT_RETENTION_DAYS * 24 * 60 * 60 * 1_000;
   const paths: string[] = [];

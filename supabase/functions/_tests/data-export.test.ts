@@ -50,7 +50,8 @@ Deno.test('data-export builds a ZIP and marks the request completed', async () =
       auth: fakeAuthDeps(),
       service,
       userClient: () => service,
-    }));
+    }),
+  );
 
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/data-export', {
@@ -69,48 +70,52 @@ Deno.test('data-export builds a ZIP and marks the request completed', async () =
   assertEquals(captured.updated?.delivered_file_path, captured.path);
 });
 
-Deno.test('data-export surfaces a domain query failure instead of exporting empty data', async () => {
-  const service = createSupabaseMock({
-    tables: {
-      profiles: { select: () => ({ data: { id: profileId }, error: null }) },
-      data_subject_requests: {
-        select: () => ({
-          data: {
-            id: requestId,
-            requester_profile_id: profileId,
-            request_type: 'export',
-            status: 'in_progress',
-          },
-          error: null,
-        }),
-        update: () => ({ data: null, error: null }),
+Deno.test(
+  'data-export surfaces a domain query failure instead of exporting empty data',
+  async () => {
+    const service = createSupabaseMock({
+      tables: {
+        profiles: { select: () => ({ data: { id: profileId }, error: null }) },
+        data_subject_requests: {
+          select: () => ({
+            data: {
+              id: requestId,
+              requester_profile_id: profileId,
+              request_type: 'export',
+              status: 'in_progress',
+            },
+            error: null,
+          }),
+          update: () => ({ data: null, error: null }),
+        },
+        jobs: {
+          select: () => ({
+            data: null,
+            error: { code: '42703', message: 'column does not exist' },
+          }),
+        },
       },
-      jobs: {
-        select: () => ({
-          data: null,
-          error: { code: '42703', message: 'column does not exist' },
-        }),
-      },
-    },
-  });
+    });
 
-  const handler = createHandler('data-export', (req, ctx) =>
-    handle(req, ctx, {
-      auth: fakeAuthDeps(),
-      service,
-      userClient: () => service,
-    }));
+    const handler = createHandler('data-export', (req, ctx) =>
+      handle(req, ctx, {
+        auth: fakeAuthDeps(),
+        service,
+        userClient: () => service,
+      }),
+    );
 
-  const response = await handler(
-    jsonRequest('http://localhost/functions/v1/data-export', {
-      body: { request_id: requestId },
-    }),
-  );
-  const body = await response.json();
+    const response = await handler(
+      jsonRequest('http://localhost/functions/v1/data-export', {
+        body: { request_id: requestId },
+      }),
+    );
+    const body = await response.json();
 
-  assertEquals(response.status, 500);
-  assertEquals(body.error.code, 'internal_error');
-});
+    assertEquals(response.status, 500);
+    assertEquals(body.error.code, 'internal_error');
+  },
+);
 
 Deno.test('data-export allows a customer to self-export by profile id', async () => {
   const service = createSupabaseMock({
@@ -141,7 +146,8 @@ Deno.test('data-export allows a customer to self-export by profile id', async ()
       auth: fakeAuthDeps(),
       service,
       userClient: () => service,
-    }));
+    }),
+  );
 
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/data-export', {

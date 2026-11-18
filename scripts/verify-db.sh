@@ -31,4 +31,24 @@ for phase in 1 2 3 4 5 6 7 8 9; do
   rm -f "$output"
 done
 
+echo "==> Configuration console verification"
+output="$(mktemp)"
+if ! docker exec -i "$CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  < "$ROOT/supabase/scripts/verify-phase-10-config.sql" > "$output" 2>&1; then
+  cat "$output"
+  rm -f "$output"
+  exit 1
+fi
+if grep -Eq '(^|[[:space:]])FAIL([[:space:]]|$)' "$output"; then
+  cat "$output"
+  rm -f "$output"
+  exit 1
+fi
+grep -E 'PASS' "$output" | tail -12
+rm -f "$output"
+
+echo "==> Production schema verification"
+docker exec -i "$CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  < "$ROOT/supabase/scripts/verify-production-schema.sql"
+
 echo "All database gates passed."

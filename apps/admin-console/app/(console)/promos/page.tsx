@@ -19,30 +19,64 @@ export default async function PromosPage({
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('promo_codes')
-    .select('id, code, name, discount_type, discount_value, max_discount_amount, min_purchase_amount, currency_code, valid_from, valid_to, total_redemption_limit, per_user_redemption_limit, is_active, promo_redemptions(id)')
+    .select(
+      'id, code, name, discount_type, discount_value, max_discount_amount, min_purchase_amount, currency_code, valid_from, valid_to, total_redemption_limit, per_user_redemption_limit, is_active, promo_redemptions(id)',
+    )
     .order('created_at', { ascending: false })
     .limit(100);
 
   return (
     <>
-      <PageHeader title="Promos" description="Discount codes, validity windows, limits, and redemption volume." />
+      <PageHeader
+        title="Promos"
+        description="Discount codes, validity windows, limits, and redemption volume."
+      />
       <Notice searchParams={params} />
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       <div className="card">
         <DataTable
-          columns={['Code', 'Name', 'Discount', 'Window', 'Limits', 'Redemptions', 'Status', 'Action']}
+          columns={[
+            'Code',
+            'Name',
+            'Discount',
+            'Window',
+            'Limits',
+            'Redemptions',
+            'Status',
+            'Action',
+          ]}
           rows={(data ?? []).map((promo) => [
-            <span className="mono" key="c">{promo.code}</span>,
+            <span className="mono" key="c">
+              {promo.code}
+            </span>,
             promo.name,
-            <div key="d">{titleize(promo.discount_type)} · {promo.discount_type === 'percentage' || promo.discount_type === 'capped_percentage' ? `${Number(promo.discount_value)}%` : formatMoney(promo.discount_value, promo.currency_code ?? 'TZS')}<div className="small muted">Min {formatMoney(promo.min_purchase_amount, promo.currency_code ?? 'TZS')}</div></div>,
-            <span className="small" key="w">{formatDate(promo.valid_from)}<br />{formatDate(promo.valid_to)}</span>,
-            <span className="small" key="l">{promo.total_redemption_limit ?? '∞'} total<br />{promo.per_user_redemption_limit} / user</span>,
+            <div key="d">
+              {titleize(promo.discount_type)} ·{' '}
+              {promo.discount_type === 'percentage' || promo.discount_type === 'capped_percentage'
+                ? `${Number(promo.discount_value)}%`
+                : formatMoney(promo.discount_value, promo.currency_code ?? 'TZS')}
+              <div className="small muted">
+                Min {formatMoney(promo.min_purchase_amount, promo.currency_code ?? 'TZS')}
+              </div>
+            </div>,
+            <span className="small" key="w">
+              {formatDate(promo.valid_from)}
+              <br />
+              {formatDate(promo.valid_to)}
+            </span>,
+            <span className="small" key="l">
+              {promo.total_redemption_limit ?? '∞'} total
+              <br />
+              {promo.per_user_redemption_limit} / user
+            </span>,
             promo.promo_redemptions?.length ?? 0,
             <StatusBadge key="s" value={promo.is_active ? 'active' : 'disabled'} />,
             <form action={togglePromoAction} key="a">
               <input type="hidden" name="promo_id" value={promo.id} />
               <input type="hidden" name="enabled" value={promo.is_active ? 'false' : 'true'} />
-              <button className="btn btn-sm" type="submit">{promo.is_active ? 'Disable' : 'Enable'}</button>
+              <button className="btn btn-sm" type="submit">
+                {promo.is_active ? 'Disable' : 'Enable'}
+              </button>
             </form>,
           ])}
           empty="No promo codes found."

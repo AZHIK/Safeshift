@@ -8,7 +8,6 @@ import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
-import '../../../../../shared/mock/mock_earnings.dart';
 import '../../../providers/home_provider.dart';
 import 'sheet_handle.dart';
 
@@ -29,12 +28,7 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
   Widget build(BuildContext context) {
     final job = ref.watch(homeProvider).activeJob;
     if (job == null) return const SizedBox.shrink();
-    final fare = job.estimatedFareTzs.toDouble();
-    final commission = (fare * MockEarnings.commissionRate).round();
-    final earnings = (fare - commission).round();
-    final base = (fare * 0.3).round();
-    final distance = (fare * 0.55).round();
-    final time = (fare - base - distance).round();
+    final fare = job.estimatedFareTzs;
     return ListView(
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
@@ -59,19 +53,15 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
         InfoCard(
           child: Column(
             children: [
-              _Row(label: 'Base fare', value: _tzs(base)),
-              _Row(label: 'Distance', value: _tzs(distance)),
-              _Row(label: 'Time', value: _tzs(time)),
-              _Row(
-                label:
-                    'Commission (${(MockEarnings.commissionRate * 100).round()}%)',
-                value: '− ${_tzs(commission)}',
-              ),
-              const Divider(height: AppSizes.lg),
-              _Row(
-                label: 'Your earnings',
-                value: _tzs(earnings),
-                isTotal: true,
+              _Row(label: 'Trip fare', value: _tzs(fare), isTotal: true),
+              const SizedBox(height: AppSizes.sm),
+              Text(
+                'Your payout is recorded after the customer payment settles. '
+                'Check Earnings for confirmed amounts.',
+                textAlign: TextAlign.center,
+                style: TextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),

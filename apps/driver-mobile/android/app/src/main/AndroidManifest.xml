@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <application
         android:label="safeshift driver"
         android:name="${applicationName}"
@@ -35,6 +39,11 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="safeshift" android:host="login-callback"/>
+                <data android:scheme="safeshift" android:host="tracking"/>
+                <data android:scheme="safeshift" android:host="jobs"/>
+                <data android:scheme="safeshift" android:host="home"/>
+                <data android:scheme="safeshift" android:host="trips"/>
+                <data android:scheme="safeshift" android:host="history"/>
             </intent-filter>
             <!-- Universal links: https://safeshift.app/... -->
             <intent-filter android:autoVerify="true">

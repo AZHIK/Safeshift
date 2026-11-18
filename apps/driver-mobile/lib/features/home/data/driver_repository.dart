@@ -34,7 +34,11 @@ class DriverEarningsSnapshot {
 }
 
 class DailyEarning {
-  const DailyEarning({required this.day, required this.date, required this.amount});
+  const DailyEarning({
+    required this.day,
+    required this.date,
+    required this.amount,
+  });
   final String day;
   final DateTime? date;
   final int amount;
@@ -150,16 +154,44 @@ class DriverRepository {
   }
 
   /// The driver's own active, verified vehicles.
+  ///
+  /// Covers both ownership paths: a vehicle whose `primary_driver_id` is the
+  /// driver, and a fleet vehicle linked through an active
+  /// `vehicle_assignments` row.
   Future<List<String>> myReadyVehicleIds() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return const <String>[];
-    final rows = await _client
+
+    final candidateIds = <String>{};
+    final owned = await _client
         .from('vehicles')
         .select('id')
         .eq('primary_driver_id', userId)
         .eq('is_active', true)
         .eq('verification_status', 'verified');
-    return rows
+    candidateIds.addAll(owned.map((row) => row['id']).whereType<String>());
+
+    final assignments = await _client
+        .from('vehicle_assignments')
+        .select('vehicle_id')
+        .eq('driver_id', userId)
+        .eq('is_active', true)
+        .isFilter('unassigned_at', null);
+    candidateIds.addAll(
+      assignments.map((row) => row['vehicle_id']).whereType<String>(),
+    );
+
+    if (candidateIds.isEmpty) return const <String>[];
+
+    // Re-check the assignment path: an assignment can outlive the vehicle's
+    // active/verified state.
+    final ready = await _client
+        .from('vehicles')
+        .select('id')
+        .inFilter('id', candidateIds.toList(growable: false))
+        .eq('is_active', true)
+        .eq('verification_status', 'verified');
+    return ready
         .map((row) => row['id'] as String?)
         .whereType<String>()
         .toList(growable: false);
@@ -314,6 +346,19 @@ class DriverRepository {
         .toList(growable: false);
   }
 
+  /// One finished trip owned by the signed-in driver.
+  ///
+  /// Unlike [trips], this is keyed by id, so it still resolves trips older than
+  /// the history page. Foreign, active, and unknown jobs return null.
+  Future<DriverJob?> trip(String jobId) async {
+    final rows = await _client.rpc<List<dynamic>>(
+      'driver_trip_detail',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    if (rows.isEmpty) return null;
+    return _tripFromRow((rows.first as Map).cast<String, dynamic>());
+  }
+
   Future<List<DriverDocumentSnapshot>> documents() async {
     final rows = await _client.rpc<List<dynamic>>('driver_documents_list');
     return rows
@@ -459,7 +504,9 @@ class DriverRepository {
       year: (raw['year'] as num?)?.toInt(),
       color: raw['color'] as String?,
       capacityKg: (raw['capacity_kg'] as num?)?.toInt(),
-      photoUrls: photos is List ? photos.whereType<String>().toList() : const [],
+      photoUrls: photos is List
+          ? photos.whereType<String>().toList()
+          : const [],
     );
   }
 
@@ -485,6 +532,9 @@ class DriverRepository {
 
   DriverJob _offerFromRow(Map<String, dynamic> row) {
     double numOf(Object? value) => (value as num?)?.toDouble() ?? 0;
+    double? optionalNum(Object? value) =>
+        value == null ? null : (value as num?)?.toDouble();
+    final photos = row['cargo_photo_paths'];
     return DriverJob(
       id: row['job_id'] as String,
       pickup: row['pickup_address'] as String? ?? '',
@@ -503,6 +553,15 @@ class DriverRepository {
       customerPhone: row['customer_phone'] as String?,
       expiresAt: DateTime.tryParse('${row['expires_at'] ?? ''}'),
       completedAt: DateTime.tryParse('${row['completed_at'] ?? ''}'),
+      scheduledAt: DateTime.tryParse('${row['scheduled_at'] ?? ''}'),
+      acceptedAt: DateTime.tryParse('${row['accepted_at'] ?? ''}'),
+      cargoDescription: row['cargo_description'] as String?,
+      cargoWeightKg: optionalNum(row['cargo_weight_kg']),
+      declaredValueTzs: optionalNum(row['declared_value_tzs']),
+      cargoPhotoPaths: photos is List
+          ? photos.whereType<String>().toList(growable: false)
+          : const <String>[],
+      offerTtlSeconds: (row['offer_ttl_seconds'] as num?)?.toInt(),
     );
   }
 
@@ -523,6 +582,8 @@ class DriverRepository {
       pickupDistanceKm: 0,
       status: row['status'] as String?,
       completedAt: DateTime.tryParse('${row['completed_at'] ?? ''}'),
+      scheduledAt: DateTime.tryParse('${row['scheduled_at'] ?? ''}'),
+      cargoDescription: row['cargo_description'] as String?,
     );
   }
 }

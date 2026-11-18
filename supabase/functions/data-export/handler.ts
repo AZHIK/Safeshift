@@ -20,9 +20,7 @@ interface DsrRow {
   status: string;
 }
 
-async function canManageDataRequests(
-  client: SupabaseClient,
-): Promise<boolean> {
+async function canManageDataRequests(client: SupabaseClient): Promise<boolean> {
   const { data, error } = await client.rpc('has_permission', {
     permission_key: 'manage_data_requests',
   });
@@ -113,10 +111,7 @@ export async function handle(
     service.from('saved_addresses').select('*').eq('profile_id', profileId),
     service.from('business_members').select('*').eq('profile_id', profileId),
     service.from('driver_documents').select('*').eq('driver_id', profileId),
-    service
-      .from('jobs')
-      .select('*')
-      .or(`customer_id.eq.${profileId},driver_id.eq.${profileId}`),
+    service.from('jobs').select('*').or(`customer_id.eq.${profileId},driver_id.eq.${profileId}`),
     service.from('payments').select('*').eq('customer_id', profileId),
     service
       .from('ratings')

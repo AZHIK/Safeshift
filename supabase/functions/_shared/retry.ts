@@ -27,17 +27,14 @@ export function isRetryableError(error: unknown): boolean {
   return false;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const maxRetries = options.maxRetries ?? 3;
   const baseDelayMs = options.baseDelayMs ?? 1_000;
   const maxDelayMs = options.maxDelayMs ?? 16_000;
-  const sleep = options.sleep ??
-    ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const delays = DEFAULT_DELAYS_MS.map((delay) =>
-    Math.min(delay * (baseDelayMs / 1_000), maxDelayMs)
+    Math.min(delay * (baseDelayMs / 1_000), maxDelayMs),
   );
 
   let lastError: unknown;

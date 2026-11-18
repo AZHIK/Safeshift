@@ -23,14 +23,10 @@ export function RealtimeDashboard() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const channel = supabase.channel('admin-dashboard-live');
     for (const table of tables) {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table },
-        () => {
-          if (timer) clearTimeout(timer);
-          timer = setTimeout(() => router.refresh(), 400);
-        },
-      );
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => router.refresh(), 400);
+      });
     }
     channel.subscribe((status: string) => setConnected(status === 'SUBSCRIBED'));
     return () => {

@@ -34,27 +34,27 @@ in-memory Supabase, auth, provider, and cache fakes. Directories beginning with
 
 ## 3. Function inventory
 
-| # | Function | Gate | Responsibility |
-| --- | --- | --- | --- |
-| 1 | `health` | public | Database/Vault readiness. |
-| 2 | `auth-validate` | JWT | Hydrated role, country, permissions. |
-| 3 | `maps-distance` | JWT | Routes API + cache. |
-| 4 | `maps-geocode` | JWT | Forward/reverse geocode + cache. |
-| 5 | `quote-calculate` | JWT | Phase 4 quote RPC. |
-| 6 | `sms-send` | permission/internal | Beem SMS, Africa's Talking fallback. |
-| 7 | `email-send` | permission/internal | Resend email. |
-| 8 | `push-send` | permission/internal | FCM push. |
-| 9 | `notification-dispatch` | permission | Multi-channel template fan-out. |
-| 10 | `payment-selcom-initiate` | JWT | Pending charge + Selcom call. |
-| 11 | `payment-selcom-webhook` | signature | Selcom reconciliation. |
-| 12 | `payment-flutterwave-initiate` | JWT | Pending charge + Flutterwave call. |
-| 13 | `payment-flutterwave-webhook` | signature | Flutterwave reconciliation. |
-| 14 | `payment-refund` | permission | Phase 5 refund + provider refund. |
-| 15 | `payout-execute` | permission | Phase 5 payout + provider transfer. |
-| 16 | `data-export` | JWT/permission | ZIP export + signed URL. |
-| 17 | `scheduled-daily-metrics` | cron secret | Daily metric rollups. |
-| 18 | `scheduled-demand-capture` | cron secret | Pricing demand snapshot. |
-| 19 | `scheduled-retention` | cron secret | Retention and cleanup. |
+| #   | Function                       | Gate                | Responsibility                       |
+| --- | ------------------------------ | ------------------- | ------------------------------------ |
+| 1   | `health`                       | public              | Database/Vault readiness.            |
+| 2   | `auth-validate`                | JWT                 | Hydrated role, country, permissions. |
+| 3   | `maps-distance`                | JWT                 | Routes API + cache.                  |
+| 4   | `maps-geocode`                 | JWT                 | Forward/reverse geocode + cache.     |
+| 5   | `quote-calculate`              | JWT                 | Phase 4 quote RPC.                   |
+| 6   | `sms-send`                     | permission/internal | Beem SMS, Africa's Talking fallback. |
+| 7   | `email-send`                   | permission/internal | Resend email.                        |
+| 8   | `push-send`                    | permission/internal | FCM push.                            |
+| 9   | `notification-dispatch`        | permission          | Multi-channel template fan-out.      |
+| 10  | `payment-selcom-initiate`      | JWT                 | Pending charge + Selcom call.        |
+| 11  | `payment-selcom-webhook`       | signature           | Selcom reconciliation.               |
+| 12  | `payment-flutterwave-initiate` | JWT                 | Pending charge + Flutterwave call.   |
+| 13  | `payment-flutterwave-webhook`  | signature           | Flutterwave reconciliation.          |
+| 14  | `payment-refund`               | permission          | Phase 5 refund + provider refund.    |
+| 15  | `payout-execute`               | permission          | Phase 5 payout + provider transfer.  |
+| 16  | `data-export`                  | JWT/permission      | ZIP export + signed URL.             |
+| 17  | `scheduled-daily-metrics`      | cron secret         | Daily metric rollups.                |
+| 18  | `scheduled-demand-capture`     | cron secret         | Pricing demand snapshot.             |
+| 19  | `scheduled-retention`          | cron secret         | Retention and cleanup.               |
 
 ## 4. Authentication and authorization
 
@@ -94,19 +94,19 @@ Every JSON response is:
 
 Status mapping is centralized in `_shared/errors.ts` and `_shared/handler.ts`:
 
-| Condition | Status |
-| --- | --- |
-| Success (default) | `200` |
-| Resource created | `201` |
-| Invalid body/query | `422` |
-| Missing/invalid JWT, cron, internal, or webhook signature | `401` |
-| Authenticated but not allowed | `403` |
-| Missing row | `404` |
-| Method not allowed | `405` |
-| Conflict/idempotency conflict | `409` |
-| Validation conflict (provider/state) | `422` |
-| Provider or upstream failure | `502` |
-| Unexpected error | `500` |
+| Condition                                                 | Status |
+| --------------------------------------------------------- | ------ |
+| Success (default)                                         | `200`  |
+| Resource created                                          | `201`  |
+| Invalid body/query                                        | `422`  |
+| Missing/invalid JWT, cron, internal, or webhook signature | `401`  |
+| Authenticated but not allowed                             | `403`  |
+| Missing row                                               | `404`  |
+| Method not allowed                                        | `405`  |
+| Conflict/idempotency conflict                             | `409`  |
+| Validation conflict (provider/state)                      | `422`  |
+| Provider or upstream failure                              | `502`  |
+| Unexpected error                                          | `500`  |
 
 `createHandler()` adds a request ID, CORS, structured request logs, and a
 uniform `OPTIONS` response. Unknown errors return a generic message; stack

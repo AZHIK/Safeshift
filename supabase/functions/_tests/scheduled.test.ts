@@ -11,7 +11,8 @@ Deno.test('scheduled functions reject a missing cron secret', async () => {
     dailyMetrics(req, ctx, {
       auth: fakeAuthDeps({ getCronSecret: async () => 'expected-secret' }),
       service: createSupabaseMock(),
-    }));
+    }),
+  );
 
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/scheduled-daily-metrics', { method: 'POST' }),
@@ -34,9 +35,8 @@ Deno.test('scheduled-daily-metrics computes all four metric families', async () 
       return { data: counts[name] ?? 0, error: null };
     },
   });
-  const handler = createHandler(
-    'scheduled-daily-metrics',
-    (req, ctx) => dailyMetrics(req, ctx, { auth: fakeAuthDeps(), service }),
+  const handler = createHandler('scheduled-daily-metrics', (req, ctx) =>
+    dailyMetrics(req, ctx, { auth: fakeAuthDeps(), service }),
   );
 
   const response = await handler(
@@ -104,14 +104,12 @@ Deno.test('scheduled-retention aggregates policy and cleanup counts', async () =
       },
     },
   });
-  const handler = createHandler(
-    'scheduled-retention',
-    (req, ctx) =>
-      retention(req, ctx, {
-        auth: fakeAuthDeps(),
-        service,
-        now: () => new Date('2026-10-28T00:00:00.000Z'),
-      }),
+  const handler = createHandler('scheduled-retention', (req, ctx) =>
+    retention(req, ctx, {
+      auth: fakeAuthDeps(),
+      service,
+      now: () => new Date('2026-10-28T00:00:00.000Z'),
+    }),
   );
 
   const response = await handler(

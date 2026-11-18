@@ -29,9 +29,8 @@ Deno.test('maps-distance returns a fresh provider result and writes the cache', 
     calculateDistance: async () => ({ distance_km: 14.5, duration_min: 31.2 }),
   } as unknown as GoogleMapsClient;
 
-  const handler = createHandler(
-    'maps-distance',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), service, maps }),
+  const handler = createHandler('maps-distance', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), service, maps }),
   );
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/maps-distance', { body }),
@@ -59,9 +58,8 @@ Deno.test('maps-distance returns a cache hit without calling Google', async () =
     },
   } as unknown as GoogleMapsClient;
 
-  const handler = createHandler(
-    'maps-distance',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), service, maps }),
+  const handler = createHandler('maps-distance', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), service, maps }),
   );
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/maps-distance', { body }),

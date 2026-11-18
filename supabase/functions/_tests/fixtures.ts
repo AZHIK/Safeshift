@@ -55,9 +55,8 @@ export function fakeAuthDeps(
   return {
     service,
     userClient: () => service,
-    verifyToken: async (
-      token,
-    ) => (token.includes('.') ? { id: '00000000-0000-4000-8000-000000000001' } : null),
+    verifyToken: async (token) =>
+      token.includes('.') ? { id: '00000000-0000-4000-8000-000000000001' } : null,
     loadProfile: async (id) => ({
       id,
       primary_role: 'customer',

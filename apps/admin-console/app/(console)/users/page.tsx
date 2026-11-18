@@ -31,10 +31,22 @@ export default async function UsersPage({
       <form className="card card-pad form-row" method="get" style={{ marginBottom: 16 }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor="q">Search name, phone, or email</label>
-          <input className="input" id="q" name="q" defaultValue={query} placeholder="e.g. Juma or +255…" />
+          <input
+            className="input"
+            id="q"
+            name="q"
+            defaultValue={query}
+            placeholder="e.g. Juma or +255…"
+          />
         </div>
-        <button className="btn btn-primary" type="submit">Search</button>
-        {query ? <Link className="btn" href="/users">Clear</Link> : null}
+        <button className="btn btn-primary" type="submit">
+          Search
+        </button>
+        {query ? (
+          <Link className="btn" href="/users">
+            Clear
+          </Link>
+        ) : null}
       </form>
       {error ? <div className="notice notice-error">{error}</div> : null}
       <div className="card">
@@ -43,13 +55,22 @@ export default async function UsersPage({
           rows={rows.map((row) => [
             <div key="n">
               <strong>{String(row.full_name ?? row.display_name ?? 'Unnamed')}</strong>
-              {row.display_name ? <div className="small muted">{String(row.display_name)}</div> : null}
+              {row.display_name ? (
+                <div className="small muted">{String(row.display_name)}</div>
+              ) : null}
             </div>,
             titleize(row.primary_role),
-            <div key="c" className="small">{String(row.phone ?? '—')}<div className="muted">{String(row.email ?? '')}</div></div>,
+            <div key="c" className="small">
+              {String(row.phone ?? '—')}
+              <div className="muted">{String(row.email ?? '')}</div>
+            </div>,
             <StatusBadge key="s" value={row.is_active ? 'active' : 'disabled'} />,
-            <span className="small muted" key="d">{formatDate(row.created_at)}</span>,
-            <span className="mono" key="i">{shortId(row.profile_id)}</span>,
+            <span className="small muted" key="d">
+              {formatDate(row.created_at)}
+            </span>,
+            <span className="mono" key="i">
+              {shortId(row.profile_id)}
+            </span>,
           ])}
           empty={query ? 'No matching users.' : 'No users found.'}
         />

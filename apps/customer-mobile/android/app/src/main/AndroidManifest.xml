@@ -35,6 +35,9 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="safeshift" android:host="login-callback"/>
+                <data android:scheme="safeshift" android:host="tracking"/>
+                <data android:scheme="safeshift" android:host="jobs"/>
+                <data android:scheme="safeshift" android:host="history"/>
             </intent-filter>
             <!-- Universal links: https://safeshift.app/... -->
             <intent-filter android:autoVerify="true">

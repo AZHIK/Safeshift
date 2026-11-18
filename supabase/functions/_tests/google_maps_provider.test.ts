@@ -166,11 +166,9 @@ Deno.test('GoogleMapsClient never routes through the geocoding base URL', async 
     },
   });
 
-  await client.calculateRoute(
-    { lat: -6.7924, lng: 39.2083 },
-    { lat: -6.761, lng: 39.276 },
-    'driving',
-  ).catch(() => undefined);
+  await client
+    .calculateRoute({ lat: -6.7924, lng: 39.2083 }, { lat: -6.761, lng: 39.276 }, 'driving')
+    .catch(() => undefined);
 
   // The Routes API has its own host. Falling back to `baseUrl` would post the
   // Compute Routes request to the Geocoding/Places host.
@@ -186,7 +184,7 @@ Deno.test('requestJson surfaces the provider error envelope', async () => {
         JSON.stringify({
           error: {
             code: 400,
-            message: "Invalid value at 'polyline_quality' (\"HIGH\")",
+            message: 'Invalid value at \'polyline_quality\' ("HIGH")',
             status: 'INVALID_ARGUMENT',
           },
         }),
@@ -195,11 +193,7 @@ Deno.test('requestJson surfaces the provider error envelope', async () => {
   });
 
   const error = await client
-    .calculateRoute(
-      { lat: -6.7924, lng: 39.2083 },
-      { lat: -6.761, lng: 39.276 },
-      'driving',
-    )
+    .calculateRoute({ lat: -6.7924, lng: 39.2083 }, { lat: -6.761, lng: 39.276 }, 'driving')
     .then(() => null)
     .catch((caught: unknown) => caught);
 
@@ -207,10 +201,7 @@ Deno.test('requestJson surfaces the provider error envelope', async () => {
   const details = (error as { details?: Record<string, unknown> }).details;
   assertEquals(details?.status, 400);
   assertEquals(details?.provider_status, 'INVALID_ARGUMENT');
-  assertEquals(
-    details?.provider_message,
-    "Invalid value at 'polyline_quality' (\"HIGH\")",
-  );
+  assertEquals(details?.provider_message, 'Invalid value at \'polyline_quality\' ("HIGH")');
 });
 
 Deno.test('requestJson scrubs coordinates out of the provider message', async () => {
@@ -231,14 +222,13 @@ Deno.test('requestJson scrubs coordinates out of the provider message', async ()
   });
 
   const error = await client
-    .calculateRoute(
-      { lat: -6.7924, lng: 39.2083 },
-      { lat: -6.761, lng: 39.276 },
-      'driving',
-    )
+    .calculateRoute({ lat: -6.7924, lng: 39.2083 }, { lat: -6.761, lng: 39.276 }, 'driving')
     .then(() => null)
     .catch((caught: unknown) => caught);
 
   const details = (error as { details?: Record<string, unknown> }).details;
-  assertEquals(details?.provider_message, "Invalid value at 'origin.location.lat_lng.latitude' ([redacted])");
+  assertEquals(
+    details?.provider_message,
+    "Invalid value at 'origin.location.lat_lng.latitude' ([redacted])",
+  );
 });

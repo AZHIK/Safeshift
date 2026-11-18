@@ -68,6 +68,11 @@ ADMIN_TOKEN="$(jq -r '.access_token' <<<"$ADMIN_JSON")"
 FLEET_TOKEN="$(jq -r '.access_token' <<<"$FLEET_JSON")"
 CUSTOMER_ID="$(jq -r '.user.id' <<<"$CUSTOMER_JSON")"
 DRIVER_ID="$(jq -r '.user.id' <<<"$DRIVER_JSON")"
+if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  source <(supabase status -o env)
+  SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-}"
+fi
+check_nonempty 'local service key is available for route fixture' "$SUPABASE_SERVICE_ROLE_KEY"
 
 check_eq 'customer token belongs to seeded customer' 'c0000000-0000-4000-8000-000000000001' "$CUSTOMER_ID"
 check_eq 'driver token belongs to seeded driver' 'd0000000-0000-4000-8000-000000000001' "$DRIVER_ID"
@@ -163,7 +168,7 @@ check_nonempty 'emergency contact is stored' "$CONTACT_ID"
 # ---------------------------------------------------------------------------
 JOB_ID="$(api "$CUSTOMER_TOKEN" GET "/rest/v1/jobs?customer_id=eq.$CUSTOMER_ID&select=id&order=created_at.desc&limit=1" | jq -r '.[0].id // empty')"
 if [[ -z "$JOB_ID" ]]; then
-  QUOTE_ID="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/quote_calculate_and_persist \
+  QUOTE_ID="$(api "$SUPABASE_SERVICE_ROLE_KEY" POST /rest/v1/rpc/quote_calculate_and_persist \
     "$(jq -nc --arg customer "$CUSTOMER_ID" '{
       p_customer_id: $customer,
       p_pickup_location: "SRID=4326;POINT(39.2750 -6.8150)",

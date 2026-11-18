@@ -60,17 +60,17 @@ Rules applied throughout:
 Configuration is compile-time via `--dart-define`. `ENV` defaults to `dev`;
 unknown values fail fast.
 
-| Define | Required | Purpose |
-| --- | --- | --- |
-| `ENV` | no (default `dev`) | `dev`, `staging`, or `prod` |
-| `SUPABASE_URL` | staging/prod | Project API URL |
-| `SUPABASE_ANON_KEY` | staging/prod | Public anon/publishable key |
-| `FIREBASE_API_KEY` | push only | Firebase Android/iOS API key |
-| `FIREBASE_APP_ID` | push only | Firebase app id |
-| `FIREBASE_MESSAGING_SENDER_ID` | push only | FCM sender id |
-| `FIREBASE_PROJECT_ID` | push only | Firebase project id |
-| `FIREBASE_STORAGE_BUCKET` | optional | Firebase storage bucket |
-| `MOCK_MODE` | no (default `false`) | Design-only mock flows |
+| Define                         | Required             | Purpose                      |
+| ------------------------------ | -------------------- | ---------------------------- |
+| `ENV`                          | no (default `dev`)   | `dev`, `staging`, or `prod`  |
+| `SUPABASE_URL`                 | staging/prod         | Project API URL              |
+| `SUPABASE_ANON_KEY`            | staging/prod         | Public anon/publishable key  |
+| `FIREBASE_API_KEY`             | push only            | Firebase Android/iOS API key |
+| `FIREBASE_APP_ID`              | push only            | Firebase app id              |
+| `FIREBASE_MESSAGING_SENDER_ID` | push only            | FCM sender id                |
+| `FIREBASE_PROJECT_ID`          | push only            | Firebase project id          |
+| `FIREBASE_STORAGE_BUCKET`      | optional             | Firebase storage bucket      |
+| `MOCK_MODE`                    | no (default `false`) | Design-only mock flows       |
 
 `dev` falls back to the local Supabase CLI URL and local anon key when the
 Supabase defines are omitted. Staging and production builds throw during startup
@@ -122,7 +122,7 @@ never commit a filled `.env` file.
   `SecureLocalStorage`; `detectSessionInUri` is disabled because `app_links`
   owns deep links.
 - After verification the app calls the `ensure_my_profile(p_role,
-  p_full_name)` RPC. The function can create a missing profile or complete a
+p_full_name)` RPC. The function can create a missing profile or complete a
   customer profile into a driver profile, but never grants admin, fleet, or
   business roles.
 - The customer router redirects unauthenticated protected routes to `/login`.
@@ -166,12 +166,12 @@ first account's cached data.
 
 Four private buckets are created in migration `0122`:
 
-| Bucket | Path | Writer |
-| --- | --- | --- |
-| `driver-documents` | `<driver_id>/...` | that driver |
-| `vehicle-documents` | `<vehicle_id>/...` | vehicle owner/primary driver |
-| `job-evidence` | `<job_id>/...` | job customer or assigned driver |
-| `chat-attachments` | `<job_id>/...` | job customer or assigned driver |
+| Bucket              | Path               | Writer                          |
+| ------------------- | ------------------ | ------------------------------- |
+| `driver-documents`  | `<driver_id>/...`  | that driver                     |
+| `vehicle-documents` | `<vehicle_id>/...` | vehicle owner/primary driver    |
+| `job-evidence`      | `<job_id>/...`     | job customer or assigned driver |
+| `chat-attachments`  | `<job_id>/...`     | job customer or assigned driver |
 
 Storage RLS checks the first path segment against the job, driver, or vehicle.
 Job evidence and chat attachments are append-only from the app: the client can

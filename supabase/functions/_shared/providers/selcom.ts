@@ -64,8 +64,7 @@ export class SelcomClient {
       data.reference ?? data.order_id ?? data.transaction_id ?? reference,
     );
     const redirectUrl = (data.redirect_url ?? data.payment_url ?? data.checkout_url ?? null) as
-      | string
-      | null;
+      string | null;
 
     return {
       provider_reference: providerReference,
@@ -87,11 +86,12 @@ export class SelcomClient {
     );
 
     const rawStatus = String(data.status ?? data.payment_status ?? 'pending').toLowerCase();
-    const status = rawStatus === 'success' || rawStatus === 'succeeded' || rawStatus === 'paid'
-      ? 'succeeded'
-      : rawStatus === 'failed' || rawStatus === 'cancelled'
-      ? 'failed'
-      : 'pending';
+    const status =
+      rawStatus === 'success' || rawStatus === 'succeeded' || rawStatus === 'paid'
+        ? 'succeeded'
+        : rawStatus === 'failed' || rawStatus === 'cancelled'
+          ? 'failed'
+          : 'pending';
 
     return {
       status,
@@ -153,17 +153,19 @@ export class SelcomClient {
     const rawStatus = String(data.status ?? 'pending').toLowerCase();
     return {
       provider_reference: String(data.payout_reference ?? data.reference ?? reference),
-      status: rawStatus === 'success' || rawStatus === 'succeeded'
-        ? 'succeeded'
-        : rawStatus === 'failed'
-        ? 'failed'
-        : 'pending',
+      status:
+        rawStatus === 'success' || rawStatus === 'succeeded'
+          ? 'succeeded'
+          : rawStatus === 'failed'
+            ? 'failed'
+            : 'pending',
     };
   }
 
   async verifyWebhookSignature(headers: Headers, rawBody: string): Promise<boolean> {
     if (!this.config.webhookSecret) return false;
-    const provided = headers.get('x-selcom-signature') ??
+    const provided =
+      headers.get('x-selcom-signature') ??
       headers.get('x-signature') ??
       headers.get('x-webhook-signature');
     if (!provided) return false;

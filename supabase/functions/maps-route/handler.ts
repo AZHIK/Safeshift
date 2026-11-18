@@ -23,7 +23,7 @@ export async function handle(
   const origin = body.origin;
   const destination = body.destination;
 
-  const maps = deps.maps ?? await googleMapsClient(ctx.requestId);
+  const maps = deps.maps ?? (await googleMapsClient(ctx.requestId));
   const result = await maps.calculateRoute(origin, destination, body.mode);
 
   logger.info('route_computed', {

@@ -8,7 +8,7 @@ import { ProviderError } from '../_shared/errors.ts';
 
 const body = {
   origin: { lat: -6.7924, lng: 39.2083 },
-  destination: { lat: -6.7610, lng: 39.2760 },
+  destination: { lat: -6.761, lng: 39.276 },
   mode: 'driving',
 };
 
@@ -25,13 +25,10 @@ Deno.test('maps-route returns distance, duration and polyline geometry', async (
     }),
   } as unknown as GoogleMapsClient;
 
-  const handler = createHandler(
-    'maps-route',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), maps }),
+  const handler = createHandler('maps-route', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), maps }),
   );
-  const response = await handler(
-    jsonRequest('http://localhost/functions/v1/maps-route', { body }),
-  );
+  const response = await handler(jsonRequest('http://localhost/functions/v1/maps-route', { body }));
   const payload = await response.json();
 
   assertEquals(response.status, 200);
@@ -48,20 +45,14 @@ Deno.test('maps-route returns distance, duration and polyline geometry', async (
 Deno.test('maps-route surfaces provider errors as failures', async () => {
   const maps = {
     calculateRoute: async () => {
-      throw new ProviderError(
-        'google_maps',
-        'Routes API returned an empty polyline',
-      );
+      throw new ProviderError('google_maps', 'Routes API returned an empty polyline');
     },
   } as unknown as GoogleMapsClient;
 
-  const handler = createHandler(
-    'maps-route',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), maps }),
+  const handler = createHandler('maps-route', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), maps }),
   );
-  const response = await handler(
-    jsonRequest('http://localhost/functions/v1/maps-route', { body }),
-  );
+  const response = await handler(jsonRequest('http://localhost/functions/v1/maps-route', { body }));
   const payload = await response.json();
 
   assertEquals(response.status, 502);
@@ -69,9 +60,8 @@ Deno.test('maps-route surfaces provider errors as failures', async () => {
 });
 
 Deno.test('maps-route rejects a body without coordinates', async () => {
-  const handler = createHandler(
-    'maps-route',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps() }),
+  const handler = createHandler('maps-route', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps() }),
   );
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/maps-route', {
@@ -85,9 +75,8 @@ Deno.test('maps-route rejects a body without coordinates', async () => {
 });
 
 Deno.test('maps-route requires a bearer token', async () => {
-  const handler = createHandler(
-    'maps-route',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps() }),
+  const handler = createHandler('maps-route', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps() }),
   );
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/maps-route', { body, token: null }),

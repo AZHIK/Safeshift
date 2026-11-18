@@ -109,7 +109,7 @@ class HistoryScreen extends ConsumerWidget {
                             const SizedBox(height: AppSizes.md),
                             PrimaryButton(
                               label: 'Book your first move',
-                              onPressed: () => context.push('/booking'),
+                              onPressed: () => context.go('/home'),
                             ),
                           ],
                         ),

@@ -1,4 +1,8 @@
-export function Notice({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+export function Notice({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const ok = typeof searchParams?.ok === 'string' ? searchParams.ok : null;
   const error = typeof searchParams?.error === 'string' ? searchParams.error : null;
   if (!ok && !error) return null;

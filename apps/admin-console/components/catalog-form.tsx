@@ -1,4 +1,5 @@
-import type { CountryOption, IconOption } from '@/lib/catalog';
+import type { CountryOption } from '@/lib/catalog';
+import { ICON_ACCEPT_ATTRIBUTE, ICON_FOLDERS } from '@/lib/configuration/icons';
 
 export type VehicleTypeDefaults = {
   id?: string;
@@ -51,35 +52,27 @@ function ScopeField({ countries, selected }: { countries: CountryOption[]; selec
   );
 }
 
-function IconField({
-  id,
-  options,
-  selected,
-}: {
-  id: string;
-  options: IconOption[];
-  selected?: string;
-}) {
+function IconField({ id, folder, selected }: { id: string; folder: string; selected?: string }) {
   return (
     <div className="field">
       <label htmlFor={id}>Icon</label>
       <input
+        accept={ICON_ACCEPT_ATTRIBUTE}
         className="input"
         id={id}
-        name="icon_url"
-        list={`${id}-options`}
-        defaultValue={selected ?? ''}
-        placeholder="vehicle/pickup.svg"
+        name="icon_file"
+        type="file"
       />
-      <datalist id={`${id}-options`}>
-        {options.map((option) => (
-          <option key={option.path} value={option.path}>
-            {option.label}
-          </option>
-        ))}
-      </datalist>
+      <input name="icon_url" type="hidden" defaultValue={selected ?? ''} />
       <span className="small muted">
-        Path inside the <span className="mono">catalog-icons</span> bucket, or a full URL.
+        {selected ? (
+          <>
+            Current: <span className="mono">{selected}</span>.{' '}
+          </>
+        ) : null}
+        Choose an SVG, PNG, JPEG or WebP file from your computer, up to 512 KB. It is uploaded to
+        the public <span className="mono">catalog-icons</span> bucket under{' '}
+        <span className="mono">{folder}/</span>.
       </span>
     </div>
   );
@@ -94,11 +87,9 @@ function IconField({
 export function VehicleTypeFields({
   defaults,
   countries,
-  iconOptions,
 }: {
   defaults: VehicleTypeDefaults;
   countries: CountryOption[];
-  iconOptions: IconOption[];
 }) {
   return (
     <>
@@ -212,7 +203,7 @@ export function VehicleTypeFields({
         </div>
       </div>
       <div className="form-row">
-        <IconField id="vt-icon" options={iconOptions} selected={defaults.iconUrl} />
+        <IconField folder={ICON_FOLDERS.vehicle} id="vt-icon" selected={defaults.iconUrl} />
         <ScopeField countries={countries} selected={defaults.countryId} />
         <div className="field">
           <label htmlFor="vt-licence">Special licence</label>
@@ -236,13 +227,11 @@ export function CargoTypeFields({
   defaults,
   countries,
   categories,
-  iconOptions,
   vehicleTypeCodes,
 }: {
   defaults: CargoTypeDefaults;
   countries: CountryOption[];
   categories: { id: string; name: string }[];
-  iconOptions: IconOption[];
   vehicleTypeCodes: string[];
 }) {
   const allowed = defaults.allowedVehicleTypeCodes ?? [];
@@ -313,7 +302,7 @@ export function CargoTypeFields({
         />
       </div>
       <div className="form-row">
-        <IconField id="ct-icon" options={iconOptions} selected={defaults.iconUrl} />
+        <IconField folder={ICON_FOLDERS.cargo} id="ct-icon" selected={defaults.iconUrl} />
         <ScopeField countries={countries} selected={defaults.countryId} />
         <div className="field">
           <label htmlFor="ct-max-value">Declared value cap (TZS)</label>

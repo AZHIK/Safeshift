@@ -10,6 +10,7 @@ import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../providers/home_provider.dart';
+import 'load_details.dart';
 import 'sheet_handle.dart';
 
 String _tzs(num amount) => 'TZS ${NumberFormat('#,##0').format(amount)}';
@@ -157,6 +158,7 @@ class IncomingJobSheet extends ConsumerWidget {
                   ),
                 ],
               ),
+              LoadDetails(job: job),
             ],
           ),
         ),

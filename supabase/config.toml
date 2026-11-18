@@ -76,7 +76,9 @@ enabled = true
 # Phase 6 seed depends on Phase 1–5 identifiers and runs sixth.
 # Phase 9 seed adds fleet-owner, support, and safety reference data.
 # Local SMS seed installs the development-only OTP capture hook.
-sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql", "./seed-phase-9.sql", "./seed-local-sms.sql"]
+# Example country seed adds one inactive example market (currency, region,
+# city, service zone, neighborhoods). It is idempotent and runs last.
+sql_paths = ["./seed.sql", "./seed-phase-2.sql", "./seed-phase-3.sql", "./seed-phase-4.sql", "./seed-phase-5.sql", "./seed-phase-6.sql", "./seed-phase-9.sql", "./seed-local-sms.sql", "./seed-example-country.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.

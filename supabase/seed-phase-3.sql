@@ -28,6 +28,10 @@ on conflict do nothing;
 
 insert into public.admin_role_permissions (role_name, permission_key) values
   ('finance_admin',    'manage_pricing'),
+insert into public.admin_role_permissions (role_name, permission_key)
+select 'admin', permission_key
+from public.admin_permissions_catalog
+on conflict do nothing;
   ('finance_admin',    'manage_regulated_tariffs'),
   ('finance_admin',    'manage_promotions'),
   ('finance_admin',    'view_promotions'),

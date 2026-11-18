@@ -6,7 +6,7 @@ import { VehicleTypeFields } from '@/components/catalog-form';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
-import { CATALOG_ICON_FOLDERS, loadCountries, loadIconOptions } from '@/lib/catalog';
+import { loadCountries } from '@/lib/catalog';
 import { requireArea } from '@/lib/guard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -42,10 +42,7 @@ export default async function VehicleTypePage({
   }
   if (!type) notFound();
 
-  const [countries, iconOptions] = await Promise.all([
-    loadCountries(supabase),
-    loadIconOptions(supabase, CATALOG_ICON_FOLDERS.vehicle_types),
-  ]);
+  const countries = await loadCountries(supabase);
 
   return (
     <>
@@ -69,7 +66,12 @@ export default async function VehicleTypePage({
             The name, capacity and icon are what the customer sees. The code is what the pricing
             rules and the apps key on.
           </p>
-          <form action={updateVehicleTypeAction} className="form" style={{ marginTop: 14 }}>
+          <form
+            action={updateVehicleTypeAction}
+            className="form"
+            encType="multipart/form-data"
+            style={{ marginTop: 14 }}
+          >
             <VehicleTypeFields
               defaults={{
                 id: type.id as string,
@@ -87,7 +89,6 @@ export default async function VehicleTypePage({
                 displayOrder: type.display_order as number | null,
               }}
               countries={countries}
-              iconOptions={iconOptions}
             />
             <div className="inline">
               <button className="btn btn-primary" type="submit">

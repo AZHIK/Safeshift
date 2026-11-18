@@ -50,7 +50,8 @@ export async function handle(
   }
   if (!provider) throw new ValidationError('Selcom provider is not configured');
 
-  const secret = deps.secret ??
+  const secret =
+    deps.secret ??
     (await readOptionalSecret('SELCOM_WEBHOOK_SECRET', service)) ??
     (provider.webhook_secret_reference
       ? await readOptionalSecret(provider.webhook_secret_reference, service)
@@ -70,7 +71,8 @@ export async function handle(
   }
 
   const event = parseSelcomWebhook(payload);
-  const signatureHeader = req.headers.get('x-selcom-signature') ??
+  const signatureHeader =
+    req.headers.get('x-selcom-signature') ??
     req.headers.get('x-signature') ??
     req.headers.get('x-webhook-signature');
 

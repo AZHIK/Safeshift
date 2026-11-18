@@ -24,28 +24,28 @@ apps must never hold provider credentials or call provider APIs directly.
 
 ## Function inventory
 
-| Function                       | Auth                  | Purpose                                         |
-| ------------------------------ | --------------------- | ----------------------------------------------- |
-| `health`                       | public                | Liveness and Vault/database readiness.          |
-| `auth-validate`                | JWT                   | Return role, country, and hydrated permissions. |
-| `maps-distance`                | JWT                   | Google Routes API with a seven-day cache.       |
-| `maps-geocode`                 | JWT                   | Forward/reverse geocoding with a 30-day cache.  |
+| Function                       | Auth                  | Purpose                                             |
+| ------------------------------ | --------------------- | --------------------------------------------------- |
+| `health`                       | public                | Liveness and Vault/database readiness.              |
+| `auth-validate`                | JWT                   | Return role, country, and hydrated permissions.     |
+| `maps-distance`                | JWT                   | Google Routes API with a seven-day cache.           |
+| `maps-geocode`                 | JWT                   | Forward/reverse geocoding with a 30-day cache.      |
 | `maps-route`                   | JWT                   | Google Compute Routes geometry, distance, duration. |
-| `quote-calculate`              | JWT (customer)        | Phase 4 quote RPC.                              |
-| `sms-send`                     | permission / internal | Beem SMS with Africa's Talking fallback.        |
-| `email-send`                   | permission / internal | Resend transactional email.                     |
-| `push-send`                    | permission / internal | FCM push to active devices.                     |
-| `notification-dispatch`        | permission            | Fan out template notifications.                 |
-| `payment-selcom-initiate`      | JWT (customer)        | Create and start a Selcom charge.               |
-| `payment-selcom-webhook`       | signature             | Reconcile Selcom callbacks.                     |
-| `payment-flutterwave-initiate` | JWT (customer)        | Create and start a Flutterwave charge.          |
-| `payment-flutterwave-webhook`  | signature             | Reconcile Flutterwave callbacks.                |
-| `payment-refund`               | permission            | Phase 5 refund RPC + provider refund.           |
-| `payout-execute`               | permission            | Phase 5 payout RPC + provider transfer.         |
-| `data-export`                  | JWT / permission      | ZIP export with signed URL.                     |
-| `scheduled-daily-metrics`      | cron secret           | Previous-day metric rollups.                    |
-| `scheduled-demand-capture`     | cron secret           | Pricing demand snapshot.                        |
-| `scheduled-retention`          | cron secret           | Retention, idempotency, export cleanup.         |
+| `quote-calculate`              | JWT (customer)        | Phase 4 quote RPC.                                  |
+| `sms-send`                     | permission / internal | Beem SMS with Africa's Talking fallback.            |
+| `email-send`                   | permission / internal | Resend transactional email.                         |
+| `push-send`                    | permission / internal | FCM push to active devices.                         |
+| `notification-dispatch`        | permission            | Fan out template notifications.                     |
+| `payment-selcom-initiate`      | JWT (customer)        | Create and start a Selcom charge.                   |
+| `payment-selcom-webhook`       | signature             | Reconcile Selcom callbacks.                         |
+| `payment-flutterwave-initiate` | JWT (customer)        | Create and start a Flutterwave charge.              |
+| `payment-flutterwave-webhook`  | signature             | Reconcile Flutterwave callbacks.                    |
+| `payment-refund`               | permission            | Phase 5 refund RPC + provider refund.               |
+| `payout-execute`               | permission            | Phase 5 payout RPC + provider transfer.             |
+| `data-export`                  | JWT / permission      | ZIP export with signed URL.                         |
+| `scheduled-daily-metrics`      | cron secret           | Previous-day metric rollups.                        |
+| `scheduled-demand-capture`     | cron secret           | Pricing demand snapshot.                            |
+| `scheduled-retention`          | cron secret           | Retention, idempotency, export cleanup.             |
 
 Each directory has a `README.md` with its request, response, auth, and secret contract. Handlers
 live in `handler.ts` and are exported without starting a server; `index.ts` only wires

@@ -26,8 +26,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm --filter @safeshift/admin-console test
       - run: pnpm format:check
       - run: pnpm build
+
+  functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.8
+      - run: deno task verify
+        working-directory: supabase/functions
 
   flutter:
     name: Flutter workspace
@@ -60,7 +72,7 @@ jobs:
   ci:
     name: CI result
     if: always()
-    needs: [node, flutter, database]
+    needs: [node, flutter, functions, database]
     runs-on: ubuntu-latest
     steps:
       - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')

@@ -81,7 +81,7 @@ export async function handle(
   if (!paymentId) throw new ValidationError('Payment initiation returned no identifier');
 
   try {
-    const provider = deps.provider ?? await flutterwaveClient(ctx.requestId);
+    const provider = deps.provider ?? (await flutterwaveClient(ctx.requestId));
     const tokenOrPhone = body.card_token ? `card:${body.card_token}` : body.phone!;
     const result = await provider.initiatePayment(
       Number(quote.total),
@@ -102,13 +102,7 @@ export async function handle(
       redirect_url: result.redirect_url,
       status: 'pending' as const,
     };
-    await storeIdempotencyKey(
-      idempotencyKey,
-      scope,
-      response,
-      await hashRequest(body),
-      store,
-    );
+    await storeIdempotencyKey(idempotencyKey, scope, response, await hashRequest(body), store);
     return success(response, 201);
   } catch (error) {
     await service.rpc('job_pay_complete', {

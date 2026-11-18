@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -109,44 +110,48 @@ class _TripTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InfoCard(
-      padding: 14,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${trip.pickup} → ${trip.destination}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyles.title,
+    return InkWell(
+      onTap: () => context.push('/trips/${Uri.encodeComponent(trip.id)}'),
+      child: InfoCard(
+        padding: 14,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${trip.pickup} → ${trip.destination}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyles.title,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSizes.sm),
-              StatusPill(status: trip.status ?? 'completed'),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                DateFormat('d MMM, h:mm a').format(
-                  trip.completedAt ?? DateTime.now(),
+                const SizedBox(width: AppSizes.sm),
+                StatusPill(status: trip.status ?? 'completed'),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  DateFormat('d MMM, h:mm a')
+                      .format(trip.completedAt ?? DateTime.now()),
+                  style: TextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
+                const Spacer(),
+                Text(
+                  _tzs(trip.estimatedFareTzs),
+                  style: TextStyles.title.copyWith(
+                    color: AppColors.primaryDark,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                _tzs(trip.estimatedFareTzs),
-                style: TextStyles.title.copyWith(color: AppColors.primaryDark),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,10 +18,17 @@ class DriverJob {
     this.customerPhone,
     this.expiresAt,
     this.completedAt,
+    this.scheduledAt,
+    this.acceptedAt,
     this.cargoTypeId,
     this.cargoIconUrl,
     this.vehicleTypeId,
     this.vehicleIconUrl,
+    this.cargoDescription,
+    this.cargoWeightKg,
+    this.declaredValueTzs,
+    this.cargoPhotoPaths = const <String>[],
+    this.offerTtlSeconds,
   });
 
   final String id;
@@ -40,6 +47,10 @@ class DriverJob {
   final DateTime? expiresAt;
   final DateTime? completedAt;
 
+  /// Requested pickup time. Null means "now".
+  final DateTime? scheduledAt;
+  final DateTime? acceptedAt;
+
   /// `public.cargo_types.id` of the cargo this job carries.
   final String? cargoTypeId;
 
@@ -51,6 +62,20 @@ class DriverJob {
 
   /// Icon path of the vehicle category, served from the catalogue bucket.
   final String? vehicleIconUrl;
+
+  /// Customer's description of the goods being moved.
+  final String? cargoDescription;
+  final double? cargoWeightKg;
+  final double? declaredValueTzs;
+
+  /// Object paths of the customer's parcel photos in `job-evidence`.
+  final List<String> cargoPhotoPaths;
+
+  /// Remaining seconds on the offer, measured by the server when it was read.
+  final int? offerTtlSeconds;
+
+  bool get isScheduled =>
+      scheduledAt != null && scheduledAt!.isAfter(DateTime.now());
 
   DriverJob copyWith({
     String? status,
@@ -69,9 +94,16 @@ class DriverJob {
     customerPhone: customerPhone,
     expiresAt: expiresAt,
     completedAt: completedAt,
+    scheduledAt: scheduledAt,
+    acceptedAt: acceptedAt,
     cargoTypeId: cargoTypeId,
     cargoIconUrl: cargoIconUrl,
     vehicleTypeId: vehicleTypeId,
     vehicleIconUrl: vehicleIconUrl,
+    cargoDescription: cargoDescription,
+    cargoWeightKg: cargoWeightKg,
+    declaredValueTzs: declaredValueTzs,
+    cargoPhotoPaths: cargoPhotoPaths,
+    offerTtlSeconds: offerTtlSeconds,
   );
 }

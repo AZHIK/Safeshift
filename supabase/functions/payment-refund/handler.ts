@@ -87,26 +87,22 @@ export async function handle(
   try {
     const result = deps.refundProvider
       ? await deps.refundProvider(
-        provider.code,
-        original.provider_reference,
-        body.amount,
-        body.reason,
-      )
+          provider.code,
+          original.provider_reference,
+          body.amount,
+          body.reason,
+        )
       : provider.code === 'selcom'
-      ? await (await selcomClient(ctx.requestId)).refundPayment(
-        original.provider_reference,
-        body.amount,
-        body.reason,
-      )
-      : provider.code === 'flutterwave'
-      ? await (await flutterwaveClient(ctx.requestId)).refundPayment(
-        original.provider_reference,
-        body.amount,
-        body.reason,
-      )
-      : (() => {
-        throw new ValidationError(`Refunds are not implemented for ${provider.code}`);
-      })();
+        ? await (
+            await selcomClient(ctx.requestId)
+          ).refundPayment(original.provider_reference, body.amount, body.reason)
+        : provider.code === 'flutterwave'
+          ? await (
+              await flutterwaveClient(ctx.requestId)
+            ).refundPayment(original.provider_reference, body.amount, body.reason)
+          : (() => {
+              throw new ValidationError(`Refunds are not implemented for ${provider.code}`);
+            })();
 
     const finalStatus = result.status === 'succeeded' ? 'succeeded' : 'pending';
     const { error: refundUpdateError } = await service
@@ -125,25 +121,21 @@ export async function handle(
       status: finalStatus,
       provider_reference: result.refund_reference,
     };
-    await storeIdempotencyKey(
-      idempotencyKey,
-      scope,
-      response,
-      await hashRequest(body),
-      store,
-    );
+    await storeIdempotencyKey(idempotencyKey, scope, response, await hashRequest(body), store);
     return success(response, 201);
   } catch (error) {
     await service
       .from('refunds')
       .update({
         status: 'failed',
-        failure_reason: error instanceof Error
-          ? error.message.slice(0, 1_000)
-          : 'provider_refund_failed',
+        failure_reason:
+          error instanceof Error ? error.message.slice(0, 1_000) : 'provider_refund_failed',
       })
       .eq('id', refund.id)
-      .then(() => undefined, () => undefined);
+      .then(
+        () => undefined,
+        () => undefined,
+      );
     await recordDeadLetter(
       'payment-refund',
       { refund_id: refund.id, payment_id: body.payment_id },

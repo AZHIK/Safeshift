@@ -1,0 +1,38 @@
+{
+  "$comment": "The catalogue of countries the platform supports. This file is the source of truth for a country's identity: its ISO code, its name, the currency and language it starts in, the phone code its phone numbers use and the time zone it runs in. Add a country here as the platform grows, then create its row in the admin console — the console only offers the countries listed in this file.",
+  "countries": [
+    {
+      "isoCode": "TZ",
+      "name": "Tanzania",
+      "currencyCode": "TZS",
+      "currencyName": "Tanzanian Shilling",
+      "currencySymbol": "TSh",
+      "languageCode": "sw",
+      "languageName": "Swahili",
+      "phoneCode": "+255",
+      "timeZone": "Africa/Dar_es_Salaam"
+    },
+    {
+      "isoCode": "KE",
+      "name": "Kenya",
+      "currencyCode": "KES",
+      "currencyName": "Kenyan Shilling",
+      "currencySymbol": "KSh",
+      "languageCode": "en",
+      "languageName": "English",
+      "phoneCode": "+254",
+      "timeZone": "Africa/Nairobi"
+    },
+    {
+      "isoCode": "UG",
+      "name": "Uganda",
+      "currencyCode": "UGX",
+      "currencyName": "Ugandan Shilling",
+      "currencySymbol": "USh",
+      "languageCode": "en",
+      "languageName": "English",
+      "phoneCode": "+256",
+      "timeZone": "Africa/Kampala"
+    }
+  ]
+}

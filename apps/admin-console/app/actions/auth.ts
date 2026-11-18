@@ -22,9 +22,7 @@ export async function loginAction(formData: FormData) {
   const { data: role } = await supabase.rpc('admin_console_role');
   if (!role) {
     await supabase.auth.signOut();
-    redirect(
-      '/login?error=This account has no active admin or fleet-owner role.',
-    );
+    redirect('/login?error=This account has no active admin or fleet-owner role.');
   }
 
   redirect(next.startsWith('/') ? next : '/dashboard');

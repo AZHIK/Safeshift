@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +24,32 @@ class RideScreen extends ConsumerStatefulWidget {
 
 class _RideScreenState extends ConsumerState<RideScreen> {
   final GlobalKey<ShinyMapViewState> _mapKey = GlobalKey<ShinyMapViewState>();
+  String? _handledJobId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // A notification tap passes the job id in the query string (handled in
+      // didChangeDependencies); otherwise restore an in-flight move.
+      if (_handledJobId == null) {
+        unawaited(ref.read(rideProvider.notifier).resumeActiveJob());
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final jobId = GoRouterState.of(context).uri.queryParameters['jobId'];
+    if (jobId == null || jobId.isEmpty || jobId == _handledJobId) return;
+    _handledJobId = jobId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(rideProvider.notifier).loadJob(jobId));
+    });
+  }
 
   Future<void> _goToMyLocation() async {
     final location = await ref.read(currentLocationProvider.notifier).refresh();
@@ -137,7 +165,7 @@ class _RideScreenState extends ConsumerState<RideScreen> {
                     const SizedBox(width: 10),
                     _RoundIcon(
                       icon: Icons.notifications_none_rounded,
-                      onTap: () {},
+                      onTap: () => context.push('/settings/notifications'),
                     ),
                   ],
                 ),

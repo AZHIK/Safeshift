@@ -19,9 +19,10 @@ This runbook explains how to:
   production project.
 - Never put the Supabase `service_role` / secret key in a mobile app, browser
   bundle, `NEXT_PUBLIC_*` variable, or committed file.
-- Never run `supabase/seed.sql`, `seed-phase-2.sql` … `seed-phase-9.sql`, or
-  `seed-local-sms.sql` against a hosted project. Those files create demo users,
-  jobs, payments, documents, and a local SMS hook.
+- Never run `supabase/seed.sql`, `seed-phase-2.sql` … `seed-phase-9.sql`,
+  `seed-example-country.sql`, or `seed-local-sms.sql` against a hosted project.
+  Those files create demo users, jobs, payments, documents, an example market,
+  and a local SMS hook.
 - Use `supabase/seed-staging.sql` for a hosted test project. It contains
   configuration data only.
 - Use sandbox payment credentials only. Do not move real money.
@@ -323,6 +324,7 @@ supabase/seed-phase-4.sql
 supabase/seed-phase-5.sql
 supabase/seed-phase-6.sql
 supabase/seed-phase-9.sql
+supabase/seed-example-country.sql
 supabase/seed-local-sms.sql
 ```
 

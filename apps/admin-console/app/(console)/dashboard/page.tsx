@@ -25,14 +25,18 @@ export default async function DashboardPage({
   if (session.role === 'fleet_owner') {
     const { data: fleets } = await supabase
       .from('fleets')
-      .select('id, name, verified_at, is_active, fleet_vehicles(vehicle_id), fleet_members(driver_id)')
+      .select(
+        'id, name, verified_at, is_active, fleet_vehicles(vehicle_id), fleet_members(driver_id)',
+      )
       .eq('owner_profile_id', session.userId);
     const rows = (fleets ?? []).map((fleet) => [
       fleet.name,
       <StatusBadge key="v" value={fleet.verified_at ? 'verified' : 'pending'} />,
       `${fleet.fleet_vehicles?.length ?? 0}`,
       `${fleet.fleet_members?.length ?? 0}`,
-      <Link className="btn btn-sm" href="/fleets" key="l">Open fleet</Link>,
+      <Link className="btn btn-sm" href="/fleets" key="l">
+        Open fleet
+      </Link>,
     ]);
     return (
       <>
@@ -64,7 +68,9 @@ export default async function DashboardPage({
         .limit(5),
       supabase
         .from('verification_requests')
-        .select('id, request_type, status, submitted_at, driver_id, vehicle_id, business_account_id')
+        .select(
+          'id, request_type, status, submitted_at, driver_id, vehicle_id, business_account_id',
+        )
         .in('status', ['pending', 'in_review'])
         .order('submitted_at', { ascending: true })
         .limit(5),
@@ -79,10 +85,26 @@ export default async function DashboardPage({
       />
       <Notice searchParams={params} />
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <MetricCard label="Active jobs" value={metrics?.active_jobs ?? 0} note="In progress across all zones" />
-        <MetricCard label="Open SOS" value={metrics?.open_sos_alerts ?? 0} note="Needs on-call acknowledgement" />
-        <MetricCard label="Pending verifications" value={metrics?.pending_verifications ?? 0} note="Driver, vehicle, and business" />
-        <MetricCard label="Open disputes" value={metrics?.open_disputes ?? 0} note="Customer and driver cases" />
+        <MetricCard
+          label="Active jobs"
+          value={metrics?.active_jobs ?? 0}
+          note="In progress across all zones"
+        />
+        <MetricCard
+          label="Open SOS"
+          value={metrics?.open_sos_alerts ?? 0}
+          note="Needs on-call acknowledgement"
+        />
+        <MetricCard
+          label="Pending verifications"
+          value={metrics?.pending_verifications ?? 0}
+          note="Driver, vehicle, and business"
+        />
+        <MetricCard
+          label="Open disputes"
+          value={metrics?.open_disputes ?? 0}
+          note="Customer and driver cases"
+        />
       </div>
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
         <MetricCard label="Jobs · 24h" value={metrics?.jobs_last_24h ?? 0} />
@@ -98,11 +120,23 @@ export default async function DashboardPage({
           </div>
           <DataTable
             columns={['Actor', 'Action', 'Entity', 'When']}
-            rows={((activity ?? []) as Array<{ actor_name?: string | null; action?: string; entity_type?: string | null; entity_id?: string | null; created_at?: string }>).map((row) => [
+            rows={(
+              (activity ?? []) as Array<{
+                actor_name?: string | null;
+                action?: string;
+                entity_type?: string | null;
+                entity_id?: string | null;
+                created_at?: string;
+              }>
+            ).map((row) => [
               row.actor_name ?? 'System',
               <span key="a">{titleize(row.action)}</span>,
-              <span className="mono" key="e">{row.entity_type ?? '—'} {shortId(row.entity_id)}</span>,
-              <span className="small muted" key="d">{formatDate(row.created_at)}</span>,
+              <span className="mono" key="e">
+                {row.entity_type ?? '—'} {shortId(row.entity_id)}
+              </span>,
+              <span className="small muted" key="d">
+                {formatDate(row.created_at)}
+              </span>,
             ])}
             empty="No activity recorded yet."
           />
@@ -118,12 +152,16 @@ export default async function DashboardPage({
               rows={(alerts ?? []).map((row) => [
                 titleize(row.alert_type),
                 <StatusBadge key="s" value={row.status} />,
-                <span className="small muted" key="d">{formatDate(row.created_at)}</span>,
+                <span className="small muted" key="d">
+                  {formatDate(row.created_at)}
+                </span>,
               ])}
               empty="No open safety alerts."
             />
             <div className="card-pad" style={{ paddingTop: 0 }}>
-              <Link className="btn btn-sm" href="/incidents">Open safety desk</Link>
+              <Link className="btn btn-sm" href="/incidents">
+                Open safety desk
+              </Link>
             </div>
           </div>
           <div className="card">
@@ -136,12 +174,16 @@ export default async function DashboardPage({
               rows={(queue ?? []).map((row) => [
                 titleize(row.request_type),
                 <StatusBadge key="s" value={row.status} />,
-                <span className="small muted" key="d">{formatDate(row.submitted_at)}</span>,
+                <span className="small muted" key="d">
+                  {formatDate(row.submitted_at)}
+                </span>,
               ])}
               empty="The verification queue is clear."
             />
             <div className="card-pad" style={{ paddingTop: 0 }}>
-              <Link className="btn btn-sm" href="/verifications">Review queue</Link>
+              <Link className="btn btn-sm" href="/verifications">
+                Review queue
+              </Link>
             </div>
           </div>
         </div>

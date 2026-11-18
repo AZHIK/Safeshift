@@ -11,7 +11,7 @@ This guide explains how to set up **“Sign in with Google”** for the SafeShif
   - It does **not** pass a mobile `redirectTo` deep link.
   - The login UI (`lib/features/auth/presentation/screens/login_screen.dart`) currently offers phone/email OTP only — no Google button.
 - **`driver-mobile`** has phone OTP auth only (`lib/features/auth/data/auth_service.dart`, login screen) — no Google OAuth method/UI yet.
-- **Both apps** initialize Supabase with `detectSessionInUri: false` in `lib/core/network/supabase_init.dart` and note: *“OTP-only auth. Deep links are owned by DeepLinkHandler, not the SDK.”*
+- **Both apps** initialize Supabase with `detectSessionInUri: false` in `lib/core/network/supabase_init.dart` and note: _“OTP-only auth. Deep links are owned by DeepLinkHandler, not the SDK.”_
 - **Both apps** use the `safeshift://` custom scheme (Android `AndroidManifest.xml`, iOS `Info.plist` `CFBundleURLSchemes`) and have a `DeepLinkService` (`lib/core/deep_links/deep_link_service.dart`) that routes only `tracking/jobs/history` links. **OAuth callback links are not handled yet.**
 - **Backend (hosted Supabase.com):** Auth/RLS/profile logic applies (`profiles`, `ensure_my_profile`, driver registration/verification checks in `driver-mobile`).
 
@@ -37,8 +37,9 @@ Supabase’s Google provider uses a **Web application** OAuth client (Supabase h
    - Save and copy the **Client ID** and **Client Secret**.
 
 > Notes:
-> - Do **not** put your app’s `safeshift://...` deep link as the *Google* redirect URI. Google redirects to **Supabase**; Supabase redirects to your app’s `redirectTo`.
-> - Android/iOS OAuth client IDs are only needed if you implement *native* Google Sign-In SDK flows. This guide uses Supabase’s OAuth browser flow (`signInWithOAuth` + deep link return), which works well with the hosted Supabase.com provider.
+>
+> - Do **not** put your app’s `safeshift://...` deep link as the _Google_ redirect URI. Google redirects to **Supabase**; Supabase redirects to your app’s `redirectTo`.
+> - Android/iOS OAuth client IDs are only needed if you implement _native_ Google Sign-In SDK flows. This guide uses Supabase’s OAuth browser flow (`signInWithOAuth` + deep link return), which works well with the hosted Supabase.com provider.
 
 ---
 
@@ -84,6 +85,7 @@ flutter run \
 ## 4) Choose and register a mobile auth callback deep link
 
 This repo already registers the `safeshift://` scheme:
+
 - **Customer Android:** `apps/customer-mobile/android/app/src/main/AndroidManifest.xml` (`<data android:scheme="safeshift"/>`)
 - **Customer iOS:** `apps/customer-mobile/ios/Runner/Info.plist` (`CFBundleURLSchemes` includes `safeshift`)
 - **Driver Android:** `apps/driver-mobile/android/app/src/main/AndroidManifest.xml` (same scheme)
@@ -91,10 +93,12 @@ This repo already registers the `safeshift://` scheme:
 **Recommended `redirectTo`:** `safeshift://login-callback`
 
 Why:
+
 - Fits the existing custom scheme.
 - Easy to detect in `DeepLinkService` without conflicting with `tracking/jobs/history`.
 
 You must:
+
 1. Add `safeshift://login-callback` to **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**.
 2. Handle it in the app (Section 5) and pass the same value as `redirectTo` in `signInWithOAuth` (Section 6).
 
@@ -160,7 +164,7 @@ Adjust the matcher to exactly match your chosen `redirectTo`.
 
 ### 5.2 Alternative: enable SDK session detection (use with care)
 
-You *could* set `detectSessionInUri: true` in `supabase_init.dart`, but this repo explicitly disabled it because deep links are owned by the app. If you enable it, verify it doesn’t interfere with existing `safeshift://tracking/...` links and `DeepLinkService` behavior. The explicit `getSessionFromUrl` approach keeps control clear.
+You _could_ set `detectSessionInUri: true` in `supabase_init.dart`, but this repo explicitly disabled it because deep links are owned by the app. If you enable it, verify it doesn’t interfere with existing `safeshift://tracking/...` links and `DeepLinkService` behavior. The explicit `getSessionFromUrl` approach keeps control clear.
 
 ---
 
@@ -201,13 +205,17 @@ Call `_ensureProfile(...)` as appropriate for new Google users (role defaults to
 ## 7) Add a Google button to the login UI
 
 ### Customer app
+
 File: `apps/customer-mobile/lib/features/auth/presentation/screens/login_screen.dart`
+
 - Add a “Continue with Google” button (e.g., below the OTP action/terms).
 - Call `ref.read(authProvider.notifier).signInWithGoogle()` (or your provider’s equivalent) and show errors via `AppSnackbar` on `Failure`.
 - While the browser flow is in progress, handle loading/state carefully (OAuth opens an external browser; completion arrives via deep link + auth state change).
 
 ### Driver app
+
 File: `apps/driver-mobile/lib/features/auth/presentation/screens/login_screen.dart`
+
 - Add the same button and wire it to the driver auth provider/service.
 - Ensure post-login routing respects driver registration/verification (existing router logic).
 
@@ -241,14 +249,14 @@ Keep UI consistent with `AppColors`, `TextStyles`, and existing button component
 
 ## Files to change (summary)
 
-| Area | File(s) |
-|---|---|
-| Supabase init (review only; `detectSessionInUri` remains `false`) | `apps/customer-mobile/lib/core/network/supabase_init.dart`, `apps/driver-mobile/lib/core/network/supabase_init.dart` |
-| OAuth deep link handling | `apps/customer-mobile/lib/core/deep_links/deep_link_service.dart`, `apps/driver-mobile/lib/core/deep_links/deep_link_service.dart` |
-| Auth service | `apps/customer-mobile/lib/features/auth/data/auth_service.dart`, `apps/driver-mobile/lib/features/auth/data/auth_service.dart` |
-| Login UI | `apps/customer-mobile/lib/features/auth/presentation/screens/login_screen.dart`, `apps/driver-mobile/lib/features/auth/presentation/screens/login_screen.dart` |
-| Auth state/providers | `apps/*/lib/features/auth/providers/*` (wire method + react to session/auth state as needed) |
-| Platform deep links (already present for `safeshift://`) | Android `AndroidManifest.xml`, iOS `Info.plist` for each app |
+| Area                                                              | File(s)                                                                                                                                                        |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase init (review only; `detectSessionInUri` remains `false`) | `apps/customer-mobile/lib/core/network/supabase_init.dart`, `apps/driver-mobile/lib/core/network/supabase_init.dart`                                           |
+| OAuth deep link handling                                          | `apps/customer-mobile/lib/core/deep_links/deep_link_service.dart`, `apps/driver-mobile/lib/core/deep_links/deep_link_service.dart`                             |
+| Auth service                                                      | `apps/customer-mobile/lib/features/auth/data/auth_service.dart`, `apps/driver-mobile/lib/features/auth/data/auth_service.dart`                                 |
+| Login UI                                                          | `apps/customer-mobile/lib/features/auth/presentation/screens/login_screen.dart`, `apps/driver-mobile/lib/features/auth/presentation/screens/login_screen.dart` |
+| Auth state/providers                                              | `apps/*/lib/features/auth/providers/*` (wire method + react to session/auth state as needed)                                                                   |
+| Platform deep links (already present for `safeshift://`)          | Android `AndroidManifest.xml`, iOS `Info.plist` for each app                                                                                                   |
 
 ---
 

@@ -76,7 +76,10 @@ export class GoogleMapsClient {
     // `baseUrl`, which is the Geocoding/Places host: posting a Compute Routes
     // request to it 404s with an empty body and is indistinguishable from a
     // missing API key.
-    this.routesBaseUrl = (config.routesBaseUrl ?? 'https://routes.googleapis.com').replace(/\/$/, '');
+    this.routesBaseUrl = (config.routesBaseUrl ?? 'https://routes.googleapis.com').replace(
+      /\/$/,
+      '',
+    );
   }
 
   async calculateDistance(
@@ -101,26 +104,32 @@ export class GoogleMapsClient {
     if (travelMode === 'DRIVE') body.routingPreference = 'TRAFFIC_AWARE';
 
     const url = `${this.routesBaseUrl}/distanceMatrix/v2:computeRouteMatrix`;
-    const { data } = await requestJson<RouteMatrixElement[]>('google_maps', url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': this.config.apiKey,
-        'X-Goog-FieldMask':
-          'originIndex,destinationIndex,duration,distanceMeters,status,condition',
+    const { data } = await requestJson<RouteMatrixElement[]>(
+      'google_maps',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': this.config.apiKey,
+          'X-Goog-FieldMask':
+            'originIndex,destinationIndex,duration,distanceMeters,status,condition',
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    }, {
-      fetchImpl: this.config.fetchImpl,
-      sleep: this.config.sleep,
-      requestId: this.config.requestId,
-      timeoutMs: 60_000,
-    });
+      {
+        fetchImpl: this.config.fetchImpl,
+        sleep: this.config.sleep,
+        requestId: this.config.requestId,
+        timeoutMs: 60_000,
+      },
+    );
 
     const elements = Array.isArray(data) ? data : [];
-    const element = elements.find((item) =>
-      (item.originIndex ?? 0) === 0 && (item.destinationIndex ?? 0) === 0
-    ) ?? elements[0];
+    const element =
+      elements.find(
+        (item) => (item.originIndex ?? 0) === 0 && (item.destinationIndex ?? 0) === 0,
+      ) ?? elements[0];
     if (!element) {
       throw new ProviderError('google_maps', 'Routes API returned no route matrix elements');
     }
@@ -150,25 +159,32 @@ export class GoogleMapsClient {
   }
 
   geocode(address: string): Promise<GeocodeResult> {
-    const url = `${this.baseUrl}/maps/api/geocode/json?address=${encodeURIComponent(address)}` +
+    const url =
+      `${this.baseUrl}/maps/api/geocode/json?address=${encodeURIComponent(address)}` +
       `&key=${encodeURIComponent(this.config.apiKey)}`;
     return this.parseGeocode(url);
   }
 
   reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
-    const url = `${this.baseUrl}/maps/api/geocode/json?latlng=${lat},${lng}` +
+    const url =
+      `${this.baseUrl}/maps/api/geocode/json?latlng=${lat},${lng}` +
       `&key=${encodeURIComponent(this.config.apiKey)}`;
     return this.parseGeocode(url);
   }
 
   private async parseGeocode(url: string): Promise<GeocodeResult> {
-    const { data } = await requestJson<Record<string, unknown>>('google_maps', url, {
-      method: 'GET',
-    }, {
-      fetchImpl: this.config.fetchImpl,
-      sleep: this.config.sleep,
-      requestId: this.config.requestId,
-    });
+    const { data } = await requestJson<Record<string, unknown>>(
+      'google_maps',
+      url,
+      {
+        method: 'GET',
+      },
+      {
+        fetchImpl: this.config.fetchImpl,
+        sleep: this.config.sleep,
+        requestId: this.config.requestId,
+      },
+    );
 
     if (String(data.status) !== 'OK') {
       throw new ProviderError('google_maps', `Geocoding returned ${data.status}`);
@@ -189,23 +205,25 @@ export class GoogleMapsClient {
     };
   }
 
-  async placesAutocomplete(
-    input: string,
-    sessionToken: string,
-  ): Promise<AutocompletePrediction[]> {
+  async placesAutocomplete(input: string, sessionToken: string): Promise<AutocompletePrediction[]> {
     const url =
       `${this.baseUrl}/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}` +
-      `&sessiontoken=${encodeURIComponent(sessionToken)}&key=${
-        encodeURIComponent(this.config.apiKey)
-      }`;
+      `&sessiontoken=${encodeURIComponent(sessionToken)}&key=${encodeURIComponent(
+        this.config.apiKey,
+      )}`;
 
-    const { data } = await requestJson<Record<string, unknown>>('google_maps', url, {
-      method: 'GET',
-    }, {
-      fetchImpl: this.config.fetchImpl,
-      sleep: this.config.sleep,
-      requestId: this.config.requestId,
-    });
+    const { data } = await requestJson<Record<string, unknown>>(
+      'google_maps',
+      url,
+      {
+        method: 'GET',
+      },
+      {
+        fetchImpl: this.config.fetchImpl,
+        sleep: this.config.sleep,
+        requestId: this.config.requestId,
+      },
+    );
 
     if (String(data.status) !== 'OK') {
       throw new ProviderError('google_maps', `Places Autocomplete returned ${data.status}`);
@@ -231,8 +249,7 @@ export class GoogleMapsClient {
     mode = 'driving',
   ): Promise<RouteResult> {
     const travelMode = ROUTE_TRAVEL_MODES[mode] ?? 'DRIVE';
-    const routingPreference =
-      travelMode === 'DRIVE' ? 'TRAFFIC_AWARE' : undefined;
+    const routingPreference = travelMode === 'DRIVE' ? 'TRAFFIC_AWARE' : undefined;
 
     const body: Record<string, unknown> = {
       origin: {
@@ -255,21 +272,26 @@ export class GoogleMapsClient {
     // There is no /v1:computeRoutes path; requesting it 404s with an empty
     // body, which is impossible to tell apart from a disabled API.
     const url = `${this.routesBaseUrl}/directions/v2:computeRoutes`;
-    const { data } = await requestJson<ComputeRoutesResponse>('google_maps', url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': this.config.apiKey,
-        'X-Goog-FieldMask':
-          'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.routeLabels',
+    const { data } = await requestJson<ComputeRoutesResponse>(
+      'google_maps',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': this.config.apiKey,
+          'X-Goog-FieldMask':
+            'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.routeLabels',
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    }, {
-      fetchImpl: this.config.fetchImpl,
-      sleep: this.config.sleep,
-      requestId: this.config.requestId,
-      timeoutMs: 60_000,
-    });
+      {
+        fetchImpl: this.config.fetchImpl,
+        sleep: this.config.sleep,
+        requestId: this.config.requestId,
+        timeoutMs: 60_000,
+      },
+    );
 
     const routes = Array.isArray(data?.routes) ? data.routes : [];
     const route = routes[0];

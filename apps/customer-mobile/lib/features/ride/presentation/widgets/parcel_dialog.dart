@@ -116,17 +116,36 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
   }
 
   void _save() {
-    final weight = double.tryParse(_weight.text.trim().replaceAll(',', '.'));
+    final weightText = _weight.text.trim().replaceAll(',', '.');
+    final weight = weightText.isEmpty ? null : double.tryParse(weightText);
+    if (weight != null && weight <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a weight greater than zero.')),
+      );
+      return;
+    }
     final valueText = _value.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
     final value = valueText.isEmpty ? null : int.tryParse(valueText);
+    if (value == null || value <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add an approximate value for the parcel.')),
+      );
+      return;
+    }
+    final photos = ref.read(rideProvider).parcelPhotoPaths;
+    if (photos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add at least one photo of the parcel.')),
+      );
+      return;
+    }
     ref
         .read(rideProvider.notifier)
         .setParcelDetails(
           description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
           weightKg: weight != null && weight > 0 ? weight : null,
-          valueTzs: value != null && value >= 0 ? value : null,
+          valueTzs: value,
         );
-    // Keep existing photos (already in provider via picker).
     Navigator.pop(context);
   }
 
@@ -209,7 +228,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'Photos (up to 4)',
+                    'Photos (up to 4) *',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
@@ -248,7 +267,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Weight (kg)',
+                              'Weight (kg, optional)',
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,
@@ -275,7 +294,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Approx. value (TZS)',
+                              'Approx. value (TZS) *',
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,

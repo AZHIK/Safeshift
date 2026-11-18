@@ -3,8 +3,12 @@ import type { ReactNode } from 'react';
 
 import { signOutAction } from '@/app/actions/auth';
 import { canSee, type AdminSession } from '@/lib/auth';
+import { CONFIGURATION_GROUPS, CONFIGURATION_PERMISSIONS } from '@/lib/configuration/resources';
 
-const groups: { label: string; items: { href: string; label: string; area: string; glyph: string }[] }[] = [
+const groups: {
+  label: string;
+  items: { href: string; label: string; area: string; glyph: string }[];
+}[] = [
   {
     label: 'Overview',
     items: [
@@ -50,13 +54,50 @@ const groups: { label: string; items: { href: string; label: string; area: strin
   },
 ];
 
+/**
+ * The Configuration section of the sidebar.
+ *
+ * It only appears for an administrator who holds at least one configuration
+ * permission, and only the pages that administrator may open are listed.
+ */
+function configurationItems(permissions: Set<string>) {
+  const items: { href: string; label: string; glyph: string }[] = [];
+
+  for (const group of CONFIGURATION_GROUPS) {
+    for (const item of group.items) {
+      if (!permissions.has(item.permission)) continue;
+
+      if (item.children && item.children.length > 0) {
+        const children = item.children.filter((child) => permissions.has(child.permission));
+        if (children.length === 0) continue;
+        for (const child of children) {
+          items.push({ href: child.href, label: child.label, glyph: '·' });
+        }
+        continue;
+      }
+
+      items.push({ href: item.href, label: item.label, glyph: '⬢' });
+    }
+  }
+
+  return items;
+}
+
 export function Shell({
   session,
+  permissions,
   children,
 }: {
   session: AdminSession;
+  permissions: string[];
   children: ReactNode;
 }) {
+  const held = new Set(permissions);
+  const configItems = configurationItems(held);
+  const showsConfiguration =
+    held.has('manage_configuration') ||
+    CONFIGURATION_PERMISSIONS.some((permission) => held.has(permission));
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -83,6 +124,18 @@ export function Shell({
               </div>
             );
           })}
+
+          {showsConfiguration && configItems.length > 0 ? (
+            <div className="nav-group">
+              <div className="nav-label">Configuration</div>
+              {configItems.map((item) => (
+                <Link className="nav-link nav-link-config" href={item.href} key={item.href}>
+                  <span aria-hidden>{item.glyph}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user">
@@ -91,7 +144,9 @@ export function Shell({
           </div>
           <span className="sidebar-role">{session.role.replaceAll('_', ' ')}</span>
           <form action={signOutAction} style={{ marginTop: 10 }}>
-            <button className="signout" type="submit">Sign out</button>
+            <button className="signout" type="submit">
+              Sign out
+            </button>
           </form>
         </div>
       </aside>

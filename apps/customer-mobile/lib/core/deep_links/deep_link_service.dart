@@ -96,7 +96,9 @@ String? deepLinkLocation(Uri uri) {
   switch (section) {
     case 'tracking':
     case 'jobs':
-      return '/tracking?jobId=${Uri.encodeComponent(id)}';
+      // The live job lives on the single-screen ride flow, not the legacy
+      // /tracking screen from the old booking funnel.
+      return '/home?jobId=${Uri.encodeComponent(id)}';
     case 'history':
       return '/history/${Uri.encodeComponent(id)}';
     default:

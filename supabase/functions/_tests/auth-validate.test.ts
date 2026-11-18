@@ -6,9 +6,8 @@ import { createSupabaseMock } from './mocks.ts';
 import { handle } from '../auth-validate/handler.ts';
 
 Deno.test('auth-validate rejects an invalid JWT', async () => {
-  const handler = createHandler(
-    'auth-validate',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps({ verifyToken: async () => null }) }),
+  const handler = createHandler('auth-validate', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps({ verifyToken: async () => null }) }),
   );
 
   const response = await handler(
@@ -29,9 +28,8 @@ Deno.test('auth-validate returns profile claims and hydrated permissions', async
       return { data: null, error: null };
     },
   });
-  const handler = createHandler(
-    'auth-validate',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), userClient: () => client }),
+  const handler = createHandler('auth-validate', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), userClient: () => client }),
   );
 
   const response = await handler(
@@ -54,9 +52,8 @@ Deno.test('auth-validate surfaces a permission RPC failure', async () => {
       return { data: null, error: null };
     },
   });
-  const handler = createHandler(
-    'auth-validate',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), userClient: () => client }),
+  const handler = createHandler('auth-validate', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), userClient: () => client }),
   );
 
   const response = await handler(

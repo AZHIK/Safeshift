@@ -4,6 +4,9 @@
 // available through --dart-define=MOCK_MODE=true for design work and tests.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,9 +46,12 @@ class HomeNotifier extends Notifier<HomeState> {
   Timer? _countdownTimer;
   Timer? _pollTimer;
   Timer? _locationTimer;
+  StreamSubscription<Position>? _positionSubscription;
+  AppLifecycleListener? _lifecycle;
   RealtimeChannel? _offersChannel;
   RealtimeChannel? _jobChannel;
   String? _activeJobId;
+  String? _lastNotifiedOfferId;
 
   DriverRepository get _repo => DriverRepository(ref.read(supabaseProvider));
 
@@ -53,7 +59,23 @@ class HomeNotifier extends Notifier<HomeState> {
 
   @override
   HomeState build() {
-    ref.onDispose(_cancelAll);
+    try {
+      _lifecycle = AppLifecycleListener(
+        onResume: () {
+          if (_isMock) return;
+          if (state.driverStatus == DriverStatus.offline) return;
+          unawaited(_pushLocation(_activeJobId));
+        },
+      );
+    } catch (_) {
+      // No binding (plain unit tests); the resume refresh is optional.
+      _lifecycle = null;
+    }
+    ref.onDispose(() {
+      _lifecycle?.dispose();
+      _lifecycle = null;
+      _cancelAll();
+    });
     final mock = ref.read(mockEnabledProvider);
     if (mock) {
       return const HomeState(
@@ -417,6 +439,17 @@ class HomeNotifier extends Notifier<HomeState> {
       return;
     }
     try {
+      if (!await _repo.ensureCurrentVehicle()) {
+        state = state.copyWith(
+          driverStatus: DriverStatus.offline,
+          clearIncoming: true,
+          clearActive: true,
+          errorMessage:
+              'Add a vehicle and wait for it to be verified before going online.',
+        );
+        return;
+      }
+      await _repo.setAvailability(true);
       final earnings = await _repo.earnings();
       state = state.copyWith(
         driverStatus: DriverStatus.onlineSearching,
@@ -424,6 +457,7 @@ class HomeNotifier extends Notifier<HomeState> {
         completedToday: earnings.todayTrips,
         clearIncoming: true,
         clearActive: true,
+        clearError: true,
         countdownSeconds: HomeDelays.countdownSeconds,
       );
     } catch (_) {
@@ -435,35 +469,70 @@ class HomeNotifier extends Notifier<HomeState> {
     }
     _subscribeOffers();
     _startPolling();
+    await _startLocationUpdates();
     await _checkOffer();
   }
 
   Future<void> _checkOffer() async {
     if (_isMock || !ref.mounted) return;
-    if (state.driverStatus != DriverStatus.onlineSearching &&
-        state.driverStatus != DriverStatus.onlineIdle) {
-      return;
-    }
+    final searching =
+        state.driverStatus == DriverStatus.onlineSearching ||
+        state.driverStatus == DriverStatus.onlineIdle;
+    final incoming = state.driverStatus == DriverStatus.incomingJob;
+    if (!searching && !incoming) return;
     try {
       final offer = await _repo.nextOffer();
-      if (offer == null || !ref.mounted) return;
-      if (state.driverStatus != DriverStatus.onlineSearching &&
-          state.driverStatus != DriverStatus.onlineIdle) {
+      if (!ref.mounted) return;
+
+      if (offer == null) {
+        // Our offer expired or another driver accepted first.
+        if (incoming) {
+          _cancelCountdown();
+          state = state.copyWith(
+            driverStatus: DriverStatus.onlineSearching,
+            clearIncoming: true,
+            countdownSeconds: HomeDelays.countdownSeconds,
+          );
+        }
         return;
       }
-      final seconds = offer.expiresAt == null
-          ? HomeDelays.countdownSeconds
-          : offer.expiresAt!.difference(DateTime.now()).inSeconds;
+
+      if (incoming && state.incomingJob?.offerId == offer.offerId) {
+        // Refresh the TTL from the server without restarting the countdown.
+        state = state.copyWith(countdownSeconds: _remainingSeconds(offer));
+        return;
+      }
+
+      _notifyOffer(offer);
       state = state.copyWith(
         driverStatus: DriverStatus.incomingJob,
         incomingJob: offer,
-        countdownSeconds: seconds.clamp(1, 300),
+        countdownSeconds: _remainingSeconds(offer),
         clearError: true,
       );
       _startCountdown();
     } catch (_) {
       // Poll failures are non-fatal; the next tick retries.
     }
+  }
+
+  /// Seconds left on an offer using the server clock where possible.
+  int _remainingSeconds(DriverJob offer) {
+    final expires = offer.expiresAt;
+    if (expires != null) {
+      final diff = expires.difference(DateTime.now()).inSeconds;
+      if (diff > 0) return diff.clamp(1, 600);
+    }
+    final ttl = offer.offerTtlSeconds;
+    if (ttl != null && ttl > 0) return ttl.clamp(1, 600);
+    return HomeDelays.countdownSeconds;
+  }
+
+  void _notifyOffer(DriverJob offer) {
+    if (_lastNotifiedOfferId == offer.offerId) return;
+    _lastNotifiedOfferId = offer.offerId;
+    unawaited(HapticFeedback.heavyImpact());
+    unawaited(SystemSound.play(SystemSoundType.alert));
   }
 
   void _startCountdown() {
@@ -486,6 +555,11 @@ class HomeNotifier extends Notifier<HomeState> {
     _offersChannel?.unsubscribe();
     final userId = ref.read(authProviderUserId);
     if (userId == null) return;
+    final filter = PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'driver_id',
+      value: userId,
+    );
     _offersChannel = ref
         .read(supabaseProvider)
         .channel('driver-offers-$userId')
@@ -493,11 +567,14 @@ class HomeNotifier extends Notifier<HomeState> {
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'job_offers',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'driver_id',
-            value: userId,
-          ),
+          filter: filter,
+          callback: (_) => unawaited(_checkOffer()),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'job_offers',
+          filter: filter,
           callback: (_) => unawaited(_checkOffer()),
         )
         .subscribe();
@@ -528,10 +605,21 @@ class HomeNotifier extends Notifier<HomeState> {
       if (!ref.mounted || _activeJobId != jobId) return;
       if (active == null) {
         _activeJobId = null;
+        _jobChannel?.unsubscribe();
+        _jobChannel = null;
+        // The trip finished; make sure the server and the GPS feed are both
+        // ready for the next offer.
+        _lastNotifiedOfferId = null;
+        try {
+          await _repo.setAvailability(true);
+        } catch (_) {
+          // The completion trigger also frees the driver; this is a backstop.
+        }
         state = state.copyWith(
           driverStatus: DriverStatus.onlineSearching,
           clearActive: true,
         );
+        unawaited(_startLocationUpdates());
         await _checkOffer();
         return;
       }
@@ -552,14 +640,115 @@ class HomeNotifier extends Notifier<HomeState> {
     });
   }
 
+  /// Streams GPS fixes while the driver is online or on a trip.
+  ///
+  /// A one-shot `getCurrentPosition` every 30 s wakes the radio only to drop
+  /// the lock immediately, which on Android often returns a cached fix and
+  /// makes dispatch believe the driver never moves. A position stream keeps
+  /// the fused provider warm and, on Android, runs behind a foreground-service
+  /// notification so the OS keeps delivering updates while the app is in the
+  /// background.
   Future<String?> _startLocationUpdates({String? jobId}) async {
+    if (_isMock) return null;
     _locationTimer?.cancel();
+    _locationTimer = null;
+    await _positionSubscription?.cancel();
+    _positionSubscription = null;
+
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return 'Turn on location services so customers can find you nearby.';
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return 'Allow location access so customers can find you nearby.';
+      }
+    } catch (error, stack) {
+      return ErrorHandler.map(error, stackTrace: stack).message;
+    }
+
+    // Publish a fix right away so the driver becomes dispatchable without
+    // waiting for the first stream event.
     final failure = await _pushLocation(jobId);
+
+    var lastPushed = DateTime.now();
+    try {
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: _locationSettings(),
+      ).listen(
+        (position) {
+          final now = DateTime.now();
+          // The fused stream can be chatty; the server only needs a fix a few
+          // times a minute.
+          if (now.difference(lastPushed) < const Duration(seconds: 15)) return;
+          lastPushed = now;
+          unawaited(_pushPosition(position, jobId));
+        },
+        onError: (_) {
+          // A single bad fix is not fatal; the stream keeps running.
+        },
+      );
+    } catch (error, stack) {
+      // Fall back to the periodic safety push below.
+      debugPrint('Position stream unavailable: '
+          '${ErrorHandler.map(error, stackTrace: stack).message}');
+    }
+
+    // Safety net for ROMs/configs that stop the stream: re-assert a fix
+    // periodically even if no stream event has arrived.
     _locationTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      const Duration(seconds: 45),
       (_) => unawaited(_pushLocation(jobId)),
     );
     return failure;
+  }
+
+  /// Android-specific settings so location keeps flowing in the background.
+  ///
+  /// iOS/desktop keep the plain settings; on Android the foreground service
+  /// notification is what prevents the OS from freezing updates once the app
+  /// leaves the foreground. The plugin starts and stops that service with the
+  /// stream, so it does not leak after [_cancelAll].
+  LocationSettings _locationSettings() {
+    const accuracy = LocationAccuracy.high;
+    const distanceFilter = 15;
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return const LocationSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+      );
+    }
+    return AndroidSettings(
+      accuracy: accuracy,
+      distanceFilter: distanceFilter,
+      intervalDuration: const Duration(seconds: 15),
+      foregroundNotificationConfig: const ForegroundNotificationConfig(
+        notificationTitle: 'SafeShift Driver is online',
+        notificationText:
+            'Sharing your location so nearby customers can find you.',
+        notificationChannelName: 'Driver location',
+        notificationIcon: AndroidResource(name: 'ic_launcher'),
+        enableWakeLock: true,
+        setOngoing: true,
+      ),
+    );
+  }
+
+  Future<void> _pushPosition(Position position, String? jobId) async {
+    if (_isMock) return;
+    try {
+      await _repo.updateLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        jobId: jobId,
+      );
+    } catch (_) {
+      // The periodic safety push retries.
+    }
   }
 
   /// Publishes the driver's GPS fix.
@@ -647,6 +836,7 @@ class HomeNotifier extends Notifier<HomeState> {
     _countdownTimer?.cancel();
     _pollTimer?.cancel();
     _locationTimer?.cancel();
+    _positionSubscription?.cancel();
     _offersChannel?.unsubscribe();
     _jobChannel?.unsubscribe();
     _idleTimer = null;
@@ -654,6 +844,7 @@ class HomeNotifier extends Notifier<HomeState> {
     _countdownTimer = null;
     _pollTimer = null;
     _locationTimer = null;
+    _positionSubscription = null;
     _offersChannel = null;
     _jobChannel = null;
     _activeJobId = null;

@@ -12,7 +12,6 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/providers/home_provider.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/phase9/presentation/phase9_screens.dart';
-import '../../features/profile/presentation/screens/complete_profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/ratings/presentation/screens/ratings_screen.dart';
 import '../../features/trips/presentation/screens/trip_detail_screen.dart';
@@ -47,10 +46,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/driver-onboarding',
         builder: (context, state) => const DriverOnboardingScreen(),
-      ),
-      GoRoute(
-        path: '/complete-profile',
-        builder: (context, state) => const CompleteProfileScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainScaffold(child: child),
@@ -177,10 +172,7 @@ class MainScaffold extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.92),
                 border: const Border(
-                  top: BorderSide(
-                    color: Color(0xFFE1EBF2),
-                    width: 0.8,
-                  ),
+                  top: BorderSide(color: Color(0xFFE1EBF2), width: 0.8),
                 ),
                 boxShadow: const [
                   BoxShadow(
@@ -198,8 +190,7 @@ class MainScaffold extends ConsumerWidget {
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   height: 58,
-                  labelBehavior:
-                      NavigationDestinationLabelBehavior.alwaysShow,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                   destinations: const <NavigationDestination>[
                     NavigationDestination(
                       icon: Icon(Icons.home_outlined, size: 20),

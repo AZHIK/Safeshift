@@ -39,8 +39,10 @@ export async function flutterwaveClient(
   }
   return new FlutterwaveClient({
     secretKey,
-    secretHash: (await readOptionalSecret('FLUTTERWAVE_WEBHOOK_SECRET')) ??
-      (await readOptionalSecret('FLUTTERWAVE_SECRET_HASH')) ?? undefined,
+    secretHash:
+      (await readOptionalSecret('FLUTTERWAVE_WEBHOOK_SECRET')) ??
+      (await readOptionalSecret('FLUTTERWAVE_SECRET_HASH')) ??
+      undefined,
     baseUrl: Deno.env.get('FLUTTERWAVE_BASE_URL') ?? undefined,
     redirectUrl: Deno.env.get('FLUTTERWAVE_REDIRECT_URL') ?? undefined,
     requestId,
@@ -50,8 +52,8 @@ export async function flutterwaveClient(
 
 export async function beemClient(requestId?: string, fetchImpl?: FetchLike): Promise<BeemClient> {
   const apiKey = await readOptionalSecret('BEEM_API_KEY');
-  const apiSecret = (await readOptionalSecret('BEEM_SECRET_KEY')) ??
-    (await readOptionalSecret('BEEM_API_SECRET'));
+  const apiSecret =
+    (await readOptionalSecret('BEEM_SECRET_KEY')) ?? (await readOptionalSecret('BEEM_API_SECRET'));
   if (!apiKey || !apiSecret) {
     throw new ProviderUnavailableError('beem', 'Beem credentials are not configured');
   }
@@ -122,7 +124,8 @@ export async function googleMapsClient(
   // Prefer a dedicated server key. GOOGLE_MAPS_API_KEY is shared with the
   // mobile clients and may be restricted to an Android bundle id, which the
   // Routes API calls from the Edge Function would then be rejected by.
-  const apiKey = (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY')) ??
+  const apiKey =
+    (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY')) ??
     (await readOptionalSecret('GOOGLE_MAPS_API_KEY'));
   if (!apiKey) {
     throw new ProviderUnavailableError('google_maps', 'Google Maps API key is not configured');

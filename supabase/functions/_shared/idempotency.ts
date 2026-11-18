@@ -27,12 +27,7 @@ export class SupabaseIdempotencyStore implements IdempotencyStore {
     return { response: data.response };
   }
 
-  async put(
-    key: string,
-    scope: string,
-    response: unknown,
-    requestHash?: string,
-  ): Promise<void> {
+  async put(key: string, scope: string, response: unknown, requestHash?: string): Promise<void> {
     const { error } = await this.client.from('idempotency_keys').upsert(
       {
         key,

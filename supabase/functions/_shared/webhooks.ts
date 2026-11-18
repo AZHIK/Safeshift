@@ -29,8 +29,8 @@ export function normalizePaymentStatus(raw: unknown): NormalizedWebhook['status'
 
 export function parseSelcomWebhook(payload: Record<string, unknown>): NormalizedWebhook {
   const data = (payload.data ?? payload) as Record<string, unknown>;
-  const eventType = firstString(payload.event_type, payload.event, payload.type) ??
-    'payment.updated';
+  const eventType =
+    firstString(payload.event_type, payload.event, payload.type) ?? 'payment.updated';
   const providerReference = firstString(
     data.order_id,
     data.provider_reference,
@@ -43,7 +43,8 @@ export function parseSelcomWebhook(payload: Record<string, unknown>): Normalized
     eventType,
     // Selcom does not always send an event id. Include the status so a pending
     // event and the later terminal event for the same order are not deduped.
-    eventId: firstString(payload.event_id, payload.id, data.event_id) ??
+    eventId:
+      firstString(payload.event_id, payload.id, data.event_id) ??
       `${eventType}:${providerReference ?? 'unknown'}:${status}`,
     providerReference,
     status,
@@ -54,13 +55,14 @@ export function parseSelcomWebhook(payload: Record<string, unknown>): Normalized
 
 export function parseFlutterwaveWebhook(payload: Record<string, unknown>): NormalizedWebhook {
   const data = (payload.data ?? payload) as Record<string, unknown>;
-  const eventType = firstString(payload.event, payload.event_type, payload.type) ??
-    'charge.completed';
+  const eventType =
+    firstString(payload.event, payload.event_type, payload.type) ?? 'charge.completed';
   const providerReference = firstString(data.id, data.tx_ref, payload.tx_ref);
   const status = normalizePaymentStatus(data.status ?? payload.status);
   return {
     eventType,
-    eventId: firstString(payload.id, payload.event_id) ??
+    eventId:
+      firstString(payload.id, payload.event_id) ??
       `${eventType}:${providerReference ?? 'unknown'}:${status}`,
     providerReference,
     status,
@@ -98,9 +100,7 @@ export async function insertWebhook(
   if (error) throw error;
 
   const row = (Array.isArray(data) ? data[0] : data) as
-    | { webhook_id?: unknown; duplicate?: unknown }
-    | null
-    | undefined;
+    { webhook_id?: unknown; duplicate?: unknown } | null | undefined;
   if (!row) throw new InternalError('Webhook insert returned no row');
 
   return {

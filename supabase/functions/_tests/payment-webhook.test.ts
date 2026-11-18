@@ -25,7 +25,8 @@ Deno.test('Selcom webhook rejects an invalid signature with 401', async () => {
         inserted = true;
         return { id: 1, duplicate: false };
       },
-    }));
+    }),
+  );
 
   const response = await handler(
     rawRequest('http://localhost/functions/v1/payment-selcom-webhook', rawBody, {
@@ -56,7 +57,8 @@ Deno.test('Selcom webhook stores and reconciles a valid success event', async ()
       completePayment: async (paymentId, reference, status) => {
         completed.push({ paymentId, reference, status });
       },
-    }));
+    }),
+  );
 
   const response = await handler(
     rawRequest('http://localhost/functions/v1/payment-selcom-webhook', rawBody, {
@@ -85,7 +87,8 @@ Deno.test('Selcom webhook acknowledges duplicate events without reprocessing', a
       completePayment: async () => {
         completed = true;
       },
-    }));
+    }),
+  );
 
   const response = await handler(
     rawRequest('http://localhost/functions/v1/payment-selcom-webhook', rawBody, {

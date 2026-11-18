@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../core/config/env_config.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
@@ -11,6 +12,7 @@ import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
 import '../../../../shared/models/ride_place.dart';
 import '../../providers/ride_provider.dart';
+import '../../../phase9/presentation/phase9_screens.dart';
 import 'parcel_dialog.dart';
 import 'payment_dialog.dart';
 
@@ -274,140 +276,171 @@ class _RouteAndVehicles extends ConsumerWidget {
         const SizedBox(height: 10),
         _ParcelCard(onTap: () => showParcelDialog(context, ref)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Text(
-              'Choose a vehicle',
-              style: TextStyles.title.copyWith(fontSize: 15),
-            ),
-            const Spacer(),
-            _SchedulePill(),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Sized from your route + parcel above.',
-          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 10),
-        vehiclesAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (e, _) => Text(
-            'Could not load vehicle types.',
-            style: TextStyles.caption.copyWith(color: AppColors.error),
-          ),
-          data: (vehicles) => vehicles.isEmpty
-              ? const CatalogEmptyNotice(kind: CatalogKind.vehicles)
-              : Column(
-                  children: [
-                    for (final v in vehicles)
-                      _VehicleTile(
-                        vehicle: v,
-                        selected: v.id == ride.vehicleClass?.id,
-                        price: _totalFor(ride, v.id),
-                        onTap: () => notifier.selectVehicle(v),
-                      ),
-                  ],
+        if (!ride.hasRequiredParcelDetails) ...[
+          InfoCard(
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  color: AppColors.textSecondary,
                 ),
-        ),
-        const SizedBox(height: 12),
-        // Quote preview (always visible once route set — Bolt style).
-        InfoCard(
-          selected: true,
-          child: Column(
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Describe your parcel (value + at least one photo) to see '
+                    'vehicles and a price.',
+                    style: TextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.lime.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${ride.distanceKm.toStringAsFixed(1)} km · ${ride.durationMin} min',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _formatTzs(total),
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
+              Text(
+                'Choose a vehicle',
+                style: TextStyles.title.copyWith(fontSize: 15),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  CatalogIcon(
-                    iconUrl: ride.vehicleClass?.iconUrl,
-                    supabaseUrl: _iconBaseUrl,
-                    fallbackIcon: Icons.local_shipping_outlined,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${ride.vehicleClass?.name ?? 'Vehicle'} · ${ride.vehicleClass?.capacityLabel ?? ''} · ${ride.scheduledLabel}',
-                      style: TextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (ride.hasParcelDetails) ...[
-                const SizedBox(height: 6),
+              const Spacer(),
+              _SchedulePill(),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Sized from your route + parcel above.',
+            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 10),
+          vehiclesAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Text(
+              'Could not load vehicle types.',
+              style: TextStyles.caption.copyWith(color: AppColors.error),
+            ),
+            data: (vehicles) {
+              final compatible = vehicles
+                  .where(
+                    (v) => canVehicleCarryCargo(v, ride.cargo, ride.parcelWeightKg),
+                  )
+                  .toList(growable: false);
+              return compatible.isEmpty
+                  ? const CatalogEmptyNotice(kind: CatalogKind.vehicles)
+                  : Column(
+                      children: [
+                        for (final v in compatible)
+                          _VehicleTile(
+                            vehicle: v,
+                            selected: v.id == ride.vehicleClass?.id,
+                            price: _totalFor(ride, v.id),
+                            onTap: () => notifier.selectVehicle(v),
+                          ),
+                      ],
+                    );
+            },
+          ),
+          const SizedBox(height: 12),
+          // Quote preview (shown once the parcel is described).
+          InfoCard(
+            selected: true,
+            child: Column(
+              children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 14,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.lime.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${ride.distanceKm.toStringAsFixed(1)} km · ${ride.durationMin} min',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _formatTzs(total),
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    CatalogIcon(
+                      iconUrl: ride.vehicleClass?.iconUrl,
+                      supabaseUrl: _iconBaseUrl,
+                      fallbackIcon: Icons.local_shipping_outlined,
+                      size: 16,
                       color: AppColors.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        [
-                          if ((ride.parcelDescription ?? '').trim().isNotEmpty)
-                            ride.parcelDescription!.trim().length > 36
-                                ? '${ride.parcelDescription!.trim().substring(0, 36)}…'
-                                : ride.parcelDescription!.trim(),
-                          if (ride.parcelWeightKg != null)
-                            '${ride.parcelWeightKg!.toStringAsFixed(ride.parcelWeightKg! % 1 == 0 ? 0 : 1)} kg',
-                          if (ride.parcelValueTzs != null)
-                            'TZS ${_tzs.format(ride.parcelValueTzs!)}',
-                          if (ride.parcelPhotoPaths.isNotEmpty)
-                            '${ride.parcelPhotoPaths.length} photos',
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        '${ride.vehicleClass?.name ?? 'Vehicle'} · ${ride.vehicleClass?.capacityLabel ?? ''} · ${ride.scheduledLabel}',
                         style: TextStyles.caption.copyWith(
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
                 ),
+                if (ride.hasParcelDetails) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          [
+                            if ((ride.parcelDescription ?? '').trim().isNotEmpty)
+                              ride.parcelDescription!.trim().length > 36
+                                  ? '${ride.parcelDescription!.trim().substring(0, 36)}…'
+                                  : ride.parcelDescription!.trim(),
+                            if (ride.parcelWeightKg != null)
+                              '${ride.parcelWeightKg!.toStringAsFixed(ride.parcelWeightKg! % 1 == 0 ? 0 : 1)} kg',
+                            if (ride.parcelValueTzs != null)
+                              'TZS ${_tzs.format(ride.parcelValueTzs!)}',
+                            if (ride.parcelPhotoPaths.isNotEmpty)
+                              '${ride.parcelPhotoPaths.length} photos',
+                          ].join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        ],
         if (ride.isQuoting)
           const Padding(
             padding: EdgeInsets.only(top: 8),
@@ -444,9 +477,14 @@ class _RouteAndVehicles extends ConsumerWidget {
           icon: Icons.bolt_rounded,
           isLoading: ride.isSubmitting || ride.isQuoting,
           onPressed:
-              ride.hasRoute && !ride.isQuoting && ride.vehicleClass != null
-              ? () => ref.read(rideProvider.notifier).confirmAndFindDriver()
-              : null,
+              ride.hasRoute &&
+                      !ride.isQuoting &&
+                      ride.vehicleClass != null &&
+                      ride.parcelValueTzs != null &&
+                      ride.parcelValueTzs! > 0 &&
+                      ride.parcelPhotoPaths.isNotEmpty
+                  ? () => ref.read(rideProvider.notifier).confirmAndFindDriver()
+                  : null,
         ),
         const SizedBox(height: 4),
         Center(
@@ -943,42 +981,15 @@ class _ParcelCard extends ConsumerWidget {
 class _SchedulePill extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final label = ref.watch(rideProvider).scheduledLabel;
+    final ride = ref.watch(rideProvider);
+    final label = ride.scheduledLabel;
     return InkWell(
-      onTap: () async {
-        final choice = await showModalBottomSheet<String>(
-          context: context,
-          showDragHandle: true,
-          builder: (_) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.bolt_rounded),
-                  title: const Text('Now'),
-                  onTap: () => Navigator.pop(context, 'Now'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.schedule_rounded),
-                  title: const Text('In 1 hour'),
-                  onTap: () => Navigator.pop(context, 'In 1 hour'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.calendar_month_rounded),
-                  title: const Text('Tomorrow morning'),
-                  onTap: () => Navigator.pop(context, 'Tomorrow 8:00 AM'),
-                ),
-              ],
-            ),
-          ),
-        );
-        if (choice != null) ref.read(rideProvider.notifier).setSchedule(choice);
-      },
+      onTap: () => _pick(context, ref),
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: AppColors.primaryDeep,
+          color: ride.isScheduled ? AppColors.primaryDark : AppColors.primaryDeep,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
@@ -998,6 +1009,92 @@ class _SchedulePill extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(rideProvider.notifier);
+    final current = ref.read(rideProvider).scheduledAt;
+    final now = DateTime.now();
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.bolt_rounded),
+              title: const Text('Now'),
+              trailing: current == null
+                  ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                  : null,
+              onTap: () => Navigator.pop(context, 'now'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule_rounded),
+              title: const Text('In 1 hour'),
+              onTap: () => Navigator.pop(context, 'hour'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_rounded),
+              title: Text(
+                current == null ? 'Choose date & time' : 'Change date & time',
+              ),
+              onTap: () => Navigator.pop(context, 'pick'),
+            ),
+            if (current != null)
+              ListTile(
+                leading: const Icon(Icons.close_rounded),
+                title: const Text('Clear schedule'),
+                onTap: () => Navigator.pop(context, 'clear'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+
+    switch (choice) {
+      case 'now':
+      case 'clear':
+        notifier.setScheduledAt(null);
+        return;
+      case 'hour':
+        notifier.setScheduledAt(now.add(const Duration(hours: 1)));
+        return;
+      case 'pick':
+        if (!context.mounted) return;
+        final initial = current ?? now.add(const Duration(hours: 1));
+        final date = await showDatePicker(
+          context: context,
+          initialDate: initial,
+          firstDate: DateUtils.dateOnly(now),
+          lastDate: DateUtils.dateOnly(now.add(const Duration(days: 60))),
+          helpText: 'Pickup date',
+        );
+        if (date == null || !context.mounted) return;
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(initial),
+          helpText: 'Pickup time',
+        );
+        if (time == null || !context.mounted) return;
+        final at = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+        if (at.isBefore(DateTime.now())) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Choose a pickup time in the future.')),
+          );
+          return;
+        }
+        notifier.setScheduledAt(at);
+        return;
+    }
   }
 }
 
@@ -1028,6 +1125,11 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
   @override
   Widget build(BuildContext context) {
     final ride = ref.watch(rideProvider);
+    final scheduledLater =
+        ride.scheduledAt != null &&
+        ride.scheduledAt!.isAfter(
+          DateTime.now().add(const Duration(minutes: 45)),
+        );
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -1072,29 +1174,45 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Finding nearby drivers…',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        Text(
+          scheduledLater ? 'Move scheduled' : 'Finding nearby drivers…',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
-          'Looking for verified vehicles near your pickup',
+          scheduledLater
+              ? 'We will start searching 45 minutes before pickup'
+              : 'Looking for verified vehicles near your pickup',
+          textAlign: TextAlign.center,
           style: TextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
+        if (ride.isUploadingPhotos) ...[
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(minHeight: 3),
+          const SizedBox(height: 4),
+          Text(
+            'Uploading parcel photos…',
+            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
         if (ride.errorMessage != null) ...[
           const SizedBox(height: 10),
           Text(
             ride.errorMessage!,
             textAlign: TextAlign.center,
-            style: TextStyles.caption.copyWith(color: AppColors.error),
+            style: TextStyles.caption.copyWith(
+              color: scheduledLater ? AppColors.textSecondary : AppColors.error,
+            ),
           ),
-          const SizedBox(height: 8),
-          PrimaryButton(
-            label: 'Try again',
-            icon: Icons.refresh_rounded,
-            isLoading: ride.isSubmitting,
-            onPressed: () => ref.read(rideProvider.notifier).retryDispatch(),
-          ),
+          if (!scheduledLater) ...[
+            const SizedBox(height: 8),
+            PrimaryButton(
+              label: 'Try again',
+              icon: Icons.refresh_rounded,
+              isLoading: ride.isSubmitting,
+              onPressed: () => ref.read(rideProvider.notifier).retryDispatch(),
+            ),
+          ],
         ],
         const SizedBox(height: 14),
         OutlinedButton(
@@ -1114,10 +1232,38 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
 
 class _TrackingView extends ConsumerWidget {
   const _TrackingView({super.key});
+
+  static String _statusLabel(String? status) => switch (status) {
+    'accepted' || 'heading_to_pickup' => 'Driver on the way',
+    'arrived' => 'Driver has arrived',
+    'loading' => 'Loading your goods',
+    'in_transit' => 'On the way to the destination',
+    'delivered' => 'Delivered — confirm to finish',
+    'completed' => 'Move completed',
+    _ => 'Driver assigned',
+  };
+
+  static double _statusProgress(String? status) => switch (status) {
+    'accepted' => 0.2,
+    'heading_to_pickup' => 0.35,
+    'arrived' => 0.45,
+    'loading' => 0.6,
+    'in_transit' => 0.8,
+    'delivered' || 'completed' => 1.0,
+    _ => 0.2,
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
     final driver = ride.driver;
+    final status = ride.jobStatus;
+    final prePickup =
+        status == null ||
+        status == 'accepted' ||
+        status == 'heading_to_pickup' ||
+        status == 'arrived' ||
+        status == 'loading';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1142,7 +1288,7 @@ class _TrackingView extends ConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Driver on the way · ${ride.etaMin} min',
+                    _statusLabel(status),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -1162,13 +1308,33 @@ class _TrackingView extends ConsumerWidget {
             ),
           ],
         ),
+        if (ride.isScheduled && prePickup) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(
+                Icons.schedule_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Scheduled for ${ride.scheduledLabel}',
+                style: TextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(99),
-          child: const LinearProgressIndicator(
-            value: 0.68,
+          child: LinearProgressIndicator(
+            value: _statusProgress(status),
             minHeight: 6,
-            backgroundColor: Color(0xFFEDF2F6),
+            backgroundColor: const Color(0xFFEDF2F6),
             color: AppColors.primary,
           ),
         ),
@@ -1220,6 +1386,17 @@ class _TrackingView extends ConsumerWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
+                    if (ride.driverLatitude != null &&
+                        !ride.driverLocationFresh) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Location updating…',
+                        style: TextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 2),
                     Row(
                       children: [
@@ -1260,11 +1437,9 @@ class _TrackingView extends ConsumerWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Trip sharing is not available yet'),
-                  ),
-                ),
+                onPressed: ride.jobId == null
+                    ? null
+                    : () => shareTrip(context, ref, ride.jobId!),
                 icon: const Icon(Icons.share_outlined, size: 18),
                 label: const Text('Share'),
               ),
@@ -1272,11 +1447,9 @@ class _TrackingView extends ConsumerWidget {
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Emergency calling is not available yet'),
-                  ),
-                ),
+                onPressed: ride.jobId == null
+                    ? null
+                    : () => raiseSos(context, ref, ride.jobId!),
                 icon: const Icon(
                   Icons.emergency_outlined,
                   size: 18,

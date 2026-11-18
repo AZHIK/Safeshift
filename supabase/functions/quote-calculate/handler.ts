@@ -33,29 +33,24 @@ export async function handle(
 
   const body = await parseJsonBody(req, quoteSchema);
   const client = deps.userClient ? deps.userClient(auth.token) : userClient(auth.token);
+  const service = deps.service ?? serviceClient();
 
   const distance = deps.mapsDistance
     ? await deps.mapsDistance(body.pickup, body.destination)
     : await (async () => {
-      const cache = deps.service ?? serviceClient();
-      const cached = await getCachedDistance(
-        cache,
-        body.pickup,
-        body.destination,
-        'driving',
-      );
-      if (cached) return cached;
-      const maps = await googleMapsClient(ctx.requestId);
-      const result = await maps.calculateDistance([body.pickup], [body.destination], 'driving');
-      try {
-        await storeDistance(cache, body.pickup, body.destination, 'driving', result);
-      } catch {
-        // Cache is an optimization; quote creation must still succeed.
-      }
-      return result;
-    })();
+        const cached = await getCachedDistance(service, body.pickup, body.destination, 'driving');
+        if (cached) return cached;
+        const maps = await googleMapsClient(ctx.requestId);
+        const result = await maps.calculateDistance([body.pickup], [body.destination], 'driving');
+        try {
+          await storeDistance(service, body.pickup, body.destination, 'driving', result);
+        } catch {
+          // Cache is an optimization; quote creation must still succeed.
+        }
+        return result;
+      })();
 
-  const { data: quoteId, error } = await client.rpc('quote_calculate_and_persist', {
+  const { data: quoteId, error } = await service.rpc('quote_calculate_and_persist', {
     p_customer_id: auth.userId,
     p_pickup_location: geography(body.pickup),
     p_pickup_address: body.pickup.address,
@@ -65,6 +60,8 @@ export async function handle(
     p_cargo_type_id: body.cargo_type_id ?? null,
     p_cargo_weight_kg: body.cargo_weight_kg ?? null,
     p_cargo_volume_m3: body.cargo_volume_m3 ?? null,
+    p_cargo_description: body.cargo_description ?? null,
+    p_declared_value_tzs: body.declared_value_tzs ?? null,
     p_scheduled_at: body.scheduled_at ?? null,
     p_stop_count: body.stop_count ?? 2,
     p_waiting_minutes: body.waiting_minutes ?? 0,
@@ -86,9 +83,12 @@ export async function handle(
   if (quoteError) throw quoteError;
   if (!quote) throw new InternalError('Unable to read persisted quote');
 
-  return success({
-    quote_id: quoteId,
-    breakdown: quote.pricing_breakdown_snapshot,
-    expires_at: quote.expires_at,
-  }, 201);
+  return success(
+    {
+      quote_id: quoteId,
+      breakdown: quote.pricing_breakdown_snapshot,
+      expires_at: quote.expires_at,
+    },
+    201,
+  );
 }

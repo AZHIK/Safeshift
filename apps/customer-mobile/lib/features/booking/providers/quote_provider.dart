@@ -12,13 +12,13 @@ final quoteProvider = FutureProvider.autoDispose<Quote?>((ref) async {
   final user = ref.watch(authProvider).currentUser;
   if (draft == null || user == null) return null;
 
-  final snapshot = await RideRepository(ref.watch(supabaseProvider)).requestQuote(
-    customerId: user.id,
-    pickup: draft.pickup,
-    destination: draft.destination,
-    vehicle: draft.vehicleClass,
-    cargo: draft.cargoCategory,
-  );
+  final snapshot = await RideRepository(ref.watch(supabaseProvider))
+      .requestQuote(
+        pickup: draft.pickup,
+        destination: draft.destination,
+        vehicle: draft.vehicleClass,
+        cargo: draft.cargoCategory,
+      );
 
   return Quote(
     baseFee: snapshot.baseFee,

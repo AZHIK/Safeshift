@@ -84,6 +84,7 @@ insert into _phase8_functions (name, signature) values
   ('driver_pending_offers', 'public.driver_pending_offers()'),
   ('driver_active_job', 'public.driver_active_job()'),
   ('driver_trips', 'public.driver_trips(integer)'),
+  ('driver_trip_detail', 'public.driver_trip_detail(uuid)'),
   ('driver_earnings_summary', 'public.driver_earnings_summary()'),
   ('driver_documents_list', 'public.driver_documents_list()'),
   ('driver_vehicle_info', 'public.driver_vehicle_info()'),

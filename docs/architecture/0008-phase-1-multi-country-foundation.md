@@ -403,6 +403,10 @@ cannot create an inconsistent city.
 Steps 1–9 are pure data. No migration, function or policy changes are required,
 which is the whole point of the multi-country foundation.
 
+`supabase/seed-example-country.sql` is a worked example of these nine steps
+applied to one inactive market (Nigeria: NGN, Lagos State, Lagos, one service
+zone and two neighborhoods). It is idempotent and local-only.
+
 ---
 
 ## 11. Known limitations and what comes in Phases 2–6

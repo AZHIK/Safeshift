@@ -90,11 +90,12 @@ export class FlutterwaveClient {
     const payload = (data.data ?? data) as Record<string, unknown>;
     const rawStatus = String(payload.status ?? 'pending').toLowerCase();
     return {
-      status: rawStatus === 'successful' || rawStatus === 'succeeded'
-        ? 'succeeded'
-        : rawStatus === 'failed'
-        ? 'failed'
-        : 'pending',
+      status:
+        rawStatus === 'successful' || rawStatus === 'succeeded'
+          ? 'succeeded'
+          : rawStatus === 'failed'
+            ? 'failed'
+            : 'pending',
       amount: Number(payload.amount ?? 0),
       paid_at: (payload.created_at ?? null) as string | null,
     };
@@ -123,9 +124,8 @@ export class FlutterwaveClient {
     const payload = (data.data ?? data) as Record<string, unknown>;
     return {
       refund_reference: String(payload.id ?? payload.refund_reference ?? providerReference),
-      status: String(payload.status ?? 'pending').toLowerCase() === 'completed'
-        ? 'succeeded'
-        : 'pending',
+      status:
+        String(payload.status ?? 'pending').toLowerCase() === 'completed' ? 'succeeded' : 'pending',
     };
   }
 
@@ -162,11 +162,12 @@ export class FlutterwaveClient {
     const rawStatus = String(payload.status ?? 'pending').toLowerCase();
     return {
       provider_reference: String(payload.id ?? payload.reference ?? reference),
-      status: rawStatus === 'successful' || rawStatus === 'succeeded'
-        ? 'succeeded'
-        : rawStatus === 'failed'
-        ? 'failed'
-        : 'pending',
+      status:
+        rawStatus === 'successful' || rawStatus === 'succeeded'
+          ? 'succeeded'
+          : rawStatus === 'failed'
+            ? 'failed'
+            : 'pending',
     };
   }
 

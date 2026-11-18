@@ -14,7 +14,11 @@ abstract final class ErrorHandler {
   );
 
   static Failure map(Object error, {StackTrace? stackTrace}) {
-    _logger.e('SafeShift operation failed', error: error, stackTrace: stackTrace);
+    _logger.e(
+      'SafeShift operation failed',
+      error: error,
+      stackTrace: stackTrace,
+    );
 
     if (error is Failure) return error;
 
@@ -47,6 +51,8 @@ abstract final class ErrorHandler {
       if (error.code == 'PGRST116') {
         return const ServerFailure('That record could not be found.');
       }
+      final domainMessage = _friendlyDomainMessage(error.message);
+      if (domainMessage != null) return ServerFailure(domainMessage);
       return const ServerFailure('The server could not complete that request.');
     }
 
@@ -85,7 +91,9 @@ abstract final class ErrorHandler {
       }
     }
     if (error.status == 401 || error.status == 403) {
-      return const AuthFailure('Your session has expired. Please sign in again.');
+      return const AuthFailure(
+        'Your session has expired. Please sign in again.',
+      );
     }
     if (error.status == 429) {
       return const ServerFailure('Too many requests. Please wait and retry.');
@@ -93,7 +101,69 @@ abstract final class ErrorHandler {
     return const ServerFailure('The service is unavailable right now.');
   }
 
+  /// Turns known database domain errors into actionable copy.
+  ///
+  /// The quote engine raises SQLSTATE 22023 for business-rule failures (for
+  /// example an out-of-area pickup). Without this mapping PostgREST surfaces
+  /// them as the generic "server could not complete that request" message.
+  static String? _friendlyDomainMessage(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('destination point is outside every active service city')) {
+      return 'That destination is outside our service area. Choose a drop-off '
+          'inside Dar es Salaam and try again.';
+    }
+    if (lower.contains('pickup point is outside every active service city') ||
+        lower.contains('outside every active service city')) {
+      return 'That pickup is outside our service area. Choose a pickup inside '
+          'Dar es Salaam and try again.';
+    }
+    // The quote engine already writes actionable copy for these; pass it
+    // through instead of replacing it with the generic server error.
+    if (lower.contains('choose a larger vehicle') ||
+        lower.contains('choose an allowed vehicle') ||
+        lower.contains('choose another vehicle') ||
+        lower.contains('add an approximate value') ||
+        lower.contains('declared value exceeds') ||
+        lower.contains('route distance is too long') ||
+        lower.contains('scheduled time is in the past') ||
+        lower.contains('scheduled at most 60 days ahead') ||
+        lower.contains('at most 8 parcel photos') ||
+        lower.contains('parcel photos can only be changed') ||
+        lower.contains('distance_km must be') ||
+        lower.contains('duration_min must be') ||
+        lower.contains('cargo_description must be') ||
+        lower.contains('scheduled time') ||
+        lower.contains('declared_value_tzs must be')) {
+      return raw.trim();
+    }
+    if (lower.contains('no active pricing plan') ||
+        lower.contains('no active published version')) {
+      return 'Bookings are not open for that vehicle right now. Try another '
+          'vehicle or check back shortly.';
+    }
+    if (lower.contains('vehicle type') &&
+        (lower.contains('not available') || lower.contains('not found'))) {
+      return 'That vehicle is not available at this pickup. Try another vehicle.';
+    }
+    if (lower.contains('cargo type') && lower.contains('not available')) {
+      return 'That cargo type is not available at this pickup. Try another option.';
+    }
+    if (lower.contains('quote') && lower.contains('has expired')) {
+      return 'That quote expired. Please request a fresh quote.';
+    }
+    if (lower.contains('quote') && lower.contains('has already been used')) {
+      return 'That quote was already used. Please request a fresh quote.';
+    }
+    if (lower.contains('promo code') && lower.contains('not valid')) {
+      return 'That promo code is not valid for this quote.';
+    }
+    return null;
+  }
+
   static String _friendlyServerMessage(String raw) {
+    final domainMessage = _friendlyDomainMessage(raw);
+    if (domainMessage != null) return domainMessage;
+
     final lower = raw.toLowerCase();
     if (lower.contains('invalid otp') || lower.contains('otp')) {
       return 'That delivery code is invalid or has expired.';

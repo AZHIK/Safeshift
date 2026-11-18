@@ -10,6 +10,8 @@ run in CI. It is intentionally separate from local demo seeding.
 - Seed **configuration only** with `supabase/seed-staging.sql`.
 - Never run `supabase/seed.sql` or `seed-phase-2.sql` … `seed-phase-6.sql`
   against staging; those files create demo users, jobs, payments, and documents.
+- Never run `supabase/seed-example-country.sql` against staging; it adds an
+  example market that does not operate any real business.
 - UAT accounts are created through the Auth Admin API, not by the seed.
 - The service-role key stays in the shell/CI secret store and never enters the
   repository or a mobile build.
@@ -86,14 +88,14 @@ union all select 'notification_templates', count(*) from public.notification_tem
 
 Expected counts after the seed:
 
-| Table | Count |
-| --- | --- |
-| demo `auth.users` | 0 (platform account only) |
-| `vehicle_types` | 6 |
-| `cargo_types` | 10 |
-| `pricing_plans` | 6 |
-| `pricing_plan_versions` | 6 |
-| `notification_templates` | 18 |
+| Table                    | Count                     |
+| ------------------------ | ------------------------- |
+| demo `auth.users`        | 0 (platform account only) |
+| `vehicle_types`          | 6                         |
+| `cargo_types`            | 10                        |
+| `pricing_plans`          | 6                         |
+| `pricing_plan_versions`  | 6                         |
+| `notification_templates` | 18                        |
 
 If any demo table is non-zero, stop and recreate the staging project. Do not
 clean up by deleting individual rows.

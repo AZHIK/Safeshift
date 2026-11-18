@@ -117,7 +117,11 @@ export function requestJson<T>(
           throw new ProviderUnavailableError(provider, `${provider} rate limited`, details);
         }
         if (response.status >= 500) {
-          throw new ProviderUnavailableError(provider, `${provider} returned ${response.status}`, details);
+          throw new ProviderUnavailableError(
+            provider,
+            `${provider} returned ${response.status}`,
+            details,
+          );
         }
         throw new ProviderError(provider, `${provider} rejected the request`, details);
       }

@@ -4,15 +4,64 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { normalizeCode, parseBoolean, parseNumber } from '@/lib/catalog';
+import {
+  CATALOG_ICON_BUCKET,
+  ICON_FOLDERS,
+  uploadIcon,
+  validateIconFile,
+} from '@/lib/configuration/icons';
 import { createClient } from '@/lib/supabase/server';
 
 async function client() {
   return createClient();
 }
 
+/**
+ * Where a verification decision returns to.
+ *
+ * The verification queue keeps the default. The driver file on the drivers page
+ * passes `return_to` so the reviewer lands back on the person they just decided,
+ * with the outcome in the banner. Only paths inside the console are accepted.
+ */
+function verificationReturnPath(formData: FormData): string {
+  const requested = String(formData.get('return_to') ?? '');
+  if (!requested.startsWith('/drivers/')) return '/verifications';
+  return requested.split('?')[0];
+}
+
+/**
+ * Stores the icon the operator picked from their computer.
+ *
+ * The catalogue forms carry a file input alongside a hidden `icon_url`
+ * holding the current path. When a new file is chosen it is uploaded to the
+ * public catalogue bucket under the row's code and the stored path becomes
+ * the row's `icon_url`; when no file is chosen the existing path is kept.
+ */
+async function catalogueIconPath(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  folder: string,
+  name: string,
+): Promise<string | null> {
+  const existing = String(formData.get('icon_url') ?? '').trim();
+  const entry = formData.get('icon_file');
+  const file = entry instanceof File ? entry : null;
+
+  if (!file || file.size === 0) return existing || null;
+
+  const invalid = validateIconFile(file);
+  if (invalid) catalogError(invalid);
+
+  const result = await uploadIcon(supabase, { bucket: CATALOG_ICON_BUCKET, folder, name }, file);
+  if ('error' in result) catalogError(result.error);
+
+  return result.path;
+}
+
 export async function approveVerificationAction(formData: FormData) {
   const requestId = String(formData.get('request_id') ?? '');
   const notes = String(formData.get('notes') ?? '').trim();
+  const returnPath = verificationReturnPath(formData);
   if (!requestId) return;
   const supabase = await client();
   const { error } = await supabase.rpc('admin_approve_verification', {
@@ -20,18 +69,21 @@ export async function approveVerificationAction(formData: FormData) {
     p_notes: notes || null,
   });
   if (error) {
-    redirect(`/verifications?error=${encodeURIComponent(error.message)}`);
+    redirect(`${returnPath}?error=${encodeURIComponent(error.message)}`);
   }
+  revalidatePath(returnPath);
   revalidatePath('/verifications');
+  revalidatePath('/drivers');
   revalidatePath('/dashboard');
-  redirect('/verifications?ok=Verification approved');
+  redirect(`${returnPath}?ok=Verification approved`);
 }
 
 export async function rejectVerificationAction(formData: FormData) {
   const requestId = String(formData.get('request_id') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
+  const returnPath = verificationReturnPath(formData);
   if (!requestId || reason.length < 3) {
-    redirect('/verifications?error=A rejection reason is required');
+    redirect(`${returnPath}?error=A rejection reason is required`);
   }
   const supabase = await client();
   const { error } = await supabase.rpc('admin_reject_verification', {
@@ -39,11 +91,13 @@ export async function rejectVerificationAction(formData: FormData) {
     p_reason: reason,
   });
   if (error) {
-    redirect(`/verifications?error=${encodeURIComponent(error.message)}`);
+    redirect(`${returnPath}?error=${encodeURIComponent(error.message)}`);
   }
+  revalidatePath(returnPath);
   revalidatePath('/verifications');
+  revalidatePath('/drivers');
   revalidatePath('/dashboard');
-  redirect('/verifications?ok=Verification rejected');
+  redirect(`${returnPath}?ok=Verification rejected`);
 }
 
 export async function updateTicketAction(formData: FormData) {
@@ -65,10 +119,7 @@ export async function updateTicketAction(formData: FormData) {
   }
   if (priority) update.priority = priority;
   if (assignToMe && auth.user) update.assigned_to = auth.user.id;
-  const { error } = await supabase
-    .from('support_tickets')
-    .update(update)
-    .eq('id', ticketId);
+  const { error } = await supabase.from('support_tickets').update(update).eq('id', ticketId);
   if (error) {
     redirect(`/support/${ticketId}?error=${encodeURIComponent(error.message)}`);
   }
@@ -117,10 +168,7 @@ export async function updateDisputeAction(formData: FormData) {
   }
   if (priority) update.priority = priority;
   if (resolution) update.resolution_notes = resolution;
-  const { error } = await supabase
-    .from('disputes')
-    .update(update)
-    .eq('id', disputeId);
+  const { error } = await supabase.from('disputes').update(update).eq('id', disputeId);
   if (error) {
     redirect(`/disputes?error=${encodeURIComponent(error.message)}`);
   }
@@ -136,7 +184,10 @@ export async function resolveIncidentAction(formData: FormData) {
   const supabase = await client();
   const { error } = await supabase
     .from('incidents')
-    .update({ status, resolved_at: ['resolved', 'closed'].includes(status) ? new Date().toISOString() : null })
+    .update({
+      status,
+      resolved_at: ['resolved', 'closed'].includes(status) ? new Date().toISOString() : null,
+    })
     .eq('id', incidentId);
   if (error) {
     redirect(`/incidents?error=${encodeURIComponent(error.message)}`);
@@ -178,7 +229,9 @@ export async function updateDataRequestAction(formData: FormData) {
     .from('data_subject_requests')
     .update({
       status,
-      completed_at: ['completed', 'partially_completed'].includes(status) ? new Date().toISOString() : null,
+      completed_at: ['completed', 'partially_completed'].includes(status)
+        ? new Date().toISOString()
+        : null,
     })
     .eq('id', requestId);
   if (error) {
@@ -203,7 +256,6 @@ export async function toggleFeatureFlagAction(formData: FormData) {
   revalidatePath('/settings');
   redirect('/settings?ok=Feature flag updated');
 }
-
 
 export async function togglePromoAction(formData: FormData) {
   const promoId = String(formData.get('promo_id') ?? '');
@@ -254,23 +306,22 @@ export async function createVehicleTypeAction(formData: FormData) {
   }
 
   const supabase = await client();
-  const { error } = await supabase
-    .from('vehicle_types')
-    .insert({
-      code,
-      name,
-      description: String(formData.get('description') ?? '').trim() || null,
-      icon_url: String(formData.get('icon_url') ?? '').trim() || null,
-      country_id: countryId || null,
-      capacity_kg_min: capacityMin,
-      capacity_kg_max: capacityMax,
-      capacity_m3_min: parseNumber(formData.get('capacity_m3_min')),
-      capacity_m3_max: parseNumber(formData.get('capacity_m3_max')),
-      number_of_wheels: parseNumber(formData.get('number_of_wheels')),
-      requires_special_licence: parseBoolean(formData.get('requires_special_licence')),
-      display_order: parseNumber(formData.get('display_order')) ?? 0,
-      is_active: true,
-    });
+  const iconUrl = await catalogueIconPath(supabase, formData, ICON_FOLDERS.vehicle, code);
+  const { error } = await supabase.from('vehicle_types').insert({
+    code,
+    name,
+    description: String(formData.get('description') ?? '').trim() || null,
+    icon_url: iconUrl,
+    country_id: countryId || null,
+    capacity_kg_min: capacityMin,
+    capacity_kg_max: capacityMax,
+    capacity_m3_min: parseNumber(formData.get('capacity_m3_min')),
+    capacity_m3_max: parseNumber(formData.get('capacity_m3_max')),
+    number_of_wheels: parseNumber(formData.get('number_of_wheels')),
+    requires_special_licence: parseBoolean(formData.get('requires_special_licence')),
+    display_order: parseNumber(formData.get('display_order')) ?? 0,
+    is_active: true,
+  });
   if (error) catalogError(error.message);
 
   revalidatePath('/catalog');
@@ -296,13 +347,14 @@ export async function updateVehicleTypeAction(formData: FormData) {
   }
 
   const supabase = await client();
+  const iconUrl = await catalogueIconPath(supabase, formData, ICON_FOLDERS.vehicle, code);
   const { error } = await supabase
     .from('vehicle_types')
     .update({
       code,
       name,
       description: String(formData.get('description') ?? '').trim() || null,
-      icon_url: String(formData.get('icon_url') ?? '').trim() || null,
+      icon_url: iconUrl,
       country_id: countryId || null,
       capacity_kg_min: capacityMin,
       capacity_kg_max: capacityMax,
@@ -325,10 +377,7 @@ export async function toggleVehicleTypeAction(formData: FormData) {
   const active = formData.get('active') === 'true';
   if (!id) return;
   const supabase = await client();
-  const { error } = await supabase
-    .from('vehicle_types')
-    .update({ is_active: active })
-    .eq('id', id);
+  const { error } = await supabase.from('vehicle_types').update({ is_active: active }).eq('id', id);
   if (error) catalogError(error.message);
 
   revalidatePath('/catalog');
@@ -342,10 +391,7 @@ export async function deleteVehicleTypeAction(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   const supabase = await client();
-  const { error } = await supabase
-    .from('vehicle_types')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('vehicle_types').delete().eq('id', id);
   if (error) {
     catalogError(
       `This vehicle type is referenced by existing data, so it cannot be deleted. ` +
@@ -367,29 +413,26 @@ export async function createCargoTypeAction(formData: FormData) {
   if (!name) catalogError('A cargo type name is required.');
 
   const allowed = formData.getAll('allowed_vehicle_type_codes').map((value) => String(value));
-  const prohibited = formData
-    .getAll('prohibited_vehicle_type_codes')
-    .map((value) => String(value));
+  const prohibited = formData.getAll('prohibited_vehicle_type_codes').map((value) => String(value));
 
   const supabase = await client();
-  const { error } = await supabase
-    .from('cargo_types')
-    .insert({
-      code,
-      name,
-      description: String(formData.get('description') ?? '').trim() || null,
-      icon_url: String(formData.get('icon_url') ?? '').trim() || null,
-      country_id: countryId || null,
-      category_id: categoryId || null,
-      requires_special_handling: parseBoolean(formData.get('requires_special_handling')),
-      requires_declared_value: parseBoolean(formData.get('requires_declared_value')),
-      requires_insurance: parseBoolean(formData.get('requires_insurance')),
-      allowed_vehicle_type_codes: allowed,
-      prohibited_vehicle_type_codes: prohibited,
-      max_value_tzs: parseNumber(formData.get('max_value_tzs')),
-      display_order: parseNumber(formData.get('display_order')) ?? 0,
-      is_active: true,
-    });
+  const iconUrl = await catalogueIconPath(supabase, formData, ICON_FOLDERS.cargo, code);
+  const { error } = await supabase.from('cargo_types').insert({
+    code,
+    name,
+    description: String(formData.get('description') ?? '').trim() || null,
+    icon_url: iconUrl,
+    country_id: countryId || null,
+    category_id: categoryId || null,
+    requires_special_handling: parseBoolean(formData.get('requires_special_handling')),
+    requires_declared_value: parseBoolean(formData.get('requires_declared_value')),
+    requires_insurance: parseBoolean(formData.get('requires_insurance')),
+    allowed_vehicle_type_codes: allowed,
+    prohibited_vehicle_type_codes: prohibited,
+    max_value_tzs: parseNumber(formData.get('max_value_tzs')),
+    display_order: parseNumber(formData.get('display_order')) ?? 0,
+    is_active: true,
+  });
   if (error) catalogError(error.message);
 
   revalidatePath('/catalog');
@@ -408,18 +451,17 @@ export async function updateCargoTypeAction(formData: FormData) {
   if (!name) catalogError('A cargo type name is required.');
 
   const allowed = formData.getAll('allowed_vehicle_type_codes').map((value) => String(value));
-  const prohibited = formData
-    .getAll('prohibited_vehicle_type_codes')
-    .map((value) => String(value));
+  const prohibited = formData.getAll('prohibited_vehicle_type_codes').map((value) => String(value));
 
   const supabase = await client();
+  const iconUrl = await catalogueIconPath(supabase, formData, ICON_FOLDERS.cargo, code);
   const { error } = await supabase
     .from('cargo_types')
     .update({
       code,
       name,
       description: String(formData.get('description') ?? '').trim() || null,
-      icon_url: String(formData.get('icon_url') ?? '').trim() || null,
+      icon_url: iconUrl,
       country_id: countryId || null,
       category_id: categoryId || null,
       requires_special_handling: parseBoolean(formData.get('requires_special_handling')),
@@ -443,10 +485,7 @@ export async function toggleCargoTypeAction(formData: FormData) {
   const active = formData.get('active') === 'true';
   if (!id) return;
   const supabase = await client();
-  const { error } = await supabase
-    .from('cargo_types')
-    .update({ is_active: active })
-    .eq('id', id);
+  const { error } = await supabase.from('cargo_types').update({ is_active: active }).eq('id', id);
   if (error) catalogError(error.message);
 
   revalidatePath('/catalog');
@@ -457,10 +496,7 @@ export async function deleteCargoTypeAction(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   const supabase = await client();
-  const { error } = await supabase
-    .from('cargo_types')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('cargo_types').delete().eq('id', id);
   if (error) {
     catalogError(
       `This cargo type is referenced by existing data, so it cannot be deleted. ` +

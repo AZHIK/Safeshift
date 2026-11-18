@@ -34,7 +34,10 @@ export async function handle(
     throw new ValidationError('Unable to create a trip share token');
   }
 
-  const base = (Deno.env.get('PUBLIC_TRACKING_BASE_URL') ?? 'http://localhost:3001/trip').replace(/\/$/, '');
+  const base = (Deno.env.get('PUBLIC_TRACKING_BASE_URL') ?? 'http://localhost:3001/trip').replace(
+    /\/$/,
+    '',
+  );
   return created({
     token: row.token,
     expires_at: row.expires_at,

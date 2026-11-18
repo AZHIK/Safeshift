@@ -53,7 +53,7 @@ export async function handle(
     }
 
     const row = await loadNotification(service, String(publicId));
-    const clients = deps.clients ?? await buildClients(ctx.requestId);
+    const clients = deps.clients ?? (await buildClients(ctx.requestId));
     return success(await deliverSms(service, row, clients));
   }
 
@@ -73,7 +73,7 @@ export async function handle(
     referenceId: body.reference_id ?? null,
   });
   const row = await loadNotification(service, publicId);
-  const clients = deps.clients ?? await buildClients(ctx.requestId);
+  const clients = deps.clients ?? (await buildClients(ctx.requestId));
   return success(await deliverSms(service, row, clients));
 }
 

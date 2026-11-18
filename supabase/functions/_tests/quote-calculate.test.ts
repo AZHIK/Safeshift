@@ -15,6 +15,10 @@ function request(token?: string | null): Request {
       destination: { lat: -6.7468, lng: 39.2762, address: 'Mbezi Beach, Dar es Salaam' },
       vehicle_type_id: vehicleTypeId,
       stop_count: 2,
+      cargo_description: 'Two sealed boxes',
+      declared_value_tzs: 250000,
+      distance_km: 0.01,
+      duration_min: 1,
     },
   });
 }
@@ -24,7 +28,8 @@ Deno.test('quote-calculate rejects a missing bearer token', async () => {
     handle(req, ctx, {
       auth: fakeAuthDeps({ verifyToken: async () => null }),
       mapsDistance: async () => ({ distance_km: 1, duration_min: 1 }),
-    }));
+    }),
+  );
 
   const response = await handler(request(null));
   const body = await response.json();
@@ -60,9 +65,11 @@ Deno.test('quote-calculate calls the Phase 4 RPC with provider distance', async 
   const handler = createHandler('quote-calculate', (req, ctx) =>
     handle(req, ctx, {
       auth: fakeAuthDeps(),
+      service: client,
       userClient: () => client,
       mapsDistance: async () => ({ distance_km: 14.5, duration_min: 31.2 }),
-    }));
+    }),
+  );
 
   const response = await handler(request());
   const body = await response.json();
@@ -74,10 +81,9 @@ Deno.test('quote-calculate calls the Phase 4 RPC with provider distance', async 
   assertEquals(body.data.expires_at, '2026-10-29T00:00:00.000Z');
   assertEquals(captured.args?.p_distance_km, 14.5);
   assertEquals(captured.args?.p_duration_min, 31.2);
-  assertEquals(
-    captured.args?.p_pickup_location,
-    'SRID=4326;POINT(39.2083 -6.7924)',
-  );
+  assertEquals(captured.args?.p_cargo_description, 'Two sealed boxes');
+  assertEquals(captured.args?.p_declared_value_tzs, 250000);
+  assertEquals(captured.args?.p_pickup_location, 'SRID=4326;POINT(39.2083 -6.7924)');
 });
 
 Deno.test('quote-calculate uses a fresh distance cache hit without a provider client', async () => {
@@ -111,7 +117,8 @@ Deno.test('quote-calculate uses a fresh distance cache hit without a provider cl
       auth: fakeAuthDeps(),
       service: client,
       userClient: () => client,
-    }));
+    }),
+  );
 
   const response = await handler(request());
   const body = await response.json();

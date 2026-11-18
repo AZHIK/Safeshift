@@ -65,10 +65,10 @@ callable manually in environments without the extension.
 
 New tables:
 
-| Table | Purpose |
-| --- | --- |
-| `trip_alerts` | SOS, emergency, and safety-check alerts for a job |
-| `trip_share_tokens` | 24-hour, unguessable public tracking tokens |
+| Table               | Purpose                                           |
+| ------------------- | ------------------------------------------------- |
+| `trip_alerts`       | SOS, emergency, and safety-check alerts for a job |
+| `trip_share_tokens` | 24-hour, unguessable public tracking tokens       |
 
 New RPCs:
 
@@ -115,18 +115,18 @@ seeded driver.
 
 New route group:
 
-| Route | Screen |
-| --- | --- |
-| `/business` | Business hub and memberships |
-| `/business/register` | Self-service business registration |
-| `/business/recurring` | Recurring templates and generated jobs |
-| `/settings/notifications` | Per-category/channel toggles and quiet hours |
-| `/settings/account` | Profile and contact re-verification |
-| `/settings/privacy` | Export/deletion requests |
-| `/disputes`, `/disputes/new`, `/disputes/:id` | Dispute list, create, thread |
-| `/support`, `/support/new`, `/support/:id` | Support ticket list, create, thread |
-| `/safety/contacts` | Emergency contacts |
-| `/reviews` | Ratings and reviews |
+| Route                                         | Screen                                       |
+| --------------------------------------------- | -------------------------------------------- |
+| `/business`                                   | Business hub and memberships                 |
+| `/business/register`                          | Self-service business registration           |
+| `/business/recurring`                         | Recurring templates and generated jobs       |
+| `/settings/notifications`                     | Per-category/channel toggles and quiet hours |
+| `/settings/account`                           | Profile and contact re-verification          |
+| `/settings/privacy`                           | Export/deletion requests                     |
+| `/disputes`, `/disputes/new`, `/disputes/:id` | Dispute list, create, thread                 |
+| `/support`, `/support/new`, `/support/:id`    | Support ticket list, create, thread          |
+| `/safety/contacts`                            | Emergency contacts                           |
+| `/reviews`                                    | Ratings and reviews                          |
 
 `tracking_screen.dart` now calls the shared `shareTrip()` and `raiseSos()`
 helpers instead of showing placeholder snackbars. The profile screen links to
@@ -177,14 +177,14 @@ Both apps now include:
 
 ### 4.2 Routes
 
-| Area | Routes |
-| --- | --- |
-| Overview | `/dashboard`, `/analytics` |
-| Marketplace | `/jobs`, `/users`, `/drivers`, `/fleets` |
-| Trust & safety | `/verifications`, `/incidents`, `/disputes`, `/support`, `/support/[id]` |
-| Finance & growth | `/payments`, `/payouts`, `/pricing`, `/promos` |
-| Governance | `/data-requests`, `/audit`, `/settings` |
-| Public | `/trip/[token]` |
+| Area             | Routes                                                                   |
+| ---------------- | ------------------------------------------------------------------------ |
+| Overview         | `/dashboard`, `/analytics`                                               |
+| Marketplace      | `/jobs`, `/users`, `/drivers`, `/fleets`                                 |
+| Trust & safety   | `/verifications`, `/incidents`, `/disputes`, `/support`, `/support/[id]` |
+| Finance & growth | `/payments`, `/payouts`, `/pricing`, `/promos`                           |
+| Governance       | `/data-requests`, `/audit`, `/settings`                                  |
+| Public           | `/trip/[token]`                                                          |
 
 The dashboard subscribes to Realtime changes on jobs, incidents, support tickets,
 disputes, verification requests, and trip alerts, then refreshes server data.
@@ -203,10 +203,10 @@ deployed to Vercel with the same three public variables.
 
 ## 5. Edge Functions
 
-| Function | Purpose |
-| --- | --- |
-| `sos_alert` | Verifies the caller owns the alert, SMSes emergency contacts, pushes on-call admins, logs attempts |
-| `create-trip-share-token` | Calls the token RPC and returns a public `share_url` |
+| Function                  | Purpose                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| `sos_alert`               | Verifies the caller owns the alert, SMSes emergency contacts, pushes on-call admins, logs attempts |
+| `create-trip-share-token` | Calls the token RPC and returns a public `share_url`                                               |
 
 Both are registered with `verify_jwt = false` because they perform their own
 JWT/user checks in the handler. Validation schemas live in

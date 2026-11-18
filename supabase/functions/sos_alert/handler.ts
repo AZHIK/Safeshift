@@ -105,7 +105,9 @@ export async function handle(
 
   const { data: jobData, error: jobError } = await service
     .from('jobs')
-    .select('id, customer_id, driver_id, quote:quotes!inner(quote_request:quote_requests!inner(pickup_address, destination_address))')
+    .select(
+      'id, customer_id, driver_id, quote:quotes!inner(quote_request:quote_requests!inner(pickup_address, destination_address))',
+    )
     .eq('id', alert.job_id)
     .maybeSingle();
   if (jobError) throw jobError;
@@ -181,11 +183,17 @@ export async function handle(
       });
       try {
         const row = await loadNotification(service, notificationId);
-        const result = await deliverPush(service, row, clients, {
-          type: 'sos',
-          alert_id: alert.id,
-          job_id: alert.job_id,
-        }, `safeshift://admin/incidents/${alert.id}`);
+        const result = await deliverPush(
+          service,
+          row,
+          clients,
+          {
+            type: 'sos',
+            alert_id: alert.id,
+            job_id: alert.job_id,
+          },
+          `safeshift://admin/incidents/${alert.id}`,
+        );
         if (result.status === 'sent') pushSent += 1;
       } catch {
         // A missing FCM token or provider outage must not fail the SOS write.

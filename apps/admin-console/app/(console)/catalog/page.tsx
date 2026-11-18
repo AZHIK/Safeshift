@@ -13,13 +13,7 @@ import { DataTable } from '@/components/data-table';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
-import {
-  CATALOG_ICON_FOLDERS,
-  loadCargoCategories,
-  loadCountries,
-  loadIconOptions,
-  loadVehicleTypeCodes,
-} from '@/lib/catalog';
+import { loadCargoCategories, loadCountries, loadVehicleTypeCodes } from '@/lib/catalog';
 import { requireArea } from '@/lib/guard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -39,8 +33,6 @@ export default async function CatalogPage({
     { data: cargoTypes, error: cargoError },
     countries,
     categories,
-    vehicleIconOptions,
-    cargoIconOptions,
     vehicleTypeCodes,
   ] = await Promise.all([
     supabase
@@ -59,8 +51,6 @@ export default async function CatalogPage({
       .limit(200),
     loadCountries(supabase),
     loadCargoCategories(supabase),
-    loadIconOptions(supabase, CATALOG_ICON_FOLDERS.vehicle_types),
-    loadIconOptions(supabase, CATALOG_ICON_FOLDERS.cargo_types),
     loadVehicleTypeCodes(supabase),
   ]);
 
@@ -177,12 +167,13 @@ export default async function CatalogPage({
               The code is the durable key pricing rules refer to. The icon path points at the
               catalogue bucket.
             </p>
-            <form action={createVehicleTypeAction} className="form" style={{ marginTop: 12 }}>
-              <VehicleTypeFields
-                defaults={{}}
-                countries={countries}
-                iconOptions={vehicleIconOptions}
-              />
+            <form
+              action={createVehicleTypeAction}
+              className="form"
+              encType="multipart/form-data"
+              style={{ marginTop: 12 }}
+            >
+              <VehicleTypeFields defaults={{}} countries={countries} />
               <div>
                 <button className="btn btn-primary" type="submit">
                   Add vehicle category
@@ -211,12 +202,16 @@ export default async function CatalogPage({
               An empty allow list means the cargo may travel in any vehicle type. Prohibited codes
               are rejected by the capability check.
             </p>
-            <form action={createCargoTypeAction} className="form" style={{ marginTop: 12 }}>
+            <form
+              action={createCargoTypeAction}
+              className="form"
+              encType="multipart/form-data"
+              style={{ marginTop: 12 }}
+            >
               <CargoTypeFields
                 defaults={{}}
                 countries={countries}
                 categories={categories}
-                iconOptions={cargoIconOptions}
                 vehicleTypeCodes={vehicleTypeCodes}
               />
               <div>

@@ -27,7 +27,8 @@ Deno.test('maps-geocode returns a forward cache hit without a provider client', 
     handle(req, ctx, {
       auth: fakeAuthDeps(),
       service,
-    }));
+    }),
+  );
 
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/maps-geocode', {

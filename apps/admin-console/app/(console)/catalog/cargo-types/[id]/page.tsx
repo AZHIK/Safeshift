@@ -6,13 +6,7 @@ import { CargoTypeFields } from '@/components/catalog-form';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
-import {
-  CATALOG_ICON_FOLDERS,
-  loadCargoCategories,
-  loadCountries,
-  loadIconOptions,
-  loadVehicleTypeCodes,
-} from '@/lib/catalog';
+import { loadCargoCategories, loadCountries, loadVehicleTypeCodes } from '@/lib/catalog';
 import { requireArea } from '@/lib/guard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -48,10 +42,9 @@ export default async function CargoTypePage({
   }
   if (!type) notFound();
 
-  const [countries, categories, iconOptions, vehicleTypeCodes] = await Promise.all([
+  const [countries, categories, vehicleTypeCodes] = await Promise.all([
     loadCountries(supabase),
     loadCargoCategories(supabase),
-    loadIconOptions(supabase, CATALOG_ICON_FOLDERS.cargo_types),
     loadVehicleTypeCodes(supabase),
   ]);
 
@@ -80,7 +73,12 @@ export default async function CargoTypePage({
             The name and icon are what the customer sees. The allow and prohibit lists decide which
             vehicle categories may carry this cargo.
           </p>
-          <form action={updateCargoTypeAction} className="form" style={{ marginTop: 14 }}>
+          <form
+            action={updateCargoTypeAction}
+            className="form"
+            encType="multipart/form-data"
+            style={{ marginTop: 14 }}
+          >
             <CargoTypeFields
               defaults={{
                 id: type.id as string,
@@ -100,7 +98,6 @@ export default async function CargoTypePage({
               }}
               countries={countries}
               categories={categories}
-              iconOptions={iconOptions}
               vehicleTypeCodes={vehicleTypeCodes}
             />
             <div className="inline">

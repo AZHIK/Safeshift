@@ -51,7 +51,8 @@ Deno.test('notification-dispatch skips quiet-hours channels and delivers the res
           provider_used: 'test',
         };
       },
-    }));
+    }),
+  );
 
   const response = await handler(
     jsonRequest('http://localhost/functions/v1/notification-dispatch', {
@@ -76,9 +77,8 @@ Deno.test('notification-dispatch returns 502 when every RPC fails', async () => 
     rpc: () => ({ data: null, error: { message: 'rpc unavailable' } }),
   });
 
-  const handler = createHandler(
-    'notification-dispatch',
-    (req, ctx) => handle(req, ctx, { auth: fakeAuthDeps(), service }),
+  const handler = createHandler('notification-dispatch', (req, ctx) =>
+    handle(req, ctx, { auth: fakeAuthDeps(), service }),
   );
 
   const response = await handler(

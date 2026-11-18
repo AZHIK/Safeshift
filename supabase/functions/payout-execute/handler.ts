@@ -89,31 +89,35 @@ export async function handle(
   try {
     const result = deps.transfer
       ? await deps.transfer(
-        providerCode,
-        Number(payout.net_amount),
-        payout.currency_code,
-        profile.phone,
-        `payout:${payout.id}`,
-      )
+          providerCode,
+          Number(payout.net_amount),
+          payout.currency_code,
+          profile.phone,
+          `payout:${payout.id}`,
+        )
       : providerCode === 'selcom'
-      ? await (await selcomClient(ctx.requestId)).initiatePayout(
-        Number(payout.net_amount),
-        payout.currency_code,
-        profile.phone,
-        `payout:${payout.id}`,
-        'SafeShift driver payout',
-      )
-      : providerCode === 'flutterwave'
-      ? await (await flutterwaveClient(ctx.requestId)).initiateTransfer(
-        Number(payout.net_amount),
-        payout.currency_code,
-        profile.phone,
-        `payout:${payout.id}`,
-        'SafeShift driver payout',
-      )
-      : (() => {
-        throw new ValidationError(`Payouts are not implemented for ${providerCode}`);
-      })();
+        ? await (
+            await selcomClient(ctx.requestId)
+          ).initiatePayout(
+            Number(payout.net_amount),
+            payout.currency_code,
+            profile.phone,
+            `payout:${payout.id}`,
+            'SafeShift driver payout',
+          )
+        : providerCode === 'flutterwave'
+          ? await (
+              await flutterwaveClient(ctx.requestId)
+            ).initiateTransfer(
+              Number(payout.net_amount),
+              payout.currency_code,
+              profile.phone,
+              `payout:${payout.id}`,
+              'SafeShift driver payout',
+            )
+          : (() => {
+              throw new ValidationError(`Payouts are not implemented for ${providerCode}`);
+            })();
 
     providerAccepted = result.status !== 'failed';
     const { error: processingError } = await service
@@ -139,13 +143,7 @@ export async function handle(
       status: 'completed',
       provider_reference: result.provider_reference,
     };
-    await storeIdempotencyKey(
-      idempotencyKey,
-      scope,
-      response,
-      await hashRequest(body),
-      store,
-    );
+    await storeIdempotencyKey(idempotencyKey, scope, response, await hashRequest(body), store);
     return success(response);
   } catch (error) {
     if (!providerAccepted) {
@@ -153,20 +151,16 @@ export async function handle(
         .from('payouts')
         .update({
           status: 'failed',
-          failure_reason: error instanceof Error
-            ? error.message.slice(0, 1_000)
-            : 'provider_payout_failed',
+          failure_reason:
+            error instanceof Error ? error.message.slice(0, 1_000) : 'provider_payout_failed',
         })
         .eq('id', payout.id)
-        .then(() => undefined, () => undefined);
+        .then(
+          () => undefined,
+          () => undefined,
+        );
     }
-    await recordDeadLetter(
-      'payout-execute',
-      { payout_id: payout.id },
-      error,
-      4,
-      service,
-    );
+    await recordDeadLetter('payout-execute', { payout_id: payout.id }, error, 4, service);
     throw error;
   }
 }

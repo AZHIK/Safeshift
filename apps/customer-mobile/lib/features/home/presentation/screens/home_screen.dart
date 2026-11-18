@@ -56,7 +56,7 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 26),
-                  _HeroCard(onBook: () => context.push('/booking')),
+                  _HeroCard(onBook: () => context.go('/home')),
                   const SizedBox(height: 28),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -89,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                           title: 'Book a move',
                           subtitle: 'Plan a pickup',
                           tint: const Color(0xFFE6F4FF),
-                          onTap: () => context.push('/booking'),
+                          onTap: () => context.go('/home'),
                         ),
                       ),
                       const SizedBox(width: 12),

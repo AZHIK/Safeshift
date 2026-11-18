@@ -42,7 +42,8 @@ export async function handle(
   if (providerError) throw providerError;
   if (!provider) throw new ValidationError('Flutterwave provider is not configured');
 
-  const secret = deps.secret ??
+  const secret =
+    deps.secret ??
     (await readOptionalSecret('FLUTTERWAVE_WEBHOOK_SECRET', service)) ??
     (await readOptionalSecret('FLUTTERWAVE_SECRET_HASH', service)) ??
     (provider.webhook_secret_reference
@@ -63,8 +64,8 @@ export async function handle(
   }
 
   const event = parseFlutterwaveWebhook(payload);
-  const signatureHeader = req.headers.get('verif-hash') ??
-    req.headers.get('x-flutterwave-signature');
+  const signatureHeader =
+    req.headers.get('verif-hash') ?? req.headers.get('x-flutterwave-signature');
 
   const inserted = await insertWebhook(service, {
     providerId: provider.id,

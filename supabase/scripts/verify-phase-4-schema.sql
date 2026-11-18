@@ -802,8 +802,8 @@ begin
   perform set_config('request.jwt.claim.role', '', true);
 
   insert into _phase4_verification values (
-    44, 'A customer cannot request a quote for another customer',
-    case when v_blocked and v_error ilike '%cannot create a quote%' then 'PASS' else 'FAIL' end,
+    44, 'A customer cannot call the trusted pricing RPC directly',
+    case when v_blocked and v_error ilike '%permission denied%' then 'PASS' else 'FAIL' end,
     coalesce(v_error, 'cross-customer quote unexpectedly succeeded')
   );
 end $$;

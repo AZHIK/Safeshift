@@ -38,7 +38,7 @@ export async function handle(
   await requireAdmin(req, 'send_notification', deps.auth ?? defaultAuthDeps());
   const body = await parseJsonBody(req, notificationDispatchSchema);
   const service = deps.service ?? serviceClient();
-  const clients = deps.clients ?? await buildClients(ctx.requestId);
+  const clients = deps.clients ?? (await buildClients(ctx.requestId));
 
   const notificationIds: string[] = [];
   const channelsUsed: string[] = [];

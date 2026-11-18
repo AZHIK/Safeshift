@@ -16,6 +16,8 @@ export const quoteSchema = z.object({
   cargo_type_id: optionalUuid,
   cargo_weight_kg: z.number().nonnegative().optional(),
   cargo_volume_m3: z.number().nonnegative().optional(),
+  cargo_description: z.string().trim().max(1_000).optional(),
+  declared_value_tzs: z.number().nonnegative().optional(),
   scheduled_at: z.string().datetime().optional(),
   stop_count: z.number().int().min(2).max(20).optional(),
   waiting_minutes: z.number().int().min(0).max(1_440).optional(),
@@ -33,7 +35,8 @@ export const paymentInitiateSchema = z
   })
   .refine(
     (value) =>
-      value.phone !== undefined || value.card_token !== undefined ||
+      value.phone !== undefined ||
+      value.card_token !== undefined ||
       value.payment_method_id !== undefined,
     {
       message: 'phone, card_token, or payment_method_id is required',
@@ -87,7 +90,10 @@ export const pushSchema = z
 export const notificationDispatchSchema = z.object({
   profile_id: z.string().uuid(),
   template_code: z.string().trim().min(1).max(120),
-  channels: z.array(z.enum(['push', 'sms', 'email'])).min(1).max(3),
+  channels: z
+    .array(z.enum(['push', 'sms', 'email']))
+    .min(1)
+    .max(3),
   variables: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
   reference_type: optionalText,
   reference_id: optionalUuid,

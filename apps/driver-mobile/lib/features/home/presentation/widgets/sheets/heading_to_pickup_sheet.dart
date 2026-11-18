@@ -9,6 +9,7 @@ import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../providers/home_provider.dart';
+import 'load_details.dart';
 import 'sheet_handle.dart';
 
 Future<void> _sendChatPhoto(
@@ -125,6 +126,7 @@ class HeadingToPickupSheet extends ConsumerWidget {
                   Expanded(child: Text(job.pickup, style: TextStyles.body)),
                 ],
               ),
+              LoadDetails(job: job),
             ],
           ),
         ),

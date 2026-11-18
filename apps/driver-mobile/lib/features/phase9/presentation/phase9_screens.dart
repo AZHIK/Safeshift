@@ -423,6 +423,7 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                   const SizedBox(height: AppSizes.sm),
                   DropdownButtonFormField<String>(
                     initialValue: _vehicleTypeId,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: 'Vehicle type *'),
                     items: _vehicleTypes
                         .map((row) => DropdownMenuItem(
@@ -436,7 +437,13 @@ class _DriverOnboardingScreenState extends ConsumerState<DriverOnboardingScreen>
                                     size: 20,
                                   ),
                                   const SizedBox(width: 10),
-                                  Flexible(child: Text(row.name)),
+                                  Flexible(
+                                    child: Text(
+                                      row.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ))

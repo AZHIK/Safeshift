@@ -17,9 +17,7 @@ export async function handle(
   await requireServiceRole(req, deps.auth ?? defaultAuthDeps());
   const service = deps.service ?? serviceClient();
   const now = deps.now ?? (() => new Date());
-  const targetDate = new Date(now().getTime() - 24 * 60 * 60 * 1_000)
-    .toISOString()
-    .slice(0, 10);
+  const targetDate = new Date(now().getTime() - 24 * 60 * 60 * 1_000).toISOString().slice(0, 10);
 
   const { data: daily, error: dailyError } = await service.rpc('compute_daily_metrics', {
     p_target_date: targetDate,

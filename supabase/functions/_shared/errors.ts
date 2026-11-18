@@ -6,13 +6,7 @@ export class AppError extends Error {
   readonly details?: unknown;
   readonly expose: boolean;
 
-  constructor(
-    status: number,
-    code: string,
-    message: string,
-    details?: unknown,
-    expose = true,
-  ) {
+  constructor(status: number, code: string, message: string, details?: unknown, expose = true) {
     super(message);
     this.name = new.target.name;
     this.status = status;

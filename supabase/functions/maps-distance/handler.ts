@@ -34,7 +34,7 @@ export async function handle(
     return success({ ...cached, cached: true });
   }
 
-  const maps = deps.maps ?? await googleMapsClient(ctx.requestId);
+  const maps = deps.maps ?? (await googleMapsClient(ctx.requestId));
   const result = await maps.calculateDistance(body.origins, body.destinations, mode);
 
   if (cacheable) {

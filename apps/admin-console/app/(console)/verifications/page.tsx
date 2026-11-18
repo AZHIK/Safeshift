@@ -22,7 +22,9 @@ export default async function VerificationsPage({
   const supabase = await createClient();
   let query = supabase
     .from('verification_requests')
-    .select('id, request_type, status, priority, submitted_at, decision_notes, driver_id, vehicle_id, business_account_id, vehicles(registration_number), business_accounts(legal_name, registration_number)')
+    .select(
+      'id, request_type, status, priority, submitted_at, decision_notes, driver_id, vehicle_id, business_account_id, vehicles(registration_number), business_accounts(legal_name, registration_number)',
+    )
     .order('submitted_at', { ascending: true })
     .limit(100);
   if (status !== 'all') query = query.eq('status', status);
@@ -30,12 +32,20 @@ export default async function VerificationsPage({
 
   const rows = (data ?? []).map((request) => {
     const vehicle = request.vehicles as { registration_number?: string } | null;
-    const business = request.business_accounts as { legal_name?: string; registration_number?: string } | null;
-    const subject = request.request_type === 'business_verification'
-      ? business?.legal_name ?? shortId(request.business_account_id)
-      : request.request_type === 'vehicle_verification'
-        ? vehicle?.registration_number ?? shortId(request.vehicle_id)
-        : shortId(request.driver_id);
+    const business = request.business_accounts as {
+      legal_name?: string;
+      registration_number?: string;
+    } | null;
+    const subject =
+      request.request_type === 'business_verification' ? (
+        (business?.legal_name ?? shortId(request.business_account_id))
+      ) : request.request_type === 'vehicle_verification' ? (
+        (vehicle?.registration_number ?? shortId(request.vehicle_id))
+      ) : request.driver_id ? (
+        <Link href={`/drivers/${request.driver_id}`}>{shortId(request.driver_id)}</Link>
+      ) : (
+        shortId(request.driver_id)
+      );
     return [
       <div key="r">
         <strong>{titleize(request.request_type)}</strong>
@@ -43,21 +53,34 @@ export default async function VerificationsPage({
       </div>,
       <div key="s">
         {subject}
-        {business?.registration_number ? <div className="small muted">{business.registration_number}</div> : null}
+        {business?.registration_number ? (
+          <div className="small muted">{business.registration_number}</div>
+        ) : null}
       </div>,
       <StatusBadge key="b" value={request.status} />,
       <StatusBadge key="p" value={request.priority} />,
-      <span className="small muted" key="d">{formatDate(request.submitted_at)}</span>,
+      <span className="small muted" key="d">
+        {formatDate(request.submitted_at)}
+      </span>,
       <div key="a" style={{ minWidth: 250 }}>
         <form action={approveVerificationAction} className="form" style={{ gap: 5 }}>
           <input type="hidden" name="request_id" value={request.id} />
           <input className="input" name="notes" placeholder="Approval note (optional)" />
-          <button className="btn btn-primary btn-sm" type="submit">Approve</button>
+          <button className="btn btn-primary btn-sm" type="submit">
+            Approve
+          </button>
         </form>
         <form action={rejectVerificationAction} className="form" style={{ gap: 5, marginTop: 6 }}>
           <input type="hidden" name="request_id" value={request.id} />
-          <input className="input" name="reason" placeholder="Rejection reason (required)" required />
-          <button className="btn btn-danger btn-sm" type="submit">Reject</button>
+          <input
+            className="input"
+            name="reason"
+            placeholder="Rejection reason (required)"
+            required
+          />
+          <button className="btn btn-danger btn-sm" type="submit">
+            Reject
+          </button>
         </form>
       </div>,
     ];
@@ -70,9 +93,15 @@ export default async function VerificationsPage({
         description="Review driver identity, vehicle documents, and business registrations. Decisions are audited and update the subject immediately."
         actions={
           <>
-            <Link className="btn" href="/verifications?status=pending">Pending</Link>
-            <Link className="btn" href="/verifications?status=in_review">In review</Link>
-            <Link className="btn" href="/verifications?status=all">All</Link>
+            <Link className="btn" href="/verifications?status=pending">
+              Pending
+            </Link>
+            <Link className="btn" href="/verifications?status=in_review">
+              In review
+            </Link>
+            <Link className="btn" href="/verifications?status=all">
+              All
+            </Link>
           </>
         }
       />

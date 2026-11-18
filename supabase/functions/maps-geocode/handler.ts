@@ -33,7 +33,7 @@ export async function handle(
     const cached = await getCachedForwardGeocode(service, body.address);
     if (cached) return success({ ...cached, cached: true });
 
-    const maps = deps.maps ?? await googleMapsClient(ctx.requestId);
+    const maps = deps.maps ?? (await googleMapsClient(ctx.requestId));
     const result = await maps.geocode(body.address);
     try {
       await storeForwardGeocode(service, body.address, result);
@@ -48,7 +48,7 @@ export async function handle(
   const cached = await getCachedReverseGeocode(service, body.lat, body.lng);
   if (cached) return success({ ...cached, cached: true });
 
-  const maps = deps.maps ?? await googleMapsClient(ctx.requestId);
+  const maps = deps.maps ?? (await googleMapsClient(ctx.requestId));
   const result = await maps.reverseGeocode(body.lat, body.lng);
   try {
     await storeReverseGeocode(service, body.lat, body.lng, result);

@@ -75,12 +75,7 @@ class DriverProfileNotifier extends AsyncNotifier<DriverProfile?> {
     );
   }
 
-  /// Kept for the Phase 9 complete-profile form. Phase 8 never fabricates a
-  /// drivers row from the client.
-  void setProfile(DriverProfile profile) {
-    state = AsyncData(profile);
-  }
-
+  /// Refreshes the profile after onboarding or verification changes.
   Future<void> refreshProfile() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(build);

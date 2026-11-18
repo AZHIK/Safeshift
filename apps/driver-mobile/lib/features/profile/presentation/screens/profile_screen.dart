@@ -65,8 +65,8 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     if (driver == null) {
-      // Should rarely be visible (router forces /complete-profile), but
-      // handle it gracefully instead of crashing on null.
+      // The router normally keeps unregistered drivers on /driver-onboarding,
+      // but handle a missing profile gracefully instead of crashing on null.
       return Scaffold(
         appBar: AppBar(title: const Text('Profile')),
         body: Padding(

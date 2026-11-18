@@ -85,6 +85,15 @@ DRIVER_TOKEN="$(jq -r '.access_token' <<<"$DRIVER_JSON")"
 CUSTOMER_ID="$(jq -r '.user.id' <<<"$CUSTOMER_JSON")"
 DRIVER_ID="$(jq -r '.user.id' <<<"$DRIVER_JSON")"
 
+# This local-only gate bypasses Google Maps. Production clients must use the
+# quote-calculate Edge Function; only the service role may pass route metrics
+# directly to the pricing RPC.
+if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  source <(supabase status -o env)
+  SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-}"
+fi
+check_nonempty 'local service key is available for route fixture' "$SUPABASE_SERVICE_ROLE_KEY"
+
 check_nonempty 'customer password sign-in returns a JWT' "$CUSTOMER_TOKEN"
 check_nonempty 'driver password sign-in returns a JWT' "$DRIVER_TOKEN"
 check_eq 'customer token belongs to seeded customer' \
@@ -95,7 +104,25 @@ check_eq 'driver token belongs to seeded driver' \
 # ---------------------------------------------------------------------------
 # 1. Quote -> job -> dispatch -> offer
 # ---------------------------------------------------------------------------
-QUOTE_ID="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/quote_calculate_and_persist \
+FORGED_QUOTE_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+  "$BASE_URL/rest/v1/rpc/quote_calculate_and_persist" \
+  -H "apikey: $ANON_KEY" -H "authorization: Bearer $CUSTOMER_TOKEN" \
+  -H 'content-type: application/json' \
+  -d "$(jq -nc --arg customer "$CUSTOMER_ID" '{
+    p_customer_id: $customer,
+    p_pickup_location: "SRID=4326;POINT(39.2750 -6.8150)",
+    p_pickup_address: "Forged pickup",
+    p_destination_location: "SRID=4326;POINT(39.2500 -6.8000)",
+    p_destination_address: "Forged destination",
+    p_vehicle_type_id: "22000000-0000-4000-8000-000000000001",
+    p_distance_km: 0.01, p_duration_min: 1
+  }')")"
+case "$FORGED_QUOTE_STATUS" in
+  401|403|404) ok 'customer cannot submit forged route metrics to pricing RPC' ;;
+  *) bad "customer can submit forged route metrics to pricing RPC (HTTP $FORGED_QUOTE_STATUS)" ;;
+esac
+
+QUOTE_ID="$(api "$SUPABASE_SERVICE_ROLE_KEY" POST /rest/v1/rpc/quote_calculate_and_persist \
   "$(jq -nc --arg customer "$CUSTOMER_ID" '{
     p_customer_id: $customer,
     p_pickup_location: "SRID=4326;POINT(39.2750 -6.8150)",
@@ -225,6 +252,15 @@ for rpc in driver_trips driver_documents_list driver_vehicle_info driver_ratings
     bad "driver read model responds: $rpc"
   fi
 done
+
+TRIP_DETAIL="$(api "$DRIVER_TOKEN" POST /rest/v1/rpc/driver_trip_detail \
+  "$(jq -nc --arg job "$JOB_ID" '{p_job_id: $job}')")"
+check_eq 'driver_trip_detail resolves a completed trip by id' "$JOB_ID" \
+  "$(jq -r '.[0].job_id // empty' <<<"$TRIP_DETAIL")"
+FOREIGN_DETAIL="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/driver_trip_detail \
+  "$(jq -nc --arg job "$JOB_ID" '{p_job_id: $job}')")"
+check_eq 'a customer cannot read a driver trip detail' '0' \
+  "$(jq 'length' <<<"$FOREIGN_DETAIL")"
 
 if api "$DRIVER_TOKEN" POST /rest/v1/rpc/driver_earnings_summary '{}' \
   | jq -e 'has("today_amount") and has("last_7_days")' >/dev/null; then
