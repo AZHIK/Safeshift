@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 import { createClient } from './supabase/server';
 
 export type AdminSession = {
@@ -7,21 +9,22 @@ export type AdminSession = {
   role: string;
 };
 
-export async function getAdminSession(): Promise<AdminSession | null> {
+export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: role, error } = await supabase.rpc('admin_console_role');
+  const [{ data: role, error }, { data: profile }] = await Promise.all([
+    supabase.rpc('admin_console_role'),
+    supabase
+      .from('profiles')
+      .select('full_name, display_name, email')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
   if (error || !role) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, display_name, email')
-    .eq('id', user.id)
-    .maybeSingle();
 
   return {
     userId: user.id,
@@ -29,7 +32,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
     name: profile?.full_name ?? profile?.display_name ?? user.email ?? 'Admin',
     role: String(role),
   };
-}
+});
 
 export function canSee(role: string, area: string): boolean {
   if (role === 'super_admin') return true;

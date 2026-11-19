@@ -41,25 +41,22 @@ insert into public.languages (id, code, name, native_name, is_active) values
 -- ----------------------------------------------------------------------------
 insert into public.countries (
   id, iso_code, name, default_currency_id, default_timezone, default_language_id,
-  regulatory_framework, tax_registration_required, is_active, launched_at, config
+  regulatory_framework, tax_registration_required, is_active, launched_at
 ) values
   (
     '33333333-0000-4000-8000-000000000001', 'TZ', 'Tanzania',
     '11111111-0000-4000-8000-000000000001', 'Africa/Dar_es_Salaam',
-    '22222222-0000-4000-8000-000000000002', 'LATRA', true, true, now(),
-    '{"mobile_money_providers": ["mpesa", "tigo_pesa", "airtel_money", "halopesa"], "pdpc_registration_required": true}'::jsonb
+    '22222222-0000-4000-8000-000000000002', 'LATRA', true, true, now()
   ),
   (
     '33333333-0000-4000-8000-000000000002', 'KE', 'Kenya',
     '11111111-0000-4000-8000-000000000002', 'Africa/Nairobi',
-    '22222222-0000-4000-8000-000000000001', 'NTSA', true, false, null,
-    '{"mobile_money_providers": ["mpesa"]}'::jsonb
+    '22222222-0000-4000-8000-000000000001', 'NTSA', true, false, null
   ),
   (
     '33333333-0000-4000-8000-000000000003', 'UG', 'Uganda',
     '11111111-0000-4000-8000-000000000003', 'Africa/Kampala',
-    '22222222-0000-4000-8000-000000000001', 'UNRA', true, false, null,
-    '{"mobile_money_providers": ["mtn_momo", "airtel_money"]}'::jsonb
+    '22222222-0000-4000-8000-000000000001', 'UNRA', true, false, null
   );
 
 -- ----------------------------------------------------------------------------
@@ -573,6 +570,47 @@ insert into public.admin_actions_log (
   '{"verification_status": "verified"}'::jsonb,
   '41.59.100.10'::inet, 'SafeShift Admin Console (local seed)'
 );
+
+-- Local platform account used by money flows.
+do $$
+declare
+  v_platform uuid := '00000000-0000-4000-8000-000000000000';
+  v_tz       uuid;
+begin
+  select id into v_tz from public.countries where btrim(iso_code) = 'TZ' limit 1;
+
+  if not exists (select 1 from auth.users where id = v_platform) then
+    insert into auth.users (
+      instance_id, id, aud, role, email, email_confirmed_at,
+      created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+    ) values (
+      '00000000-0000-0000-0000-000000000000', v_platform,
+      'authenticated', 'authenticated', 'platform@safeshift.local', now(),
+      now(), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"SafeShift Platform","country_code":"TZ"}'::jsonb
+    );
+  end if;
+
+  insert into public.profiles (
+    id, primary_role, full_name, display_name, phone, email,
+    phone_verified, email_verified, default_country_id, is_active,
+    created_at, updated_at
+  ) values (
+    v_platform, 'admin', 'SafeShift Platform', 'SafeShift Platform',
+    '+255700000000', 'platform@safeshift.local', true, true, v_tz, true,
+    now(), now()
+  )
+  on conflict (id) do update
+    set primary_role = 'admin',
+        full_name = excluded.full_name,
+        display_name = excluded.display_name,
+        default_country_id = excluded.default_country_id,
+        is_active = true,
+        updated_at = now();
+end $$;
+
+
 
 commit;
 

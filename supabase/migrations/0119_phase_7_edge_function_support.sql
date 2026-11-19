@@ -309,11 +309,7 @@ create policy edge_function_config_service_role
   on public.edge_function_config for all to service_role
   using (true) with check (true);
 
-insert into public.edge_function_config (function_name, url) values
-  ('scheduled-daily-metrics', null),
-  ('scheduled-demand-capture', null),
-  ('scheduled-retention', null)
-on conflict (function_name) do nothing;
+
 
 -- ----------------------------------------------------------------------------
 -- 5. Vault reader and health probe
@@ -367,16 +363,7 @@ revoke all on function public.current_permissions() from public;
 revoke all on function public.current_permissions() from anon;
 grant execute on function public.current_permissions() to authenticated, service_role;
 
-do $$
-begin
-  if not exists (select 1 from vault.secrets where name = 'safeshift_healthcheck') then
-    perform vault.create_secret(
-      'ok',
-      'safeshift_healthcheck',
-      'Non-sensitive Phase 7 health probe'
-    );
-  end if;
-end $$;
+
 
 -- ----------------------------------------------------------------------------
 -- 6. Payment initiation and webhook completion
@@ -808,15 +795,7 @@ revoke all on function public.cleanup_payment_webhook_events(integer) from anon;
 revoke all on function public.cleanup_payment_webhook_events(integer) from authenticated;
 grant execute on function public.cleanup_payment_webhook_events(integer) to service_role;
 
--- ----------------------------------------------------------------------------
--- 8. Data export storage bucket and own-folder policies
--- ----------------------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('data-exports', 'data-exports', false, 52428800, array['application/zip'])
-on conflict (id) do update
-  set public = false,
-      file_size_limit = excluded.file_size_limit,
-      allowed_mime_types = excluded.allowed_mime_types;
+
 
 drop policy if exists data_exports_select_own on storage.objects;
 create policy data_exports_select_own
@@ -833,57 +812,3 @@ create policy data_exports_delete_own
     bucket_id = 'data-exports'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
-
--- ----------------------------------------------------------------------------
--- 9. Permissions for Phase 7 functions
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('send_sms',          'Send transactional SMS',                         'communication'),
-  ('send_email',        'Send transactional email',                       'communication'),
-  ('send_push',         'Send push notifications',                        'communication'),
-  ('send_notification', 'Dispatch notifications across channels',         'communication')
-on conflict (permission_key) do nothing;
-
-insert into public.admin_role_permissions (role_name, permission_key)
-select v.role_name, v.permission_key
-  from (values
-    ('super_admin',      'send_sms'),
-    ('super_admin',      'send_email'),
-    ('super_admin',      'send_push'),
-    ('super_admin',      'send_notification'),
-    ('operations_admin', 'send_sms'),
-    ('operations_admin', 'send_email'),
-    ('operations_admin', 'send_push'),
-    ('operations_admin', 'send_notification'),
-    ('support_agent',    'send_sms'),
-    ('support_agent',    'send_email'),
-    ('support_agent',    'send_push')
-  ) as v(role_name, permission_key)
- where not exists (
-   select 1
-     from public.admin_role_permissions existing
-    where existing.role_name = v.role_name
-      and existing.permission_key = v.permission_key
- );
-
--- ----------------------------------------------------------------------------
--- 10. pg_cron cleanup
--- ----------------------------------------------------------------------------
-do $$
-declare
-  j record;
-begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    for j in
-      select jobid from cron.job where jobname = 'safeshift_cleanup_idempotency'
-    loop
-      perform cron.unschedule(j.jobid);
-    end loop;
-
-    perform cron.schedule(
-      'safeshift_cleanup_idempotency',
-      '0 6 * * *',
-      $cron$select public.cleanup_idempotency_keys();$cron$
-    );
-  end if;
-end $$;

@@ -11,7 +11,7 @@ Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 
 ## Status
 
-- Phase 1–9 database layer complete: 127 migrations, seven local demo seeds,
+- Phase 1–9 database layer complete: 144 migrations, seven local demo seeds,
   the local SMS sandbox seed, and schema gates for every phase.
 - Latest verified gate results: Phase 1 `151 PASS`, Phase 2 `166 PASS`, Phase 3
   `150 PASS`, Phase 4 `154 PASS`, Phase 5 `81 PASS`, Phase 6 `154 PASS`, all
@@ -139,7 +139,13 @@ corepack pnpm --filter @safeshift/admin-console dev
 The web app runs at <http://localhost:3000>; the admin console runs at
 <http://localhost:3001>.
 
-## Local database
+## Database migrations and seed data
+
+Run these commands from the repository root. Migrations in
+`supabase/migrations/` create the database schema. Seed files are separate and
+run in the order listed under `[db.seed].sql_paths` in `supabase/config.toml`.
+
+### Local: migrate and seed
 
 ```bash
 corepack pnpm db:start
@@ -147,10 +153,76 @@ corepack pnpm db:reset
 corepack pnpm db:verify
 ```
 
-`db:reset` applies all 127 migrations and all local seed files, including the
-local SMS sandbox. `db:verify` runs the Phase 1–9 schema gates in order and
-fails on the first `FAIL`. The Phase 8 and Phase 9 live integration gates run
-separately:
+`db:reset` **recreates the local database**, applies all 144 migrations, then
+loads the ten files configured in `supabase/config.toml`. These include demo
+users and jobs, shared configuration, the local SMS sandbox, and an inactive
+example country. Use this command only when it is acceptable to discard local
+database data.
+
+### Local: migrations only, then seed separately
+
+To recreate an empty local database with the schema but no application seed
+rows:
+
+```bash
+corepack pnpm db:start
+npx --yes supabase db reset --no-seed
+```
+
+When you are ready to load the local demo data, run the seed files in their
+configured order:
+
+```bash
+(
+for seed_file in \
+  seed.sql seed-phase-2.sql seed-phase-3.sql seed-phase-4.sql \
+  seed-phase-5.sql seed-phase-6.sql seed-phase-9.sql \
+  seed-configuration.sql seed-local-sms.sql seed-example-country.sql; do
+  psql -v ON_ERROR_STOP=1 \
+    "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+    -f "supabase/$seed_file" || exit 1
+done
+)
+```
+
+`seed-configuration.sql` contains shared catalogue, permission, storage bucket,
+Edge Function configuration, feature flag, and scheduled job rows. The other
+files in the local seed list are for development; do not run them on a hosted
+project.
+
+### Hosted staging: migrations, then configuration seed
+
+Use the project's ref (the part before `.supabase.co`), not its full hostname.
+Link the intended staging project, preview pending migrations, then apply them
+to that hosted project explicitly. An unqualified `db push` targets the local
+stack with the current Supabase CLI. These commands do not load the local demo
+seeds:
+
+```bash
+npx --yes supabase login
+npx --yes supabase link --project-ref "<staging-project-ref>"
+npx --yes supabase db push --dry-run --remote
+npx --yes supabase db push --remote
+```
+
+Check that the dry run's `Target:` line names the intended hosted project
+before running the push. If the checkout is already linked to that project,
+skip the `link` command.
+
+Then load staging configuration through `psql` using the staging database URL:
+
+```bash
+psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/seed-staging.sql
+```
+
+`seed-staging.sql` includes `seed-configuration.sql` and creates no demo users
+or jobs. Set `STAGING_DATABASE_URL` to the staging project's Postgres connection
+string before running it. Never use `db reset` against a hosted database; that
+command removes its data.
+
+`db:verify` runs the Phase 1–9 schema gates in order and fails on the first
+`FAIL`. The Phase 8 and Phase 9 live integration gates run separately:
 
 ```bash
 supabase/scripts/verify-phase-8-integration.sh
@@ -399,8 +471,8 @@ flutter run --dart-define-from-file=dart_defines.local.json
 - Provider keys for FCM, Beem, Resend, Selcom, and Flutterwave remain server
   secrets. Mobile builds receive only public Supabase/Firebase client values
   through `--dart-define`.
-- Staging is a separate Supabase project seeded with configuration only:
-  `supabase/seed-staging.sql`.
+- Staging is a separate Supabase project seeded with configuration only; see
+  [Database migrations and seed data](#database-migrations-and-seed-data).
 
 ## Google Maps server key
 

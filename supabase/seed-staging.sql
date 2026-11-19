@@ -20,51 +20,90 @@ begin;
 
 -- 1. Currencies
 -- ----------------------------------------------------------------------------
+-- ============================================================================
+-- SafeShift — staging configuration seed
+--
+-- Configuration data only. This file deliberately contains no auth users,
+-- demo customers/drivers, jobs, payments, documents, chat messages, metrics,
+-- or other fixture rows. Create UAT accounts through the Supabase Auth Admin
+-- API and let the app's ensure_my_profile() RPC bootstrap their profiles.
+--
+-- Apply with:
+--   supabase db push
+--   psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed-staging.sql
+--
+-- The local demo seed files (seed*.sql) must never run against staging.
+-- ============================================================================
+
+set search_path = public, extensions;
+
+begin;
+
+
+-- 1. Currencies
+-- ----------------------------------------------------------------------------
 insert into public.currencies (id, code, name, symbol, decimal_places, is_active) values
   ('11111111-0000-4000-8000-000000000001', 'TZS', 'Tanzanian Shilling', 'TSh', 2, true),
   ('11111111-0000-4000-8000-000000000002', 'KES', 'Kenyan Shilling',    'KSh', 2, false),
   ('11111111-0000-4000-8000-000000000003', 'UGX', 'Ugandan Shilling',   'USh', 0, false),
-  ('11111111-0000-4000-8000-000000000004', 'USD', 'United States Dollar', '$', 2, true);
+  ('11111111-0000-4000-8000-000000000004', 'USD', 'United States Dollar', '$', 2, true) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 2. Languages
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 2. Languages
 -- ----------------------------------------------------------------------------
 insert into public.languages (id, code, name, native_name, is_active) values
   ('22222222-0000-4000-8000-000000000001', 'en', 'English', 'English', true),
-  ('22222222-0000-4000-8000-000000000002', 'sw', 'Swahili', 'Kiswahili', true);
+  ('22222222-0000-4000-8000-000000000002', 'sw', 'Swahili', 'Kiswahili', true) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 3. Countries (multi-country foundation: 1 active, 2 inactive)
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 3. Countries (multi-country foundation: 1 active, 2 inactive)
 -- ----------------------------------------------------------------------------
 insert into public.countries (
   id, iso_code, name, default_currency_id, default_timezone, default_language_id,
-  regulatory_framework, tax_registration_required, is_active, launched_at, config
+  regulatory_framework, tax_registration_required, is_active, launched_at
 ) values
   (
     '33333333-0000-4000-8000-000000000001', 'TZ', 'Tanzania',
     '11111111-0000-4000-8000-000000000001', 'Africa/Dar_es_Salaam',
-    '22222222-0000-4000-8000-000000000002', 'LATRA', true, true, now(),
-    '{"mobile_money_providers": ["mpesa", "tigo_pesa", "airtel_money", "halopesa"], "pdpc_registration_required": true}'::jsonb
+    '22222222-0000-4000-8000-000000000002', 'LATRA', true, true, now()
   ),
   (
     '33333333-0000-4000-8000-000000000002', 'KE', 'Kenya',
     '11111111-0000-4000-8000-000000000002', 'Africa/Nairobi',
-    '22222222-0000-4000-8000-000000000001', 'NTSA', true, false, null,
-    '{"mobile_money_providers": ["mpesa"]}'::jsonb
+    '22222222-0000-4000-8000-000000000001', 'NTSA', true, false, null
   ),
   (
     '33333333-0000-4000-8000-000000000003', 'UG', 'Uganda',
     '11111111-0000-4000-8000-000000000003', 'Africa/Kampala',
-    '22222222-0000-4000-8000-000000000001', 'UNRA', true, false, null,
-    '{"mobile_money_providers": ["mtn_momo", "airtel_money"]}'::jsonb
-  );
+    '22222222-0000-4000-8000-000000000001', 'UNRA', true, false, null
+  ) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 4. Regions
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 4. Regions
 -- ----------------------------------------------------------------------------
 insert into public.regions (id, country_id, name, code, is_active) values
   ('44444444-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'Dar es Salaam Region', 'DSM', true),
-  ('44444444-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', 'Arusha Region',        'ARU', true);
+  ('44444444-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', 'Arusha Region',        'ARU', true) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 5. Cities (Dar es Salaam active, Arusha inactive)
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 5. Cities (Dar es Salaam active, Arusha inactive)
@@ -89,7 +128,12 @@ insert into public.cities (
     extensions.ST_GeogFromText('SRID=4326;POLYGON((36.5500 -3.5000, 36.8000 -3.5000, 36.8000 -3.2500, 36.5500 -3.2500, 36.5500 -3.5000))'),
     false, null,
     '{"pilot": false, "currency": "TZS"}'::jsonb
-  );
+  ) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 6. Service zones — three real-ish polygons covering Dar es Salaam
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 6. Service zones — three real-ish polygons covering Dar es Salaam
@@ -115,7 +159,12 @@ insert into public.service_zones (id, city_id, name, zone_type, boundary, centro
     extensions.ST_GeogFromText('SRID=4326;POLYGON((39.2000 -6.9500, 39.3400 -6.9500, 39.3400 -6.8400, 39.2000 -6.8400, 39.2000 -6.9500))'),
     extensions.ST_GeogFromText('SRID=4326;POINT(39.2700 -6.8950)'),
     true, '{"description": "Temeke and the southern industrial corridor"}'::jsonb
-  );
+  ) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 7. Neighborhoods
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 7. Neighborhoods
@@ -128,7 +177,13 @@ insert into public.neighborhoods (id, city_id, service_zone_id, name, centroid, 
   ('77777777-0000-4000-8000-000000000005', '55555555-0000-4000-8000-000000000001', '66666666-0000-4000-8000-000000000002', 'Mlimani City', extensions.ST_GeogFromText('SRID=4326;POINT(39.2250 -6.7750)'), null, true),
   ('77777777-0000-4000-8000-000000000006', '55555555-0000-4000-8000-000000000001', '66666666-0000-4000-8000-000000000002', 'Mbezi Beach', extensions.ST_GeogFromText('SRID=4326;POINT(39.2300 -6.7200)'), null, true),
   ('77777777-0000-4000-8000-000000000007', '55555555-0000-4000-8000-000000000001', '66666666-0000-4000-8000-000000000002', 'Kinondoni',   extensions.ST_GeogFromText('SRID=4326;POINT(39.2600 -6.7800)'), null, true),
-  ('77777777-0000-4000-8000-000000000008', '55555555-0000-4000-8000-000000000001', '66666666-0000-4000-8000-000000000003', 'Temeke',      extensions.ST_GeogFromText('SRID=4326;POINT(39.2700 -6.8600)'), null, true);
+  ('77777777-0000-4000-8000-000000000008', '55555555-0000-4000-8000-000000000001', '66666666-0000-4000-8000-000000000003', 'Temeke',      extensions.ST_GeogFromText('SRID=4326;POINT(39.2700 -6.8600)'), null, true) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+
+-- 20. Feature flags
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 
@@ -136,7 +191,12 @@ insert into public.neighborhoods (id, city_id, service_zone_id, name, centroid, 
 -- ----------------------------------------------------------------------------
 insert into public.feature_flags (id, flag_key, country_id, city_id, profile_id, is_enabled, rollout_percentage, description) values
   ('0b000000-0000-4000-8000-000000000001', 'mobile_money_checkout', '33333333-0000-4000-8000-000000000001', null, null, true, 100, 'Enable mobile-money checkout for the pilot country.'),
-  ('0b000000-0000-4000-8000-000000000002', 'business_portal_beta',   null, null, null, false, 10, 'Gradual rollout of the business portal.');
+  ('0b000000-0000-4000-8000-000000000002', 'business_portal_beta',   null, null, null, false, 10, 'Gradual rollout of the business portal.') on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 21. Localization strings
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 21. Localization strings
@@ -151,7 +211,12 @@ insert into public.localization_strings (language_id, namespace, key, value, con
   ((select id from public.languages where code = 'sw'), 'app',    'tagline',         'Safirisha chochote kwa usalama.', 'Marketing tagline, max ~40 chars.'),
   ((select id from public.languages where code = 'sw'), 'errors', 'network',         'Mtandao haupatikani. Tafadhali jaribu tena.', 'Shown when a request fails due to connectivity.'),
   ((select id from public.languages where code = 'sw'), 'errors', 'generic',         'Hitilafu imetokea. Tafadhali jaribu tena.', 'Fallback error message.'),
-  ((select id from public.languages where code = 'sw'), 'errors', 'location_permission', 'Ruhusa ya mahali inahitajika kuweka safari.', 'Shown when location permission is denied.');
+  ((select id from public.languages where code = 'sw'), 'errors', 'location_permission', 'Ruhusa ya mahali inahitajika kuweka safari.', 'Shown when location permission is denied.') on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 22. Permission catalogue and role mappings
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 22. Permission catalogue and role mappings
@@ -183,13 +248,19 @@ insert into public.admin_permissions_catalog (permission_key, description, categ
   ('manage_disputes',           'Manage job disputes and resolutions',                       'support'),
   ('manage_admins',             'Grant or revoke admin roles',                               'platform'),
   ('view_consent',              'View consent records',                                      'compliance'),
-  ('view_all_addresses',        'View all address records',                                  'operations');
+  ('view_all_addresses',        'View all address records',                                  'operations') on conflict do nothing;
+
+-- super_admin gets everything. Phase 2 migrations may already have seeded
+-- grants for permissions added after Phase 1; keep this seed re-runnable.
+;
 
 -- super_admin gets everything. Phase 2 migrations may already have seeded
 -- grants for permissions added after Phase 1; keep this seed re-runnable.
 insert into public.admin_role_permissions (role_name, permission_key)
 select 'super_admin', permission_key from public.admin_permissions_catalog
 on conflict do nothing;
+
+;
 
 insert into public.admin_role_permissions (role_name, permission_key) values
   -- operations_admin
@@ -244,8 +315,18 @@ on conflict do nothing;
 -- ----------------------------------------------------------------------------
 -- 23. Exchange rate (demonstrates the FX foundation)
 -- ----------------------------------------------------------------------------
+;
+
+-- ----------------------------------------------------------------------------
+-- 23. Exchange rate (demonstrates the FX foundation)
+-- ----------------------------------------------------------------------------
 insert into public.exchange_rates (from_currency_id, to_currency_id, rate, source, effective_from) values
-  ('11111111-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 2650.000000, 'manual', now());
+  ('11111111-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 2650.000000, 'manual', now()) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- 24. Zone pricing override (demonstrates Phase 3 hand-off; no FK yet)
+-- ----------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 -- 24. Zone pricing override (demonstrates Phase 3 hand-off; no FK yet)
@@ -256,7 +337,13 @@ insert into public.zone_pricing_overrides (
   '0c000000-0000-4000-8000-000000000001',
   '66666666-0000-4000-8000-000000000001', null, 1.15,
   'Evening peak surcharge (demonstration row)', now(), now() + interval '30 days'
-);
+) on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+
+-- 1. Permission catalogue additions used by Phase 2 RLS and operations.
+-- ---------------------------------------------------------------------------
+;
 
 -- ----------------------------------------------------------------------------
 
@@ -274,11 +361,15 @@ insert into public.admin_permissions_catalog (permission_key, description, categ
   ('view_reminders', 'View scheduled document-expiry reminders', 'trust_safety')
 on conflict (permission_key) do nothing;
 
+;
+
 insert into public.admin_role_permissions (role_name, permission_key)
 select 'super_admin', permission_key
 from public.admin_permissions_catalog
 where permission_key in ('verify_vehicle', 'manage_document_types', 'manage_vehicle_catalog', 'manage_cargo_catalog', 'view_all_vehicles', 'view_all_fleets', 'assign_vehicles', 'view_fleet_reports', 'view_reminders')
 on conflict do nothing;
+
+;
 
 insert into public.admin_role_permissions (role_name, permission_key) values
   ('verification_admin', 'verify_vehicle'),
@@ -296,6 +387,11 @@ on conflict do nothing;
 -- ---------------------------------------------------------------------------
 -- 2. Documents and vehicle reference data.
 -- ---------------------------------------------------------------------------
+;
+
+-- ---------------------------------------------------------------------------
+-- 2. Documents and vehicle reference data.
+-- ---------------------------------------------------------------------------
 insert into public.document_types (id, country_id, code, name, description, applies_to, is_required, has_expiry, validity_days) values
   ('20000000-0000-4000-8000-000000000001', null, 'driving_licence', 'Driving licence', 'Valid transport driving licence.', 'driver', true, true, 3650),
   ('20000000-0000-4000-8000-000000000002', null, 'national_id', 'National ID', 'Government-issued national identity document.', 'driver', true, true, 3650),
@@ -306,7 +402,9 @@ insert into public.document_types (id, country_id, code, name, description, appl
   ('20000000-0000-4000-8000-000000000007', null, 'business_licence', 'Business licence', 'Registered business licence.', 'business', true, true, 365),
   ('20000000-0000-4000-8000-000000000008', null, 'tin_certificate', 'TIN certificate', 'Taxpayer identification certificate.', 'business', true, false, null),
   ('20000000-0000-4000-8000-000000000009', null, 'road_service_licence', 'Road service licence', 'Commercial road service licence.', 'vehicle', true, true, 365),
-  ('20000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', 'latra_permit', 'LATRA permit', 'Tanzania LATRA operating permit.', 'vehicle', false, true, 365);
+  ('20000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', 'latra_permit', 'LATRA permit', 'Tanzania LATRA operating permit.', 'vehicle', false, true, 365) on conflict do nothing;
+
+;
 
 insert into public.vehicle_makes (id, name, country_of_origin) values
   ('21000000-0000-4000-8000-000000000001', 'Toyota', 'Japan'),
@@ -316,7 +414,9 @@ insert into public.vehicle_makes (id, name, country_of_origin) values
   ('21000000-0000-4000-8000-000000000005', 'Fuso', 'Japan'),
   ('21000000-0000-4000-8000-000000000006', 'Mercedes-Benz', 'Germany'),
   ('21000000-0000-4000-8000-000000000007', 'Nissan', 'Japan'),
-  ('21000000-0000-4000-8000-000000000008', 'Suzuki', 'Japan');
+  ('21000000-0000-4000-8000-000000000008', 'Suzuki', 'Japan') on conflict do nothing;
+
+;
 
 insert into public.vehicle_types (id, country_id, code, name, icon_url, capacity_kg_min, capacity_kg_max, capacity_m3_min, capacity_m3_max, requires_special_licence, requires_equipment, display_order) values
   ('22000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'small_van', 'Small van', 'vehicle/small_van.svg', 500, 1500, 3, 12, false, '{}', 10),
@@ -324,7 +424,9 @@ insert into public.vehicle_types (id, country_id, code, name, icon_url, capacity
   ('22000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', 'medium_truck', 'Medium truck', 'vehicle/medium_truck.svg', 3000, 7000, 15, 35, false, '{straps,load_bars}', 30),
   ('22000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', 'large_truck', 'Large truck', 'vehicle/large_truck.svg', 10000, 30000, 40, 80, false, '{straps,load_bars}', 40),
   ('22000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', 'refrigerated_truck', 'Refrigerated truck', 'vehicle/refrigerated_truck.svg', 3000, 10000, 15, 45, true, '{refrigeration_unit,straps}', 50),
-  ('22000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', 'flatbed', 'Flatbed', 'vehicle/flatbed.svg', 5000, 20000, 20, 60, true, '{straps}', 60);
+  ('22000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', 'flatbed', 'Flatbed', 'vehicle/flatbed.svg', 5000, 20000, 20, 60, true, '{straps}', 60) on conflict do nothing;
+
+;
 
 insert into public.vehicle_models (make_id, name, vehicle_type_id, year_start) values
   ('21000000-0000-4000-8000-000000000001', 'Hiace', '22000000-0000-4000-8000-000000000001', 1990),
@@ -346,7 +448,9 @@ insert into public.vehicle_models (make_id, name, vehicle_type_id, year_start) v
   ('21000000-0000-4000-8000-000000000007', 'NV200', '22000000-0000-4000-8000-000000000001', 2009),
   ('21000000-0000-4000-8000-000000000007', 'Navara', '22000000-0000-4000-8000-000000000002', 1997),
   ('21000000-0000-4000-8000-000000000008', 'Carry', '22000000-0000-4000-8000-000000000001', 1990),
-  ('21000000-0000-4000-8000-000000000008', 'Super Carry', '22000000-0000-4000-8000-000000000001', 1990);
+  ('21000000-0000-4000-8000-000000000008', 'Super Carry', '22000000-0000-4000-8000-000000000001', 1990) on conflict do nothing;
+
+;
 
 insert into public.vehicle_equipment_catalog (id, code, name, category) values
   ('23000000-0000-4000-8000-000000000001', 'straps', 'Tie-down straps', 'safety'),
@@ -356,7 +460,12 @@ insert into public.vehicle_equipment_catalog (id, code, name, category) values
   ('23000000-0000-4000-8000-000000000005', 'load_bars', 'Load bars', 'safety'),
   ('23000000-0000-4000-8000-000000000006', 'refrigeration_unit', 'Refrigeration unit', 'specialty'),
   ('23000000-0000-4000-8000-000000000007', 'tail_lift', 'Tail lift', 'handling'),
-  ('23000000-0000-4000-8000-000000000008', 'gloves', 'Protective gloves', 'safety');
+  ('23000000-0000-4000-8000-000000000008', 'gloves', 'Protective gloves', 'safety') on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 3. Cargo catalogue.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 3. Cargo catalogue.
@@ -364,7 +473,9 @@ insert into public.vehicle_equipment_catalog (id, code, name, category) values
 insert into public.cargo_categories (id, code, name, display_order) values
   ('24000000-0000-4000-8000-000000000001', 'household', 'Household', 10),
   ('24000000-0000-4000-8000-000000000002', 'commercial', 'Commercial', 20),
-  ('24000000-0000-4000-8000-000000000003', 'industrial', 'Industrial', 30);
+  ('24000000-0000-4000-8000-000000000003', 'industrial', 'Industrial', 30) on conflict do nothing;
+
+;
 
 insert into public.cargo_types (id, country_id, category_id, code, name, icon_url, requires_special_handling, requires_declared_value, requires_insurance, allowed_vehicle_type_codes, max_value_tzs, display_order) values
   ('25000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000001', 'household_goods', 'Household goods', 'cargo/household_goods.svg', false, false, false, '{}', null, 10),
@@ -376,7 +487,9 @@ insert into public.cargo_types (id, country_id, category_id, code, name, icon_ur
   ('25000000-0000-4000-8000-000000000007', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'electronics', 'Electronics', 'cargo/electronics.svg', false, true, true, '{small_van,pickup,medium_truck}', null, 70),
   ('25000000-0000-4000-8000-000000000008', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'machinery', 'Machinery', 'cargo/machinery.svg', true, true, true, '{flatbed,large_truck}', null, 80),
   ('25000000-0000-4000-8000-000000000009', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000002', 'livestock', 'Livestock', 'cargo/livestock.svg', true, false, true, '{}', null, 90),
-  ('25000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'hazardous_materials', 'Hazardous materials', 'cargo/hazardous_materials.svg', true, true, true, '{flatbed,large_truck}', 5000000, 100);
+  ('25000000-0000-4000-8000-000000000010', '33333333-0000-4000-8000-000000000001', '24000000-0000-4000-8000-000000000003', 'hazardous_materials', 'Hazardous materials', 'cargo/hazardous_materials.svg', true, true, true, '{flatbed,large_truck}', 5000000, 100) on conflict do nothing;
+
+;
 
 insert into public.cargo_packaging_options (id, code, name, additional_fee_tzs, display_order) values
   ('26000000-0000-4000-8000-000000000001', 'boxed', 'Boxed', 0, 10),
@@ -384,14 +497,22 @@ insert into public.cargo_packaging_options (id, code, name, additional_fee_tzs, 
   ('26000000-0000-4000-8000-000000000003', 'loose', 'Loose', 0, 30),
   ('26000000-0000-4000-8000-000000000004', 'palletized', 'Palletized', 10000, 40),
   ('26000000-0000-4000-8000-000000000005', 'containerized', 'Containerized', 25000, 50),
-  ('26000000-0000-4000-8000-000000000006', 'bulk', 'Bulk', 15000, 60);
+  ('26000000-0000-4000-8000-000000000006', 'bulk', 'Bulk', 15000, 60) on conflict do nothing;
+
+;
 
 insert into public.cargo_restrictions (cargo_type_id, restriction_type, restricted_with_cargo_type_id, restriction_details, description) values
   ('25000000-0000-4000-8000-000000000010', 'cannot_combine', '25000000-0000-4000-8000-000000000005', '{}', 'Hazardous materials cannot be carried with fresh produce.'),
   ('25000000-0000-4000-8000-000000000010', 'requires_certificate', null, '{"certificate":"hazmat"}', 'Hazardous materials require a hazardous-goods certificate.'),
   ('25000000-0000-4000-8000-000000000009', 'requires_certificate', null, '{"certificate":"veterinary"}', 'Livestock requires a valid veterinary movement certificate.'),
   ('25000000-0000-4000-8000-000000000006', 'requires_special_vehicle', null, '{"vehicle_type":"refrigerated_truck"}', 'Refrigerated goods require a refrigerated vehicle.'),
-  ('25000000-0000-4000-8000-000000000008', 'time_restricted', null, '{"hours":"22:00-05:00"}', 'Heavy machinery movements are restricted to approved night windows.');
+  ('25000000-0000-4000-8000-000000000008', 'time_restricted', null, '{"hours":"22:00-05:00"}', 'Heavy machinery movements are restricted to approved night windows.') on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+
+-- 4. Tanzania verification rules, fleet, vehicles and assignments.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 
@@ -400,7 +521,13 @@ insert into public.cargo_restrictions (cargo_type_id, restriction_type, restrict
 insert into public.verification_checklist_templates (id, country_id, request_type, required_document_codes, optional_document_codes, description) values
   ('27000000-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'driver_verification', '{driving_licence,national_id}', '{police_clearance}', 'Tanzania driver verification.'),
   ('27000000-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000001', 'vehicle_verification', '{vehicle_registration,insurance_certificate,vehicle_inspection}', '{latra_permit}', 'Tanzania vehicle verification.'),
-  ('27000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', 'business_verification', '{business_licence,tin_certificate}', '{}', 'Tanzania business verification.');
+  ('27000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', 'business_verification', '{business_licence,tin_certificate}', '{}', 'Tanzania business verification.') on conflict do nothing;
+
+-- 1. Permissions used by Phase 3 RLS and operations.
+--    Migration 0049 installs these too; this keeps seed-only environments
+--    aligned with the Phase 2 seed convention.
+-- ---------------------------------------------------------------------------
+;
 
 -- 1. Permissions used by Phase 3 RLS and operations.
 --    Migration 0049 installs these too; this keeps seed-only environments
@@ -413,11 +540,15 @@ insert into public.admin_permissions_catalog (permission_key, description, categ
   ('view_promotions', 'View all promo codes and redemption records', 'operations')
 on conflict (permission_key) do nothing;
 
+;
+
 insert into public.admin_role_permissions (role_name, permission_key)
 select 'super_admin', permission_key
 from public.admin_permissions_catalog
 where permission_key in ('manage_pricing', 'manage_regulated_tariffs', 'manage_promotions', 'view_promotions')
 on conflict do nothing;
+
+;
 
 insert into public.admin_role_permissions (role_name, permission_key) values
   ('finance_admin',    'manage_pricing'),
@@ -429,6 +560,11 @@ insert into public.admin_role_permissions (role_name, permission_key) values
   ('support_agent',    'view_promotions'),
   ('analyst',          'view_promotions')
 on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 2. LATRA goods transport tariff (Tanzania) and legal bands.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 2. LATRA goods transport tariff (Tanzania) and legal bands.
@@ -453,7 +589,9 @@ insert into public.regulated_tariffs (
   null,
   'Demonstration tariff seeded for local development. Legal values must be reviewed by compliance before production.',
   true
-);
+) on conflict do nothing;
+
+;
 
 insert into public.regulated_tariff_bands (
   id, regulated_tariff_id, band_type, min_value, max_value, value_unit,
@@ -468,7 +606,12 @@ insert into public.regulated_tariff_bands (
   ('30100000-0000-4000-8000-000000000007', '30000000-0000-4000-8000-000000000001', 'weight',   0,   1000, 'kg', 20000, 90000, 10),
   ('30100000-0000-4000-8000-000000000008', '30000000-0000-4000-8000-000000000001', 'weight',   1000, 3000, 'kg', 50000, 180000, 20),
   ('30100000-0000-4000-8000-000000000009', '30000000-0000-4000-8000-000000000001', 'weight',   3000, 7000, 'kg', 100000, 350000, 30),
-  ('30100000-0000-4000-8000-000000000010', '30000000-0000-4000-8000-000000000001', 'weight',   7000, null, 'kg', 200000, 600000, 40);
+  ('30100000-0000-4000-8000-000000000010', '30000000-0000-4000-8000-000000000001', 'weight',   7000, null, 'kg', 200000, 600000, 40) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 3. Six Dar es Salaam pricing plans (one per vehicle type).
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 3. Six Dar es Salaam pricing plans (one per vehicle type).
@@ -482,7 +625,12 @@ insert into public.pricing_plans (
   ('31000000-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000001', '55555555-0000-4000-8000-000000000001', null, '22000000-0000-4000-8000-000000000003', 'dar-mtruck-standard', 'Dar es Salaam Medium Truck Standard', 'Medium truck for household and commercial moves.', 30, true),
   ('31000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', '55555555-0000-4000-8000-000000000001', null, '22000000-0000-4000-8000-000000000004', 'dar-ltruck-standard', 'Dar es Salaam Large Truck Standard', 'Large truck for industrial and high-volume loads.', 40, true),
   ('31000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', '55555555-0000-4000-8000-000000000001', null, '22000000-0000-4000-8000-000000000005', 'dar-refrigerated-standard', 'Dar es Salaam Refrigerated Standard', 'Temperature-controlled transport, capped by the LATRA tariff.', 50, true),
-  ('31000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', '55555555-0000-4000-8000-000000000001', null, '22000000-0000-4000-8000-000000000006', 'dar-flatbed-standard', 'Dar es Salaam Flatbed Standard', 'Flatbed transport for machinery and oversized cargo, capped by the LATRA tariff.', 60, true);
+  ('31000000-0000-4000-8000-000000000006', '33333333-0000-4000-8000-000000000001', '55555555-0000-4000-8000-000000000001', null, '22000000-0000-4000-8000-000000000006', 'dar-flatbed-standard', 'Dar es Salaam Flatbed Standard', 'Flatbed transport for machinery and oversized cargo, capped by the LATRA tariff.', 60, true) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 4. Published version 1 for each plan.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 4. Published version 1 for each plan.
@@ -496,7 +644,9 @@ insert into public.pricing_plan_versions (
   ('32000000-0000-4000-8000-000000000003', '31000000-0000-4000-8000-000000000003', 1, 'TZS', '2026-01-01 00:00:00+03', null, now(), null, null, 'Initial Dar es Salaam medium-truck version.'),
   ('32000000-0000-4000-8000-000000000004', '31000000-0000-4000-8000-000000000004', 1, 'TZS', '2026-01-01 00:00:00+03', null, now(), null, null, 'Initial Dar es Salaam large-truck version.'),
   ('32000000-0000-4000-8000-000000000005', '31000000-0000-4000-8000-000000000005', 1, 'TZS', '2026-01-01 00:00:00+03', null, now(), null, '30000000-0000-4000-8000-000000000001', 'Initial refrigerated version, regulated by LATRA.'),
-  ('32000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', 1, 'TZS', '2026-01-01 00:00:00+03', null, now(), null, '30000000-0000-4000-8000-000000000001', 'Initial flatbed version, regulated by LATRA.');
+  ('32000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', 1, 'TZS', '2026-01-01 00:00:00+03', null, now(), null, '30000000-0000-4000-8000-000000000001', 'Initial flatbed version, regulated by LATRA.') on conflict do nothing;
+
+;
 
 insert into public.pricing_plan_base_rates (
   pricing_plan_version_id, currency_code, base_fare, per_km_rate, per_min_rate,
@@ -508,21 +658,29 @@ insert into public.pricing_plan_base_rates (
   ('32000000-0000-4000-8000-000000000003', 'TZS', 20000.00, 2500.00, 100.00, 30000.00, 5000.00, 5000.00, 200.00, 10, 6000.00, 0.1800),
   ('32000000-0000-4000-8000-000000000004', 'TZS', 45000.00, 4000.00, 150.00, 60000.00, 8000.00, 8000.00, 300.00, 10, 10000.00, 0.1800),
   ('32000000-0000-4000-8000-000000000005', 'TZS', 35000.00, 3200.00, 130.00, 45000.00, 6000.00, 6000.00, 250.00, 10, 8000.00, 0.1800),
-  ('32000000-0000-4000-8000-000000000006', 'TZS', 40000.00, 3500.00, 140.00, 50000.00, 7000.00, 7000.00, 280.00, 10, 9000.00, 0.1800);
+  ('32000000-0000-4000-8000-000000000006', 'TZS', 40000.00, 3500.00, 140.00, 50000.00, 7000.00, 7000.00, 280.00, 10, 9000.00, 0.1800) on conflict do nothing;
+
+-- Distance tiering demonstration on the van plan.
+;
 
 -- Distance tiering demonstration on the van plan.
 insert into public.pricing_distance_tiers (
   pricing_plan_version_id, currency_code, min_km, max_km, per_km_rate, display_order
 ) values
   ('32000000-0000-4000-8000-000000000001', 'TZS', 0, 10, 1200.00, 10),
-  ('32000000-0000-4000-8000-000000000001', 'TZS', 10, null, 1000.00, 20);
+  ('32000000-0000-4000-8000-000000000001', 'TZS', 10, null, 1000.00, 20) on conflict do nothing;
+
+-- Weight tiers: van uses 500 kg, trucks use 2,000 kg breakpoints.
+;
 
 -- Weight tiers: van uses 500 kg, trucks use 2,000 kg breakpoints.
 insert into public.pricing_weight_tiers (
   pricing_plan_version_id, currency_code, min_kg, max_kg, surcharge_type, surcharge_value, display_order
 ) values
   ('32000000-0000-4000-8000-000000000001', 'TZS', 0, 500, 'flat_fee', 0, 10),
-  ('32000000-0000-4000-8000-000000000001', 'TZS', 500, null, 'flat_fee', 2500, 20);
+  ('32000000-0000-4000-8000-000000000001', 'TZS', 500, null, 'flat_fee', 2500, 20) on conflict do nothing;
+
+;
 
 insert into public.pricing_weight_tiers (
   pricing_plan_version_id, currency_code, min_kg, max_kg, surcharge_type, surcharge_value, display_order
@@ -538,7 +696,10 @@ from (values
 cross join (values
   (0::numeric, 2000::numeric, 0::numeric, 10),
   (2000::numeric, null::numeric, 15000::numeric, 20)
-) w(min_kg, max_kg, fee, ord);
+) w(min_kg, max_kg, fee, ord) on conflict do nothing;
+
+-- Cargo surcharges: appliances flat, electronics percentage.
+;
 
 -- Cargo surcharges: appliances flat, electronics percentage.
 insert into public.pricing_cargo_surcharges (
@@ -556,7 +717,10 @@ from (values
 cross join (values
   ('25000000-0000-4000-8000-000000000003'::uuid, 'flat_fee', 5000.0000),
   ('25000000-0000-4000-8000-000000000007'::uuid, 'percentage', 10.0000)
-) c(cargo_type_id, surcharge_type, surcharge_value);
+) c(cargo_type_id, surcharge_type, surcharge_value) on conflict do nothing;
+
+-- Refrigeration unit surcharge on the refrigerated plan.
+;
 
 -- Refrigeration unit surcharge on the refrigerated plan.
 insert into public.pricing_equipment_surcharges (
@@ -565,7 +729,11 @@ insert into public.pricing_equipment_surcharges (
   '32000000-0000-4000-8000-000000000005',
   '23000000-0000-4000-8000-000000000006',
   'TZS', 'flat_fee', 15000.0000
-);
+) on conflict do nothing;
+
+-- Time multipliers for every v1 plan. Weekend stacks so it may overlap the
+-- night window; the non-stacking peak/night windows never overlap.
+;
 
 -- Time multipliers for every v1 plan. Weekend stacks so it may overlap the
 -- night window; the non-stacking peak/night windows never overlap.
@@ -588,7 +756,13 @@ cross join (values
   ('Peak Evening',      '{1,2,3,4,5}'::smallint[], '17:00'::time, '19:00'::time, 1.4000, 30, false),
   ('Night Rate',        '{0,1,2,3,4,5,6}'::smallint[], '22:00'::time, '05:00'::time, 1.2500, 20, false),
   ('Weekend Surcharge', '{0,6}'::smallint[], '00:00'::time, '23:59:59'::time, 1.2000, 10, true)
-) t(name, days, starts, ends, multiplier, priority, stacks);
+) t(name, days, starts, ends, multiplier, priority, stacks) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+
+-- 1. Cancellation policies (country-scoped, one per cancelling role).
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 
@@ -614,7 +788,12 @@ insert into public.cancellation_policies (
     'Drivers cancel free up to 5 minutes before pickup, then pay a TZS 5,000 fee.',
     'driver', 5, 'flat', 5000.0000, 'TZS', null, true,
     now() - interval '30 days', now() - interval '30 days'
-  );
+  ) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 2. Rating categories. applies_to_role is the rater role.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 2. Rating categories. applies_to_role is the rater role.
@@ -631,7 +810,12 @@ insert into public.rating_categories (
   ('4c000000-0000-4000-8000-000000000004', 'communication', 'Communication',
    'How clearly the customer communicated before and during the trip.', 'driver', 10, true, now() - interval '30 days', now() - interval '30 days'),
   ('4c000000-0000-4000-8000-000000000005', 'punctuality', 'Punctuality',
-   'Whether the customer and cargo were ready on time.', 'driver', 20, true, now() - interval '30 days', now() - interval '30 days');
+   'Whether the customer and cargo were ready on time.', 'driver', 20, true, now() - interval '30 days', now() - interval '30 days') on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 3. Dispatch rule for Dar es Salaam.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 3. Dispatch rule for Dar es Salaam.
@@ -646,7 +830,13 @@ insert into public.dispatch_rules (
   '55555555-0000-4000-8000-000000000001',
   null, 8.00, 30, 2, 60, 0.6500, 4.20, true,
   now() - interval '30 days', now() - interval '30 days'
-);
+) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+
+-- 1. Payment providers (per country).
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 
@@ -671,7 +861,13 @@ insert into public.payment_providers (
     'flutterwave_webhook_secret', true, true, false,
     '{"settlement":"T+2","methods":["card"]}'::jsonb,
     true
-  );
+  ) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+
+-- 3. Tax rates: 18% VAT on customer charges, 5% withholding on payouts.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 
@@ -694,7 +890,12 @@ insert into public.tax_rates (
     'withholding', 'Withholding on Transport Services', 0.0500, 'driver_payout',
     now() - interval '30 days', true,
     'Withholding tax applied to the driver net earning and recorded separately.'
-  );
+  ) on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 4. Commission rules.
+-- ---------------------------------------------------------------------------
+;
 
 -- ---------------------------------------------------------------------------
 -- 4. Commission rules.
@@ -718,7 +919,11 @@ insert into public.commission_rules (
     null, null,
     'percentage', 10.0000, 0, null, 10,
     now() - interval '30 days', true
-  );
+  ) on conflict do nothing;
+
+-- 2. Notification templates (18 = 12 push + 3 SMS + 3 email)
+-- ----------------------------------------------------------------------------
+;
 
 -- 2. Notification templates (18 = 12 push + 3 SMS + 3 email)
 -- ----------------------------------------------------------------------------
@@ -752,6 +957,10 @@ on conflict (id) do nothing;
 
 -- ----------------------------------------------------------------------------
 
+;
+
+-- ----------------------------------------------------------------------------
+
 insert into public.prohibited_items (
   id, country_id, category, name, description, legal_reference, severity, is_active
 ) values
@@ -767,6 +976,10 @@ on conflict (id) do nothing;
 
 -- ----------------------------------------------------------------------------
 
+;
+
+-- ----------------------------------------------------------------------------
+
 insert into public.support_categories (
   id, country_id, code, name, description, display_order, is_active
 ) values
@@ -776,6 +989,10 @@ insert into public.support_categories (
   ('8c000000-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000001', 'driver_behavior', 'Driver behaviour', 'Service quality and conduct concerns.', 40, true),
   ('8c000000-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000001', 'feature_request', 'Feature request', 'Product ideas and new capability requests.', 50, true)
 on conflict (id) do nothing;
+
+-- 10. Retention policies
+-- ----------------------------------------------------------------------------
+;
 
 -- 10. Retention policies
 -- ----------------------------------------------------------------------------
@@ -795,3 +1012,6 @@ on conflict (table_name) do nothing;
 -- ----------------------------------------------------------------------------
 
 commit;
+
+-- Apply shared configuration after the staging-specific rows.
+\ir seed-configuration.sql

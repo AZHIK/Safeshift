@@ -263,6 +263,18 @@ class AuthNotifier extends Notifier<AuthState> {
       );
     }
     try {
+      final authUser = _service.client.auth.currentUser;
+      if (authUser == null) {
+        throw const AuthFailure(
+          'Your session has expired. Please sign in again.',
+        );
+      }
+      // Google OAuth never calls verifyOtp, so the profile bootstrap that the
+      // OTP paths run is skipped. Call it here so a first-time Google sign-in
+      // has a profile row before fetchUserProfile reads it.
+      await _service.ensureProfile(
+        authUser.userMetadata?['full_name'] as String?,
+      );
       final user = await _service.fetchUserProfile();
       if (user == null) {
         throw const AuthFailure('Your profile is still being created.');

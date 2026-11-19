@@ -201,6 +201,9 @@ export async function getRecord(
   if (!data) return null;
   const row = data as unknown as Record<string, unknown>;
   flattenRelations(row);
+  if (resource.augmentRecord) {
+    await resource.augmentRecord(row, { client: supabase, filters: {} });
+  }
   return row;
 }
 
@@ -322,23 +325,36 @@ export async function createRecord(
     return { success: false, error: duplicate };
   }
 
-  const { data, error } = await client.from(resource.table).insert(payload).select('id').single();
-
-  if (error || !data) {
-    return { success: false, error: error?.message ?? 'The record could not be created.' };
+  let createdId: string;
+  if (resource.writeRpc) {
+    const { data, error } = await client.rpc(resource.writeRpc, {
+      p_table: resource.table,
+      p_action: 'create',
+      p_payload: payload,
+    });
+    if (error || !data) {
+      return { success: false, error: error?.message ?? 'The record could not be created.' };
+    }
+    createdId = String(data);
+  } else {
+    const { data, error } = await client.from(resource.table).insert(payload).select('id').single();
+    if (error || !data) {
+      return { success: false, error: error?.message ?? 'The record could not be created.' };
+    }
+    createdId = String(data.id);
   }
 
   await logAdminAction(
     client,
     `${resource.table}.created`,
     resource.table,
-    String(data.id),
+    createdId,
     null,
     auditPayload(resource, values, payload),
     resource.permission,
   );
 
-  return { success: true, data: { id: String(data.id) } };
+  return { success: true, data: { id: createdId } };
 }
 
 /** Updates one configuration row. */
@@ -369,9 +385,18 @@ export async function updateRecord(
     return { success: false, error: duplicate };
   }
 
-  const { error } = await client.from(resource.table).update(payload).eq('id', id);
-  if (error) {
-    return { success: false, error: error.message };
+  const writeError = resource.writeRpc
+    ? (
+        await client.rpc(resource.writeRpc, {
+          p_table: resource.table,
+          p_action: 'update',
+          p_payload: payload,
+          p_id: id,
+        })
+      ).error
+    : (await client.from(resource.table).update(payload).eq('id', id)).error;
+  if (writeError) {
+    return { success: false, error: writeError.message };
   }
 
   const changes = diffPayload(before, payload);
@@ -398,10 +423,15 @@ export async function getReferencingCounts(
 ): Promise<Record<string, number>> {
   if (!resource.references || resource.references.length === 0) return {};
 
-  const { data, error } = await client.rpc('admin_config_reference_counts', {
-    p_resource: resource.referenceResource ?? resource.table,
-    p_id: id,
-  });
+  const { data, error } = resource.referenceCountsRpc
+    ? await client.rpc(resource.referenceCountsRpc, {
+        p_table: resource.table,
+        p_id: id,
+      })
+    : await client.rpc('admin_config_reference_counts', {
+        p_resource: resource.referenceResource ?? resource.table,
+        p_id: id,
+      });
 
   if (error || !data || typeof data !== 'object') return {};
 
@@ -458,9 +488,17 @@ export async function deactivateRecord(
     };
   }
 
-  const { error } = await client.from(resource.table).update({ is_active: false }).eq('id', id);
-  if (error) {
-    return { success: false, error: error.message };
+  const writeError = resource.writeRpc
+    ? (
+        await client.rpc(resource.writeRpc, {
+          p_table: resource.table,
+          p_action: 'deactivate',
+          p_id: id,
+        })
+      ).error
+    : (await client.from(resource.table).update({ is_active: false }).eq('id', id)).error;
+  if (writeError) {
+    return { success: false, error: writeError.message };
   }
 
   await logAdminAction(
@@ -502,9 +540,17 @@ export async function deleteRecord(
     };
   }
 
-  const { error } = await client.from(resource.table).delete().eq('id', id);
-  if (error) {
-    return { success: false, error: error.message };
+  const writeError = resource.writeRpc
+    ? (
+        await client.rpc(resource.writeRpc, {
+          p_table: resource.table,
+          p_action: 'delete',
+          p_id: id,
+        })
+      ).error
+    : (await client.from(resource.table).delete().eq('id', id)).error;
+  if (writeError) {
+    return { success: false, error: writeError.message };
   }
 
   await logAdminAction(

@@ -142,12 +142,12 @@ describe('country server actions', () => {
     expect(requestFor(currentClient, 'countries', 'insert')).toBeUndefined();
   });
 
-  it('refuses a country outside the supported catalogue', async () => {
+  it('refuses a lowercase ISO code', async () => {
     const actions = await loadActions();
     const result = await actions.createCountry({ ...validValues, iso_code: 'tz' });
 
     expect(result.success).toBe(false);
-    expect(result.fieldErrors?.iso_code).toMatch(/catalogue/i);
+    expect(result.fieldErrors?.iso_code).toMatch(/two-letter uppercase ISO code/i);
     expect(requestFor(currentClient, 'countries', 'insert')).toBeUndefined();
   });
 

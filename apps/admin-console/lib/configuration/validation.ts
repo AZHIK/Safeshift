@@ -129,10 +129,18 @@ export function validateField(
     }
   }
 
-  if (field.type === 'text' || field.type === 'textarea' || field.type === 'select') {
+  if (
+    field.type === 'text' ||
+    field.type === 'textarea' ||
+    field.type === 'select'
+  ) {
     if (typeof value === 'string' && value.length > 4000) {
       return `${field.label} is too long.`;
     }
+  }
+
+  if (field.type === 'geography' && typeof value === 'string' && value.length > 20000) {
+    return `${field.label} is too long.`;
   }
 
   return field.validate ? field.validate(value, values) : null;

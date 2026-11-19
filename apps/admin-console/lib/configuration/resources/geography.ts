@@ -9,7 +9,56 @@
  * because the market's history (jobs, quotes, payouts) hangs off the id.
  */
 
-import type { ConfigResource } from '../types';
+import type { AugmentContext, ConfigResource } from '../types';
+
+const GEOGRAPHY_WRITE_RPC = 'admin_write_geography';
+const GEOGRAPHY_WKT_RPC = 'admin_geography_wkt';
+const GEOGRAPHY_REFERENCES_RPC = 'admin_geography_reference_counts';
+
+/** Validates the WKT an operator enters for a geography column. */
+function wktField(label: string, shapes: string[]) {
+  return {
+    label,
+    type: 'geography' as const,
+    required: true,
+    placeholder: 'POLYGON((39.24 -6.86, 39.31 -6.86, 39.31 -6.78, 39.24 -6.86))',
+    help: `Well-known text for a ${shapes.join(' or ')} in longitude/latitude order.`,
+    validate: (value: unknown) => {
+      const text = String(value ?? '').trim();
+      if (!text) return null;
+      const shape = text.split('(')[0].trim().toUpperCase();
+      return shapes.some((allowed) => shape.startsWith(allowed))
+        ? null
+        : `Enter a ${shapes.join(' or ')} in WKT form.`;
+    },
+  };
+}
+
+/** Fills WKT fields on rows loaded from a PostGIS geography table. */
+async function withGeometry(
+  rows: Record<string, unknown>[],
+  ctx: AugmentContext,
+  table: string,
+): Promise<void> {
+  if (rows.length === 0) return;
+  const ids = rows.map((row) => String(row.id)).filter(Boolean);
+  const { data, error } = await ctx.client.rpc(GEOGRAPHY_WKT_RPC, {
+    p_table: table,
+    p_ids: ids,
+  });
+  if (error || !data) return;
+  const byId = new Map(
+    (data as { id: string; boundary: string | null; centroid: string | null; location: string | null }[])
+      .map((entry) => [String(entry.id), entry]),
+  );
+  for (const row of rows) {
+    const geometry = byId.get(String(row.id));
+    if (!geometry) continue;
+    row.boundary = geometry.boundary;
+    row.centroid = geometry.centroid;
+    row.location = geometry.location;
+  }
+}
 
 export const countriesResource: ConfigResource = {
   table: 'countries',
@@ -59,55 +108,50 @@ export const countriesResource: ConfigResource = {
   fields: [
     {
       name: 'iso_code',
-      label: 'Country',
-      type: 'select',
+      label: 'ISO country code',
+      type: 'text',
       required: true,
-      optionsKey: 'catalogue_countries',
-      help: 'The countries the platform supports. Choosing one fills the currency, the language, the phone code and the time zone below.',
+      placeholder: 'TZ',
+      help: 'Enter the two-letter ISO code for the country you are adding to the database.',
       validate: (value) =>
         /^[A-Z]{2}$/.test(String(value ?? '').trim())
           ? null
-          : 'Choose a country from the catalogue.',
+          : 'Enter a two-letter uppercase ISO code.',
     },
     {
       name: 'name',
       label: 'Country name',
       type: 'text',
       required: true,
-      autofillFrom: 'name',
     },
     {
       name: 'default_currency_id',
       label: 'Default currency',
       type: 'select',
       optionsKey: 'currency_ids',
-      autofillFrom: 'currencyId',
-      help: 'The currency the market settles in. Filled in from the country catalogue.',
+      help: 'The currency the market settles in.',
     },
     {
       name: 'default_language_id',
       label: 'Default language',
       type: 'select',
       optionsKey: 'languages',
-      autofillFrom: 'languageId',
-      help: 'The language the customer and driver apps start in. Filled in from the country catalogue.',
+      help: 'The language the customer and driver apps start in.',
     },
     {
       name: 'phone_code',
       label: 'Phone code',
       type: 'text',
-      autofillFrom: 'phoneCode',
       placeholder: '+255',
-      help: "The dialling code the country's phone numbers use. Filled in from the country catalogue.",
+      help: "The dialling code the country's phone numbers use.",
     },
     {
       name: 'default_timezone',
       label: 'Time zone',
       type: 'text',
       required: true,
-      autofillFrom: 'timeZone',
       placeholder: 'Africa/Dar_es_Salaam',
-      help: 'The IANA time zone the market runs in. Filled in from the country catalogue.',
+      help: 'The IANA time zone the market runs in.',
     },
     {
       name: 'regulatory_framework',
@@ -200,4 +244,234 @@ export const countryConfigurationsResource: ConfigResource = {
     { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
   ],
   defaultSort: { column: 'config_key', ascending: true },
+};
+
+/**
+ * The geography hierarchy below the country: a region holds cities, a city
+ * holds service zones and neighbourhoods, and neighbourhoods hold addresses.
+ * These are the rows the quote engine reads when it decides whether a pickup
+ * is inside the operating area, so they must be editable from the console.
+ *
+ * Geometry columns are edited as WKT text and written through a database RPC
+ * that converts them to PostGIS geography values.
+ */
+export const regionsResource: ConfigResource = {
+  table: 'regions',
+  singular: 'region',
+  singularTitle: 'Region',
+  pluralTitle: 'Regions',
+  description: 'The administrative regions inside a country. Cities belong to one region.',
+  permission: 'manage_geography',
+  group: 'Geography',
+  countryScoped: true,
+  softDelete: true,
+  writeRpc: GEOGRAPHY_WRITE_RPC,
+  referenceCountsRpc: GEOGRAPHY_REFERENCES_RPC,
+  selectSpec: 'id, country_id, name, code, is_active, countries(name, iso_code)',
+  uniqueColumns: [{ columns: ['country_id', 'name'], label: 'name in this country' }],
+  columns: [
+    { key: 'name', label: 'Region', sortable: true },
+    { key: 'code', label: 'Code', kind: 'code' },
+    { key: 'country_name', label: 'Country' },
+    { key: 'is_active', label: 'Status', kind: 'boolean', sortable: true },
+  ],
+  searchColumns: ['name', 'code'],
+  references: [{ key: 'cities', label: 'active cities', blocking: true }],
+  fields: [
+    { name: 'country_id', label: 'Country', type: 'select', required: true, optionsKey: 'countries' },
+    { name: 'name', label: 'Region name', type: 'text', required: true },
+    { name: 'code', label: 'Code', type: 'text', placeholder: 'DSM' },
+    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
+  ],
+  defaultSort: { column: 'name', ascending: true },
+};
+
+export const citiesResource: ConfigResource = {
+  table: 'cities',
+  singular: 'city',
+  singularTitle: 'City',
+  pluralTitle: 'Cities',
+  description:
+    'Cities define the service footprint. A pickup must fall inside an active city boundary to receive a quote.',
+  permission: 'manage_geography',
+  group: 'Geography',
+  countryScoped: true,
+  softDelete: true,
+  writeRpc: GEOGRAPHY_WRITE_RPC,
+  referenceCountsRpc: GEOGRAPHY_REFERENCES_RPC,
+  selectSpec:
+    'id, country_id, region_id, name, timezone, latitude, longitude, is_active, launched_at, config, countries(name, iso_code), regions(name)',
+  uniqueColumns: [{ columns: ['region_id', 'name'], label: 'name in this region' }],
+  columns: [
+    { key: 'name', label: 'City', sortable: true },
+    { key: 'country_name', label: 'Country' },
+    { key: 'region_name', label: 'Region' },
+    { key: 'timezone', label: 'Time zone' },
+    { key: 'is_active', label: 'Status', kind: 'boolean', sortable: true },
+  ],
+  searchColumns: ['name', 'timezone'],
+  references: [
+    { key: 'service_zones', label: 'active service zones', blocking: true },
+    { key: 'neighborhoods', label: 'active neighbourhoods', blocking: true },
+    { key: 'addresses', label: 'addresses', blocking: true },
+  ],
+  augment: (rows, ctx) => withGeometry(rows, ctx, 'cities'),
+  augmentRecord: (row, ctx) => withGeometry([row], ctx, 'cities'),
+  fields: [
+    { name: 'country_id', label: 'Country', type: 'select', required: true, optionsKey: 'countries' },
+    { name: 'region_id', label: 'Region', type: 'select', required: true, optionsKey: 'regions' },
+    { name: 'name', label: 'City name', type: 'text', required: true },
+    {
+      name: 'timezone',
+      label: 'Time zone',
+      type: 'text',
+      required: true,
+      placeholder: 'Africa/Dar_es_Salaam',
+    },
+    { name: 'latitude', label: 'Latitude', type: 'number', step: 0.0000001 },
+    { name: 'longitude', label: 'Longitude', type: 'number', step: 0.0000001 },
+    {
+      ...wktField('Boundary (WKT)', ['POLYGON']),
+      name: 'boundary',
+      required: false,
+      help: 'Optional WKT POLYGON. When set, only pickups inside it get a quote. Leave blank to use the city centre only.',
+    },
+    { name: 'config', label: 'Configuration', type: 'json', defaultValue: {} },
+    { name: 'launched_at', label: 'Launched on', type: 'date' },
+    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
+  ],
+  defaultSort: { column: 'name', ascending: true },
+};
+
+export const serviceZonesResource: ConfigResource = {
+  table: 'service_zones',
+  singular: 'service zone',
+  singularTitle: 'Service Zone',
+  pluralTitle: 'Service Zones',
+  description: 'Operating and pricing polygons inside a city, used for dispatch and zone surcharges.',
+  permission: 'manage_geography',
+  group: 'Geography',
+  softDelete: true,
+  writeRpc: GEOGRAPHY_WRITE_RPC,
+  referenceCountsRpc: GEOGRAPHY_REFERENCES_RPC,
+  selectSpec: 'id, city_id, name, zone_type, is_active, metadata, cities(name)',
+  uniqueColumns: [{ columns: ['city_id', 'name'], label: 'name in this city' }],
+  columns: [
+    { key: 'name', label: 'Zone', sortable: true },
+    { key: 'city_name', label: 'City' },
+    { key: 'zone_type', label: 'Type', kind: 'code' },
+    { key: 'is_active', label: 'Status', kind: 'boolean', sortable: true },
+  ],
+  searchColumns: ['name', 'zone_type'],
+  references: [
+    { key: 'neighborhoods', label: 'active neighbourhoods', blocking: true },
+    { key: 'addresses', label: 'addresses', blocking: true },
+    { key: 'zone_pricing_overrides', label: 'pricing overrides', blocking: true },
+  ],
+  augment: (rows, ctx) => withGeometry(rows, ctx, 'service_zones'),
+  augmentRecord: (row, ctx) => withGeometry([row], ctx, 'service_zones'),
+  fields: [
+    { name: 'city_id', label: 'City', type: 'select', required: true, optionsKey: 'cities' },
+    { name: 'name', label: 'Zone name', type: 'text', required: true },
+    {
+      name: 'zone_type',
+      label: 'Zone type',
+      type: 'select',
+      required: true,
+      defaultValue: 'operating_area',
+      options: [
+        { value: 'operating_area', label: 'Operating area' },
+        { value: 'pricing_zone', label: 'Pricing zone' },
+        { value: 'surge_zone', label: 'Surge zone' },
+        { value: 'restricted_zone', label: 'Restricted zone' },
+        { value: 'priority_zone', label: 'Priority zone' },
+      ],
+    },
+    { ...wktField('Boundary (WKT)', ['POLYGON']), name: 'boundary' },
+    { ...wktField('Centroid (WKT)', ['POINT']), name: 'centroid' },
+    { name: 'metadata', label: 'Metadata', type: 'json', defaultValue: {} },
+    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
+  ],
+  defaultSort: { column: 'name', ascending: true },
+};
+
+export const neighborhoodsResource: ConfigResource = {
+  table: 'neighborhoods',
+  singular: 'neighbourhood',
+  singularTitle: 'Neighbourhood',
+  pluralTitle: 'Neighbourhoods',
+  description: 'Named neighbourhoods inside a city and service zone, used for place suggestions.',
+  permission: 'manage_geography',
+  group: 'Geography',
+  softDelete: true,
+  writeRpc: GEOGRAPHY_WRITE_RPC,
+  referenceCountsRpc: GEOGRAPHY_REFERENCES_RPC,
+  selectSpec:
+    'id, city_id, service_zone_id, name, is_active, cities(name), service_zones(name)',
+  uniqueColumns: [{ columns: ['city_id', 'name'], label: 'name in this city' }],
+  columns: [
+    { key: 'name', label: 'Neighbourhood', sortable: true },
+    { key: 'city_name', label: 'City' },
+    { key: 'service_zone_name', label: 'Service zone' },
+    { key: 'is_active', label: 'Status', kind: 'boolean', sortable: true },
+  ],
+  searchColumns: ['name'],
+  references: [{ key: 'addresses', label: 'addresses', blocking: true }],
+  augment: (rows, ctx) => withGeometry(rows, ctx, 'neighborhoods'),
+  augmentRecord: (row, ctx) => withGeometry([row], ctx, 'neighborhoods'),
+  fields: [
+    { name: 'city_id', label: 'City', type: 'select', required: true, optionsKey: 'cities' },
+    {
+      name: 'service_zone_id',
+      label: 'Service zone',
+      type: 'select',
+      required: true,
+      optionsKey: 'service_zones',
+    },
+    { name: 'name', label: 'Neighbourhood name', type: 'text', required: true },
+    { ...wktField('Centroid (WKT)', ['POINT']), name: 'centroid', required: false },
+    { ...wktField('Boundary (WKT)', ['POLYGON']), name: 'boundary', required: false },
+    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
+  ],
+  defaultSort: { column: 'name', ascending: true },
+};
+
+export const addressesResource: ConfigResource = {
+  table: 'addresses',
+  singular: 'address',
+  singularTitle: 'Address',
+  pluralTitle: 'Addresses',
+  description: 'Saved customer addresses and their map locations.',
+  permission: 'manage_geography',
+  group: 'Geography',
+  hardDelete: true,
+  writeRpc: GEOGRAPHY_WRITE_RPC,
+  referenceCountsRpc: GEOGRAPHY_REFERENCES_RPC,
+  selectSpec:
+    'id, country_id, city_id, neighborhood_id, line_1, line_2, landmark, metadata, countries(name), cities(name), neighborhoods(name)',
+  columns: [
+    { key: 'line_1', label: 'Address', sortable: true },
+    { key: 'city_name', label: 'City' },
+    { key: 'neighborhood_name', label: 'Neighbourhood' },
+    { key: 'landmark', label: 'Landmark' },
+  ],
+  searchColumns: ['line_1', 'landmark'],
+  augment: (rows, ctx) => withGeometry(rows, ctx, 'addresses'),
+  augmentRecord: (row, ctx) => withGeometry([row], ctx, 'addresses'),
+  fields: [
+    { name: 'country_id', label: 'Country', type: 'select', required: true, optionsKey: 'countries' },
+    { name: 'city_id', label: 'City', type: 'select', required: true, optionsKey: 'cities' },
+    {
+      name: 'neighborhood_id',
+      label: 'Neighbourhood',
+      type: 'select',
+      optionsKey: 'neighborhoods',
+    },
+    { name: 'line_1', label: 'Address line 1', type: 'text', required: true },
+    { name: 'line_2', label: 'Address line 2', type: 'text' },
+    { name: 'landmark', label: 'Landmark', type: 'text' },
+    { ...wktField('Location (WKT)', ['POINT']), name: 'location' },
+    { name: 'metadata', label: 'Metadata', type: 'json', defaultValue: {} },
+  ],
+  defaultSort: { column: 'line_1', ascending: true },
 };

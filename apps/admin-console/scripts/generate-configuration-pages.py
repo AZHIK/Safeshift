@@ -19,6 +19,11 @@ APP = pathlib.Path(__file__).resolve().parents[1] / "app" / "(console)" / "setti
 PAGES = [
     ("countries", "countries", "Country", "CountriesPage", "manage_countries", "Geography", "Countries"),
     ("country-configurations", "countryConfigurations", "CountryConfiguration", "CountryConfigurationsPage", "manage_countries", "Geography", "CountryConfigurations"),
+    ("regions", "regions", "Region", "RegionsPage", "manage_geography", "Geography", "Regions"),
+    ("cities", "cities", "City", "CitiesPage", "manage_geography", "Geography", "Cities"),
+    ("service-zones", "serviceZones", "ServiceZone", "ServiceZonesPage", "manage_geography", "Geography", "ServiceZones"),
+    ("neighborhoods", "neighborhoods", "Neighborhood", "NeighborhoodsPage", "manage_geography", "Geography", "Neighborhoods"),
+    ("addresses", "addresses", "Address", "AddressesPage", "manage_geography", "Geography", "Addresses"),
     ("vehicle-types", "vehicleTypes", "VehicleType", "VehicleTypesPage", "manage_vehicle_catalog", "Vehicles", "VehicleTypes"),
     ("vehicle-makes", "vehicleMakes", "VehicleMake", "VehicleMakesPage", "manage_vehicle_catalog", "Vehicles", "VehicleMakes"),
     ("vehicle-models", "vehicleModels", "VehicleModel", "VehicleModelsPage", "manage_vehicle_catalog", "Vehicles", "VehicleModels"),

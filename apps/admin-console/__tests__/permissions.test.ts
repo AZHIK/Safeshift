@@ -26,6 +26,11 @@ vi.mock('@/lib/configuration/guard', () => ({
 const EXPECTED: Record<string, string> = {
   countries: 'manage_countries',
   'country-configurations': 'manage_countries',
+  regions: 'manage_geography',
+  cities: 'manage_geography',
+  'service-zones': 'manage_geography',
+  neighborhoods: 'manage_geography',
+  addresses: 'manage_geography',
   'vehicle-types': 'manage_vehicle_catalog',
   'vehicle-makes': 'manage_vehicle_catalog',
   'vehicle-models': 'manage_vehicle_catalog',
@@ -49,9 +54,9 @@ const EXPECTED: Record<string, string> = {
 };
 
 describe('configuration permissions', () => {
-  it('has exactly the twenty-two configuration tables', () => {
-    expect(Object.keys(CONFIGURATION_RESOURCES)).toHaveLength(22);
-    expect(Object.keys(EXPECTED)).toHaveLength(22);
+  it('has exactly the twenty-seven configuration tables', () => {
+    expect(Object.keys(CONFIGURATION_RESOURCES)).toHaveLength(27);
+    expect(Object.keys(EXPECTED)).toHaveLength(27);
   });
 
   it('requires the right permission on every page', () => {
@@ -102,6 +107,7 @@ describe('configuration permissions', () => {
       'manage_dispatch',
       'manage_ratings',
       'manage_countries',
+      'manage_geography',
     ];
 
     for (const permission of umbrellaFamily) {
@@ -118,6 +124,7 @@ describe('configuration permissions', () => {
       'manage_dispatch',
       'manage_cancellation_policies',
       'manage_countries',
+      'manage_geography',
     ];
 
     const visible = CONFIGURATION_GROUPS.flatMap((group) =>

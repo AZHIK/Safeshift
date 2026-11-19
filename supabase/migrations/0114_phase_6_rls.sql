@@ -65,66 +65,9 @@ grant execute on function private.is_job_participant(uuid, uuid) to authenticate
 grant execute on function private.can_read_incident(uuid, uuid) to authenticated, service_role;
 grant execute on function private.can_read_support_ticket(uuid, uuid) to authenticated, service_role;
 
--- ----------------------------------------------------------------------------
--- 2. Permission catalogue
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('manage_notifications',      'Manage notification templates and send configuration', 'communication'),
-  ('view_incidents',            'View safety incidents',                               'safety'),
-  ('manage_incidents',          'Assign, update, and resolve safety incidents',        'safety'),
-  ('manage_prohibited_items',   'Manage jurisdiction prohibited-item catalogues',      'safety'),
-  ('manage_support',            'Manage support categories and support configuration', 'support'),
-  ('view_all_tickets',          'View every support ticket and internal note',         'support'),
-  ('manage_tickets',            'Assign and update support tickets',                   'support'),
-  ('view_data_access',          'View PDPC data access logs',                          'compliance'),
-  ('view_retention',            'View data retention policies',                        'compliance'),
-  ('manage_retention',          'Manage and execute data retention policies',          'compliance'),
-  ('manage_data_requests',      'Process GDPR/PDPC data subject requests',             'compliance'),
-  ('view_analytics',            'View batch analytics and operational dashboards',     'analytics'),
-  ('manage_analytics',          'Run analytics batch functions',                       'analytics')
-on conflict (permission_key) do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key)
-select v.role_name, v.permission_key
-  from (values
-    ('super_admin',        'manage_notifications'),
-    ('super_admin',        'view_incidents'),
-    ('super_admin',        'manage_incidents'),
-    ('super_admin',        'manage_prohibited_items'),
-    ('super_admin',        'manage_support'),
-    ('super_admin',        'view_all_tickets'),
-    ('super_admin',        'manage_tickets'),
-    ('super_admin',        'view_data_access'),
-    ('super_admin',        'view_retention'),
-    ('super_admin',        'manage_retention'),
-    ('super_admin',        'manage_data_requests'),
-    ('super_admin',        'view_analytics'),
-    ('super_admin',        'manage_analytics'),
-    ('operations_admin',   'manage_notifications'),
-    ('operations_admin',   'view_incidents'),
-    ('operations_admin',   'manage_incidents'),
-    ('operations_admin',   'manage_prohibited_items'),
-    ('operations_admin',   'view_all_tickets'),
-    ('operations_admin',   'manage_tickets'),
-    ('operations_admin',   'view_analytics'),
-    ('verification_admin', 'view_incidents'),
-    ('verification_admin', 'view_analytics'),
-    ('support_agent',      'view_incidents'),
-    ('support_agent',      'view_all_tickets'),
-    ('support_agent',      'manage_tickets'),
-    ('support_agent',      'manage_support'),
-    ('support_agent',      'manage_data_requests'),
-    ('finance_admin',      'view_analytics'),
-    ('analyst',            'view_analytics'),
-    ('analyst',            'view_data_access'),
-    ('analyst',            'view_retention')
-  ) as v(role_name, permission_key)
- where not exists (
-   select 1
-     from public.admin_role_permissions existing
-    where existing.role_name = v.role_name
-      and existing.permission_key = v.permission_key
- );
+
+
 
 -- ----------------------------------------------------------------------------
 -- 3. Enable RLS

@@ -1,57 +1,9 @@
--- ============================================================================
--- SafeShift — Phase 11 / Migration 0133
--- Country management in the operator configuration console.
---
--- The console can already read public.countries (every country-scoped
--- configuration row and every country dropdown reads it), but it cannot
--- write to it: the table is read-only for the authenticated role and the
--- catalogue of permissions has no key that unlocks it.
---
--- This migration adds the missing half:
---
---   1. the 'manage_countries' permission and the grants that unlock it,
---   2. the umbrella family entry, so 'manage_configuration' opens the page
---      the same way it opens the other twenty configuration pages,
---   3. the row-level security policies that let an administrator write a
---      country row, and the table privileges those policies need,
---   4. the reference counts that stop a country being deactivated while
---      live data still points at it.
---
--- Countries are the root of the scope hierarchy: twenty-eight tables carry
--- a country_id. Deactivating a country that cities, vehicles or pricing
--- plans still reference would hide a live market, so the deactivate guard
--- counts those rows before the console lets the row be hidden.
---
--- Nothing else about the permission model changes. The umbrella still does
--- not cover 'manage_admins', and the grants below are the same two roles
--- migration 0132 granted configuration domains to.
--- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. The permission
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('manage_countries', 'Add the countries the platform operates in and retire the ones it does not', 'platform')
-on conflict (permission_key) do nothing;
 
 comment on column public.admin_permissions_catalog.description is
   'Grouping for admin UI: operations, finance, trust_safety, pricing, support, platform, compliance.';
 
--- ----------------------------------------------------------------------------
--- 2. Role grants
--- ----------------------------------------------------------------------------
--- super_admin receives every catalogue row ("select 'super_admin',
--- permission_key from public.admin_permissions_catalog"), so it holds this
--- one automatically once the catalogue row exists.
---
--- operations_admin is given the key explicitly: opening a market is an
--- operations duty, in the same way that adding a vehicle type for a new
--- city is.
--- ----------------------------------------------------------------------------
-insert into public.admin_role_permissions (role_name, permission_key) values
-  ('super_admin',      'manage_countries'),
-  ('operations_admin', 'manage_countries')
-on conflict do nothing;
+
 
 -- ----------------------------------------------------------------------------
 -- 3. The umbrella family

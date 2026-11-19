@@ -7,7 +7,6 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { countryCatalogue } from './country-catalogue';
 import type { ConfigOption, ConfigResource } from './types';
 
 type OptionLoader = (client: SupabaseClient) => Promise<ConfigOption[]>;
@@ -25,57 +24,6 @@ async function rows(
 }
 
 const loaders: Record<string, OptionLoader> = {
-  /**
-   * The countries the platform supports.
-   *
-   * The list comes from the catalogue file, not from the database: the
-   * catalogue is the source of truth for which countries exist. The currency
-   * and language ids are resolved from the database, because the country row
-   * stores them as foreign keys.
-   */
-  catalogue_countries: async (client) => {
-    const [currencies, languages] = await Promise.all([
-      rows(client, 'currencies', 'id, code', 'code'),
-      rows(client, 'languages', 'id, code', 'code'),
-    ]);
-
-    const currencyByCode = new Map(
-      currencies.map((row) => [
-        String(row.code ?? '')
-          .trim()
-          .toUpperCase(),
-        String(row.id),
-      ]),
-    );
-    const languageByCode = new Map(
-      languages.map((row) => [
-        String(row.code ?? '')
-          .trim()
-          .toLowerCase(),
-        String(row.id),
-      ]),
-    );
-
-    return countryCatalogue.map((entry) => ({
-      value: entry.isoCode,
-      label: entry.name,
-      secondary: entry.phoneCode,
-      meta: {
-        name: entry.name,
-        isoCode: entry.isoCode,
-        currencyCode: entry.currencyCode,
-        currencyName: entry.currencyName,
-        currencySymbol: entry.currencySymbol,
-        currencyId: currencyByCode.get(entry.currencyCode.toUpperCase()) ?? null,
-        languageCode: entry.languageCode,
-        languageName: entry.languageName,
-        languageId: languageByCode.get(entry.languageCode.toLowerCase()) ?? null,
-        phoneCode: entry.phoneCode,
-        timeZone: entry.timeZone,
-      },
-    }));
-  },
-
   countries: async (client) =>
     (await rows(client, 'countries', 'id, name, iso_code', 'name')).map((row) => ({
       value: String(row.id),
@@ -101,6 +49,34 @@ const loaders: Record<string, OptionLoader> = {
         };
       },
     ),
+
+  regions: async (client) =>
+    (await rows(client, 'regions', 'id, name, code, country_id, countries(name, iso_code)', 'name')).map(
+      (row) => {
+        const country = row.countries as { name?: string; iso_code?: string } | null;
+        return {
+          value: String(row.id),
+          label: String(row.name),
+          secondary: country ? `${country.name} (${country.iso_code})` : String(row.code ?? ''),
+        };
+      },
+    ),
+
+  service_zones: async (client) =>
+    (await rows(client, 'service_zones', 'id, name, city_id, cities(name)', 'name')).map((row) => {
+      const city = row.cities as { name?: string } | null;
+      return {
+        value: String(row.id),
+        label: String(row.name),
+        secondary: city ? String(city.name) : '',
+      };
+    }),
+
+  neighborhoods: async (client) =>
+    (await rows(client, 'neighborhoods', 'id, name, city_id', 'name')).map((row) => ({
+      value: String(row.id),
+      label: String(row.name),
+    })),
 
   currencies: async (client) =>
     (await rows(client, 'currencies', 'id, code, name, symbol', 'code')).map((row) => ({

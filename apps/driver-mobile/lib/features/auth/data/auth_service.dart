@@ -48,10 +48,7 @@ class AuthService {
     if (normalized.length != 13) {
       throw const ValidationFailure('Enter a valid 9-digit phone number');
     }
-    await _client.auth.signInWithOtp(
-      phone: normalized,
-      shouldCreateUser: true,
-    );
+    await _client.auth.signInWithOtp(phone: normalized, shouldCreateUser: true);
   }
 
   Future<User> verifyOtp(String phone, String otp) async {
@@ -71,7 +68,7 @@ class AuthService {
       throw const AuthFailure('Sign-in failed. Please request a new code.');
     }
 
-    await _ensureProfile(authUser.userMetadata?['full_name'] as String?);
+    await ensureProfile(authUser.userMetadata?['full_name'] as String?);
     final profile = await fetchUserProfile(userId: authUser.id);
     if (profile == null) {
       throw const AuthFailure(
@@ -125,10 +122,9 @@ class AuthService {
     return User(
       id: row['id'] as String,
       phone: (row['phone'] as String?) ?? '',
-      fullName:
-          (row['full_name'] as String?)?.trim().isNotEmpty == true
-              ? row['full_name'] as String
-              : ((row['display_name'] as String?) ?? ''),
+      fullName: (row['full_name'] as String?)?.trim().isNotEmpty == true
+          ? row['full_name'] as String
+          : ((row['display_name'] as String?) ?? ''),
       role: role,
       email: (row['email'] as String?) ?? '',
     );
@@ -161,14 +157,12 @@ class AuthService {
     );
   }
 
-  Future<void> _ensureProfile(String? fullName) async {
+  /// Creates or completes the profile for any authenticated sign-in method.
+  Future<void> ensureProfile(String? fullName) async {
     try {
       await _client.rpc(
         'ensure_my_profile',
-        params: <String, dynamic>{
-          'p_role': appRole,
-          'p_full_name': fullName,
-        },
+        params: <String, dynamic>{'p_role': appRole, 'p_full_name': fullName},
       );
     } on PostgrestException catch (error) {
       // The auth trigger normally creates the row. A missing RPC in an older

@@ -65,7 +65,7 @@ class AuthService {
       throw const AuthFailure('Sign-in failed. Please request a new code.');
     }
 
-    await _ensureProfile(authUser.userMetadata?['full_name'] as String?);
+    await ensureProfile(authUser.userMetadata?['full_name'] as String?);
     final profile = await fetchUserProfile(userId: authUser.id);
     if (profile == null) {
       throw const AuthFailure(
@@ -93,7 +93,7 @@ class AuthService {
       throw const AuthFailure('Sign-in failed. Please request a new code.');
     }
 
-    await _ensureProfile(authUser.userMetadata?['full_name'] as String?);
+    await ensureProfile(authUser.userMetadata?['full_name'] as String?);
     final profile = await fetchUserProfile(userId: authUser.id);
     if (profile == null) {
       throw const AuthFailure(
@@ -176,7 +176,8 @@ class AuthService {
     return row != null;
   }
 
-  Future<void> _ensureProfile(String? fullName) async {
+  /// Creates or completes the profile for any authenticated sign-in method.
+  Future<void> ensureProfile(String? fullName) async {
     try {
       await _client.rpc(
         'ensure_my_profile',

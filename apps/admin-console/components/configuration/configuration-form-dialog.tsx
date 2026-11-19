@@ -239,13 +239,14 @@ export function ConfigurationFormDialog({
     const control = (() => {
       switch (field.type) {
         case 'textarea':
+        case 'geography':
           return (
             <textarea
               className="input"
               id={field.name}
               onChange={(event) => setValue(field.name, event.target.value)}
               placeholder={field.placeholder}
-              rows={field.type === 'textarea' ? 3 : undefined}
+              rows={field.type === 'geography' ? 5 : 3}
               value={(value as string) ?? ''}
             />
           );

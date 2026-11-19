@@ -35,7 +35,9 @@ export type ConfigFieldType =
   | 'date'
   | 'tags'
   | 'profile'
-  | 'file';
+  | 'file'
+  /** A PostGIS geography column edited as WKT text (e.g. a service boundary). */
+  | 'geography';
 
 /** A bag of form values, keyed by field name. */
 export type ConfigFieldValues = Record<string, unknown>;
@@ -265,6 +267,16 @@ export type ConfigResource = {
   }) => Promise<{ orFilter: string } | null>;
   /** The table is a join of two tables rather than one. */
   composite?: boolean;
+  /**
+   * Writes go through this SECURITY DEFINER RPC instead of a direct
+   * insert/update/delete. Geography tables use it to convert WKT text into
+   * PostGIS geography values.
+   */
+  writeRpc?: string;
+  /** The RPC that counts live references for the deactivation guard. */
+  referenceCountsRpc?: string;
+  /** Fills computed fields on a single row before the edit form opens. */
+  augmentRecord?: (row: Record<string, unknown>, ctx: AugmentContext) => Promise<void>;
 };
 
 /** What an augment hook may use to run its own queries. */

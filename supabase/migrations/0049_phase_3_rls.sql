@@ -1,39 +1,8 @@
--- ============================================================================
--- SafeShift — Phase 3 / Migration 0049
--- RLS, permission catalogue and privileges for every Phase 3 table.
---
--- Permission rows live in the migration (not only in seed data) so a
--- migration-only production deployment is fully operable.
---
--- Every policy uses the cached form (select auth.uid()) and every write is
--- gated by an admin permission. promo_redemptions is server-write only.
--- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. Permissions
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('manage_pricing',            'Create pricing plans and publish plan versions',        'pricing'),
-  ('manage_regulated_tariffs',  'Manage regulated tariff frameworks and legal bands',    'compliance'),
-  ('view_promotions',           'View all promo codes and redemption records',           'operations')
-on conflict (permission_key) do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key)
-select 'super_admin', p.permission_key
-from public.admin_permissions_catalog p
-where p.permission_key in (
-  'manage_pricing', 'manage_regulated_tariffs', 'view_promotions'
-)
-on conflict do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key) values
-  ('finance_admin',   'manage_pricing'),
-  ('finance_admin',   'manage_regulated_tariffs'),
-  ('finance_admin',   'view_promotions'),
-  ('operations_admin','view_promotions'),
-  ('support_agent',   'view_promotions'),
-  ('analyst',         'view_promotions')
-on conflict do nothing;
+
+
 
 -- ----------------------------------------------------------------------------
 -- 2. RLS enablement

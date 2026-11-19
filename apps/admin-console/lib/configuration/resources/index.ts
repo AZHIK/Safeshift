@@ -14,7 +14,15 @@ import {
 } from './cargo';
 import { notificationTemplatesResource, localizationStringsResource } from './communication';
 import { adminRolesResource, permissionsCatalogResource } from './administration';
-import { countriesResource, countryConfigurationsResource } from './geography';
+import {
+  addressesResource,
+  citiesResource,
+  countriesResource,
+  countryConfigurationsResource,
+  neighborhoodsResource,
+  regionsResource,
+  serviceZonesResource,
+} from './geography';
 import {
   cancellationPoliciesResource,
   dispatchRulesResource,
@@ -61,6 +69,11 @@ export const adminRoles = adminRolesResource;
 export const permissionsCatalog = permissionsCatalogResource;
 export const countries = countriesResource;
 export const countryConfigurations = countryConfigurationsResource;
+export const regions = regionsResource;
+export const cities = citiesResource;
+export const serviceZones = serviceZonesResource;
+export const neighborhoods = neighborhoodsResource;
+export const addresses = addressesResource;
 
 /** Every configuration resource, keyed by the slug of its page. */
 export const CONFIGURATION_RESOURCES: Record<string, ConfigResource> = {
@@ -86,6 +99,11 @@ export const CONFIGURATION_RESOURCES: Record<string, ConfigResource> = {
   'permissions-catalog': permissionsCatalog,
   countries: countries,
   'country-configurations': countryConfigurations,
+  regions: regions,
+  cities: cities,
+  'service-zones': serviceZones,
+  neighborhoods: neighborhoods,
+  addresses: addresses,
 };
 
 export type ConfigNavItem = {
@@ -123,6 +141,11 @@ export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
     items: [
       item('countries', 'Countries', countries),
       item('country-configurations', 'Country Configurations', countryConfigurations),
+      item('regions', 'Regions', regions),
+      item('cities', 'Cities', cities),
+      item('service-zones', 'Service Zones', serviceZones),
+      item('neighborhoods', 'Neighbourhoods', neighborhoods),
+      item('addresses', 'Addresses', addresses),
     ],
   },
   {
@@ -210,6 +233,7 @@ export const CONFIGURATION_PERMISSIONS = [
   'manage_dispatch',
   'manage_ratings',
   'manage_countries',
+  'manage_geography',
   'manage_admins',
 ] as const;
 
@@ -236,6 +260,7 @@ export const CONFIGURATION_UMBRELLA_PERMISSIONS = [
   'manage_dispatch',
   'manage_ratings',
   'manage_countries',
+  'manage_geography',
 ] as const;
 
 /** The slugs of every configuration page, in navigation order. */
@@ -265,4 +290,9 @@ export const CONFIGURATION_SLUG_BY_TABLE: Record<string, string> = {
   admin_role_permissions: 'permissions-catalog',
   countries: 'countries',
   country_configurations: 'country-configurations',
+  regions: 'regions',
+  cities: 'cities',
+  service_zones: 'service-zones',
+  neighborhoods: 'neighborhoods',
+  addresses: 'addresses',
 };

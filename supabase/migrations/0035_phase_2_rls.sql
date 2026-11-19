@@ -1,50 +1,8 @@
--- ============================================================================
--- SafeShift — Phase 2 / Migration 0035
--- RLS for every Phase 2 public table. Service-role writes bypass RLS by design.
---
--- Permission catalogue rows live in this migration (rather than only in the
--- development seed) because every policy below depends on them. A production
--- deployment applies migrations without seed data and must still be operable.
--- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. Phase 2 permissions
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('verify_vehicle',          'Approve or reject vehicle and vehicle-document verification', 'trust_safety'),
-  ('manage_document_types',   'Manage country document catalogues and checklists',          'trust_safety'),
-  ('manage_vehicle_catalog',  'Manage vehicle types, makes, models and equipment',          'operations'),
-  ('manage_cargo_catalog',    'Manage cargo categories, types, restrictions and packaging',  'operations'),
-  ('view_all_vehicles',       'View all vehicle records',                                   'operations'),
-  ('view_all_fleets',         'View all fleet records',                                     'operations'),
-  ('assign_vehicles',         'Assign drivers to vehicles',                                 'operations'),
-  ('view_fleet_reports',      'View generated fleet reports',                               'operations'),
-  ('view_reminders',          'View scheduled document-expiry reminders',                   'trust_safety')
-on conflict (permission_key) do nothing;
 
--- super_admin receives every permission, including permissions added later.
-insert into public.admin_role_permissions (role_name, permission_key)
-select 'super_admin', p.permission_key
-from public.admin_permissions_catalog p
-where p.permission_key in (
-  'verify_vehicle', 'manage_document_types', 'manage_vehicle_catalog',
-  'manage_cargo_catalog', 'view_all_vehicles', 'view_all_fleets',
-  'assign_vehicles', 'view_fleet_reports', 'view_reminders'
-)
-on conflict do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key) values
-  ('verification_admin', 'verify_vehicle'),
-  ('verification_admin', 'view_all_vehicles'),
-  ('verification_admin', 'view_reminders'),
-  ('verification_admin', 'manage_document_types'),
-  ('operations_admin',  'manage_vehicle_catalog'),
-  ('operations_admin',  'manage_cargo_catalog'),
-  ('operations_admin',  'view_all_vehicles'),
-  ('operations_admin',  'view_all_fleets'),
-  ('operations_admin',  'assign_vehicles'),
-  ('operations_admin',  'view_fleet_reports')
-on conflict do nothing;
+
+
 
 -- ----------------------------------------------------------------------------
 -- 2. SECURITY DEFINER membership helpers
@@ -327,4 +285,3 @@ grant execute on function
   public.is_fleet_owner(uuid),
   public.is_vehicle_owner(uuid)
 to authenticated, service_role;
-

@@ -41,64 +41,11 @@ alter table public.admin_role_permissions
     )
   );
 
--- ----------------------------------------------------------------------------
--- 2. Permissions used by the Phase 9 console
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('view_verifications',       'View driver, vehicle, and business verification queues', 'trust_safety'),
-  ('manage_verifications',     'Assign and process verification requests',                'trust_safety'),
-  ('manage_business_verifications', 'Approve or reject business account verification',     'trust_safety'),
-  ('view_fleet',               'View a fleet owned by the signed-in fleet owner',           'operations'),
-  ('manage_fleet_vehicles',    'Add, edit, and retire fleet vehicles',                      'operations'),
-  ('manage_fleet_drivers',     'Invite and remove fleet drivers',                           'operations'),
-  ('view_fleet_earnings',      'View fleet earnings and billing events',                    'finance'),
-  ('manage_tariffs',           'Manage regulated tariff frameworks',                        'pricing'),
-  ('manage_promos',            'Manage promo codes and redemption rules',                   'operations'),
-  ('view_support_tickets',     'View support tickets and messages',                         'support'),
-  ('manage_support_tickets',   'Reply to, assign, and resolve support tickets',             'support'),
-  ('view_payouts',             'View payout batches and payout items',                      'finance'),
-  ('manage_payouts',           'Create and approve payout batches',                         'finance'),
-  ('view_all_businesses',      'View all business account records',                         'support')
-on conflict (permission_key) do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key)
-select 'super_admin', permission_key
-from public.admin_permissions_catalog
-where permission_key in (
-  'view_verifications', 'manage_verifications', 'manage_business_verifications',
-  'view_fleet', 'manage_fleet_vehicles', 'manage_fleet_drivers', 'view_fleet_earnings',
-  'manage_tariffs', 'manage_promos', 'view_support_tickets', 'manage_support_tickets',
-  'view_payouts', 'manage_payouts', 'view_all_businesses'
-)
-on conflict do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key) values
-  ('verification_admin', 'view_verifications'),
-  ('verification_admin', 'manage_verifications'),
-  ('verification_admin', 'manage_business_verifications'),
-  ('operations_admin',   'view_verifications'),
-  ('operations_admin',   'manage_verifications'),
-  ('operations_admin',   'view_fleet'),
-  ('operations_admin',   'manage_fleet_vehicles'),
-  ('operations_admin',   'manage_fleet_drivers'),
-  ('operations_admin',   'view_fleet_earnings'),
-  ('operations_admin',   'manage_tariffs'),
-  ('operations_admin',   'manage_promos'),
-  ('operations_admin',   'view_all_businesses'),
-  ('support_agent',      'view_support_tickets'),
-  ('support_agent',      'manage_support_tickets'),
-  ('support_agent',      'view_all_businesses'),
-  ('finance_admin',      'view_payouts'),
-  ('finance_admin',      'manage_payouts'),
-  ('finance_admin',      'view_fleet_earnings'),
-  ('analyst',            'view_support_tickets'),
-  ('analyst',            'view_payouts'),
-  -- Fleet owners are deliberately narrow: only their own fleet and drivers.
-  ('fleet_owner',        'view_fleet'),
-  ('fleet_owner',        'manage_fleet_vehicles'),
-  ('fleet_owner',        'manage_fleet_drivers'),
-  ('fleet_owner',        'view_fleet_earnings')
-on conflict do nothing;
+
+
+
 
 -- ----------------------------------------------------------------------------
 -- 3. Business self-registration returning

@@ -41,8 +41,8 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
   Set<Marker> _buildMarkers() {
     // Driver position. While a job is active the driver marker follows the
     // simulated position; otherwise it sits at the default city centre.
-    final driverPosition = widget.status.hasActiveJob ||
-            widget.status == DriverStatus.incomingJob
+    final driverPosition =
+        widget.status.hasActiveJob || widget.status == DriverStatus.incomingJob
         ? const LatLng(-6.7900, 39.2500)
         : const LatLng(-6.7900, 39.2500);
 
@@ -50,7 +50,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       // Pickup marker (green)
       Marker(
         markerId: const MarkerId('pickup'),
-        position: const LatLng(-6.8180, 39.2700), // Kariakoo Market, Dar es Salaam
+        position: const LatLng(
+          -6.8180,
+          39.2700,
+        ), // Kariakoo Market, Dar es Salaam
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         infoWindow: const InfoWindow(title: 'Pickup'),
       ),
@@ -86,8 +89,10 @@ class _MapPlaceholderState extends State<MapPlaceholder> {
       markers: _markers,
       polylines: _polylines,
       mapType: MapType.normal,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
+      // The app draws its own driver marker and handles location separately.
+      // Enabling the native layer before Android grants permission logs an error.
+      myLocationEnabled: false,
+      myLocationButtonEnabled: false,
     );
   }
 

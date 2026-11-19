@@ -1,40 +1,4 @@
--- ============================================================================
--- SafeShift — Migration 0131
--- Catalogue icons (vehicle categories and cargo types).
---
--- Problem
--- -------
--- The vehicle and cargo catalogues are database rows (public.vehicle_types,
--- public.cargo_types) and both tables already carry an `icon_url` column, but
--- nothing ever used it:
---
---   * the column was NULL for every seeded row;
---   * there was no bucket to serve icons from;
---   * the mobile apps picked an icon by matching keywords against the row's
---     code and name ("if the name contains 'truck', draw a truck"), which is a
---     hard-coded catalogue living in the client.
---
--- Fix
--- ---
---   1. A public `catalog-icons` storage bucket that holds the artwork.
---   2. `icon_url` populated for every catalogue row, pointing at the object
---      path inside that bucket.
---   3. The driver RPCs return the catalogue ids and icon paths, so a job
---      sheet can show the same icon the customer picked.
---
--- The stored value is a bucket-relative path ("vehicle/pickup.svg"), not an
--- absolute URL: the same row then works on the local stack, on staging, and in
--- production, because the app resolves the path against its own Supabase
--- project URL. An absolute https:// value is still honoured.
--- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. Storage bucket
--- ----------------------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('catalog-icons', 'catalog-icons', true, 262144,
-  array['image/svg+xml','image/png','image/jpeg','image/webp'])
-on conflict (id) do nothing;
 
 -- The bucket is public: catalogue artwork is not sensitive, and the mobile
 -- apps load it straight from the CDN without an authenticated request.
@@ -84,19 +48,9 @@ create policy catalog_icons_storage_delete
     )
   );
 
--- ----------------------------------------------------------------------------
--- 2. Icon paths on the catalogue rows
--- ----------------------------------------------------------------------------
--- Every vehicle type gets "vehicle/<code>.svg" and every cargo type gets
--- "cargo/<code>.svg". Rows that already point somewhere are left alone, so
--- an operator can override the artwork for a single market.
-update public.vehicle_types
-   set icon_url = 'vehicle/' || code || '.svg'
- where icon_url is null;
 
-update public.cargo_types
-   set icon_url = 'cargo/' || code || '.svg'
- where icon_url is null;
+
+
 
 comment on column public.vehicle_types.icon_url is
   'Path of the icon inside the public catalog-icons bucket ("vehicle/<code>.svg"), or an absolute URL. Resolved by the mobile apps against their Supabase project URL.';

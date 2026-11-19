@@ -85,7 +85,11 @@ class HomeNotifier extends Notifier<HomeState> {
         isMockMode: true,
       );
     }
-    unawaited(_bootstrap());
+    // Riverpod has not initialized `state` until build returns. Start the
+    // network bootstrap on the next microtask so it can safely update state.
+    scheduleMicrotask(() {
+      if (ref.mounted) unawaited(_bootstrap());
+    });
     return const HomeState();
   }
 

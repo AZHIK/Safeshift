@@ -287,9 +287,7 @@ grant execute on function public.job_cancel(uuid, uuid, text) to authenticated, 
 alter table public.commission_ledger
   add column if not exists is_refunded boolean not null default false;
 
-update public.commission_ledger
-   set is_refunded = false
- where is_refunded is null;
+
 
 comment on column public.commission_ledger.is_refunded is
   'Set once by payment_refund(). Refunded ledger entries are excluded from future payout batches.';

@@ -179,6 +179,15 @@ class AuthNotifier extends Notifier<AuthState> {
       );
     }
     try {
+      final authUser = _service.client.auth.currentUser;
+      if (authUser == null) {
+        throw const AuthFailure(
+          'Your session has expired. Please sign in again.',
+        );
+      }
+      await _service.ensureProfile(
+        authUser.userMetadata?['full_name'] as String?,
+      );
       final user = await _service.fetchUserProfile();
       if (user == null) {
         throw const AuthFailure('Your profile is still being created.');

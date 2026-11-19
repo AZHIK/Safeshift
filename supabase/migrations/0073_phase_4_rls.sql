@@ -1,67 +1,8 @@
--- ============================================================================
--- SafeShift — Phase 4 / Migration 0073
--- RLS, permission catalogue and privileges for all 25 Phase 4 tables.
---
--- Rules:
---   * every table has RLS enabled and at least one policy
---   * policies use the cached (select auth.uid()) form
---   * direct client UPDATE is never granted on jobs
---   * direct client DELETE is never granted on any Phase 4 table
---   * immutable and server-written tables are SELECT-only for clients
--- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. Permissions
--- ----------------------------------------------------------------------------
-insert into public.admin_permissions_catalog (permission_key, description, category) values
-  ('view_all_quotes',              'View every quote request and quote',                  'operations'),
-  ('manage_surge',                 'Create and modify demand surge multipliers',          'pricing'),
-  ('view_all_jobs',                'View every job and operational record',               'operations'),
-  ('assign_drivers',               'Assign drivers and vehicles to jobs',                 'operations'),
-  ('manage_cancellation_policies', 'Manage country cancellation policies',                'operations'),
-  ('manage_dispatch',              'Manage dispatch rules and matching configuration',    'operations'),
-  ('manage_ratings',               'Manage rating categories and moderation',             'support'),
-  ('view_all_ratings',             'View every rating and rating report',                 'support'),
-  ('view_all_disputes',            'View every dispute, including internal notes',        'support'),
-  ('resolve_disputes',             'Resolve disputes and grant compensation',             'support')
-on conflict (permission_key) do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key)
-select 'super_admin', p.permission_key
-from public.admin_permissions_catalog p
-where p.permission_key in (
-  'view_all_quotes', 'manage_surge', 'view_all_jobs', 'assign_drivers',
-  'manage_cancellation_policies', 'manage_dispatch', 'manage_ratings',
-  'view_all_ratings', 'view_all_disputes', 'resolve_disputes'
-)
-on conflict do nothing;
 
-insert into public.admin_role_permissions (role_name, permission_key) values
-  ('operations_admin', 'view_all_quotes'),
-  ('operations_admin', 'manage_surge'),
-  ('operations_admin', 'view_all_jobs'),
-  ('operations_admin', 'assign_drivers'),
-  ('operations_admin', 'manage_cancellation_policies'),
-  ('operations_admin', 'manage_dispatch'),
-  ('operations_admin', 'view_all_ratings'),
-  ('operations_admin', 'view_all_disputes'),
-  ('support_agent',    'view_all_quotes'),
-  ('support_agent',    'view_all_jobs'),
-  ('support_agent',    'manage_ratings'),
-  ('support_agent',    'view_all_ratings'),
-  ('support_agent',    'view_all_disputes'),
-  ('support_agent',    'resolve_disputes'),
-  ('finance_admin',    'view_all_quotes'),
-  ('finance_admin',    'view_all_jobs'),
-  ('finance_admin',    'manage_cancellation_policies'),
-  ('finance_admin',    'view_all_disputes'),
-  ('analyst',          'view_all_quotes'),
-  ('analyst',          'view_all_jobs'),
-  ('analyst',          'view_all_ratings'),
-  ('analyst',          'view_all_disputes'),
-  ('verification_admin','view_all_jobs'),
-  ('verification_admin','view_all_ratings')
-on conflict do nothing;
+
+
 
 -- ----------------------------------------------------------------------------
 -- 2. Enable RLS

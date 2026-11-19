@@ -115,25 +115,3 @@ revoke all on function public.generate_recurring_scheduled_jobs(integer) from pu
 revoke all on function public.generate_recurring_scheduled_jobs(integer) from anon;
 revoke all on function public.generate_recurring_scheduled_jobs(integer) from authenticated;
 grant execute on function public.generate_recurring_scheduled_jobs(integer) to service_role;
-
--- pg_cron is part of the local Supabase stack and Phase 6 already uses it.
--- Guard the schedule so the migration remains portable to environments where
--- the extension is unavailable (the function can still be invoked manually).
-do $$
-declare
-  v_job record;
-begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    for v_job in
-      select jobid from cron.job where jobname = 'safeshift_generate_scheduled_jobs'
-    loop
-      perform cron.unschedule(v_job.jobid);
-    end loop;
-
-    perform cron.schedule(
-      'safeshift_generate_scheduled_jobs',
-      '17 * * * *',
-      $cron$select public.generate_recurring_scheduled_jobs(24);$cron$
-    );
-  end if;
-end $$;

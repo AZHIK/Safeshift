@@ -1621,23 +1621,9 @@ revoke all on function public.dispatch_tick(integer) from anon;
 revoke all on function public.dispatch_tick(integer) from authenticated;
 grant execute on function public.dispatch_tick(integer) to service_role;
 
-do $$
-declare
-  v_job record;
-begin
-  for v_job in
-    select jobid from cron.job where jobname = 'safeshift_dispatch_tick'
-  loop
-    perform cron.unschedule(v_job.jobid);
-  end loop;
-end;
-$$;
 
-select cron.schedule(
-  'safeshift_dispatch_tick',
-  '* * * * *',
-  $$select public.dispatch_tick();$$
-);
+
+
 -- ----------------------------------------------------------------------------
 -- 10. Read RPCs expose parcel, schedule and cancellation details
 -- ----------------------------------------------------------------------------
@@ -2084,24 +2070,7 @@ comment on function public.driver_trips(integer) is
 revoke all on function public.driver_trips(integer) from public;
 revoke all on function public.driver_trips(integer) from anon;
 grant execute on function public.driver_trips(integer) to authenticated, service_role;
--- ----------------------------------------------------------------------------
--- 11. Push notifications: offer and job-status triggers
--- ----------------------------------------------------------------------------
--- Delivery goes through the existing `push-send` Edge Function. The database
--- only enqueues the HTTP call with pg_net, so a slow or misconfigured provider
--- can never roll back a job or an offer.
---
--- Configuration:
---   * edge_function_config.url for 'push-send', or
---   * vault secret `safeshift_project_url`, or
---   * vault secret `SUPABASE_URL`
--- and the shared secret in vault secret `INTERNAL_FUNCTION_SECRET`.
---
--- When none of it is configured the helper returns quietly; the app still
--- receives offers through Realtime and polling.
-insert into public.edge_function_config (function_name, url)
-values ('push-send', null)
-on conflict (function_name) do nothing;
+
 
 create or replace function private.invoke_push_send(
   p_profile_id uuid,
@@ -2360,19 +2329,7 @@ create trigger trg_jobs_notify_status
   after insert or update of status, driver_id on public.jobs
   for each row execute function private.notify_job_status();
 
--- ----------------------------------------------------------------------------
--- 12. Backfill driver current vehicle
--- ----------------------------------------------------------------------------
--- dispatch joins vehicles on drivers.current_vehicle_id and drops any driver
--- whose column is null. 0129 introduced the sanctioned setter; this closes
--- the remaining hole for drivers assigned through vehicle_assignments.
-update public.drivers d
-   set current_vehicle_id = a.vehicle_id
-  from public.vehicle_assignments a
- where a.driver_id = d.id
-   and a.is_active
-   and a.unassigned_at is null
-   and d.current_vehicle_id is null;
+
 
 -- The dispatch selection filters on availability plus a fresh GPS fix, so this
 -- partial index keeps the worker cheap when many drivers are offline.

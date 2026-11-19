@@ -1,28 +1,4 @@
--- ============================================================================
--- SafeShift — Phase 8 / Migration 0122
--- Storage buckets and policies for client uploads.
---
--- Existing Phase 7 bucket: data-exports. This migration adds:
---   driver-documents    private, <driver_id>/...
---   vehicle-documents   private, <vehicle_id>/...
---   job-evidence        private, <job_id>/...
---   chat-attachments    private, <job_id>/...
---
--- Path-based ownership is enforced in storage.objects RLS. The app never uses
--- a service-role key; every upload is performed as the signed-in user.
--- ============================================================================
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values
-  ('driver-documents', 'driver-documents', false, 20971520,
-   array['image/jpeg','image/png','image/webp','application/pdf']),
-  ('vehicle-documents', 'vehicle-documents', false, 20971520,
-   array['image/jpeg','image/png','image/webp','application/pdf']),
-  ('job-evidence', 'job-evidence', false, 20971520,
-   array['image/jpeg','image/png','image/webp','application/pdf']),
-  ('chat-attachments', 'chat-attachments', false, 26214400,
-   array['image/jpeg','image/png','image/webp','application/pdf','audio/mpeg','audio/mp4'])
-on conflict (id) do nothing;
 
 -- ----------------------------------------------------------------------------
 -- Driver documents: <driver_id>/<filename>
