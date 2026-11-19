@@ -6,6 +6,7 @@ import '../../domain/entities/driver_status.dart';
 import '../../providers/home_provider.dart';
 import '../widgets/map_placeholder.dart';
 import '../widgets/sheets/arrived_at_destination_sheet.dart';
+import '../widgets/sheets/cargo_review_sheet.dart';
 import '../widgets/sheets/arrived_at_pickup_sheet.dart';
 import '../widgets/sheets/heading_to_pickup_sheet.dart';
 import '../widgets/sheets/in_transit_sheet.dart';
@@ -62,6 +63,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Container(
                   color: AppColors.primaryDark.withValues(alpha: 0.08),
                 ),
+              ),
+            ),
+          // Cargo stays reviewable at every stage of a job — before accepting
+          // and all the way through delivery.
+          if (job != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              right: 16,
+              child: FloatingActionButton.small(
+                heroTag: 'cargo-review',
+                tooltip: 'Review cargo',
+                onPressed: () => showCargoReviewSheet(context, job, ref: ref),
+                child: const Icon(Icons.inventory_2_outlined),
               ),
             ),
           DraggableScrollableSheet(

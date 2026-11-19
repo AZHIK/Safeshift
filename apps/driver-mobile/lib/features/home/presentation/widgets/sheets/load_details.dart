@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
 import '../../../domain/entities/driver_job.dart';
+import 'cargo_review_sheet.dart';
 
 /// Compact summary of what is being moved: the customer's description, weight,
-/// declared value, pickup schedule and how many parcel photos are attached.
+/// declared value, pickup schedule and the customer's parcel photos.
 ///
 /// Used on the offer card (before accepting) and while heading to pickup, so
 /// the driver knows whether the load fits the vehicle before committing.
-class LoadDetails extends StatelessWidget {
+/// Tapping the photos opens the full cargo review with every cargo field.
+class LoadDetails extends ConsumerWidget {
   const LoadDetails({super.key, required this.job});
 
   final DriverJob job;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final description = job.cargoDescription?.trim();
     final chips = <Widget>[];
 
@@ -62,7 +65,9 @@ class LoadDetails extends StatelessWidget {
     }
 
     final hasDescription = description != null && description.isNotEmpty;
-    if (!hasDescription && chips.isEmpty) return const SizedBox.shrink();
+    if (!hasDescription && chips.isEmpty && photoCount == 0) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,6 +86,18 @@ class LoadDetails extends StatelessWidget {
             runSpacing: AppSizes.xs,
             children: chips,
           ),
+        if (photoCount > 0) ...[
+          const SizedBox(height: AppSizes.sm),
+          CargoPhotoStrip(job: job),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => showCargoReviewSheet(context, job, ref: ref),
+              icon: const Icon(Icons.open_in_full_outlined, size: 16),
+              label: const Text('Review cargo & photos'),
+            ),
+          ),
+        ],
       ],
     );
   }

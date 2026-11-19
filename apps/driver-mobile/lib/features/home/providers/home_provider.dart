@@ -40,6 +40,20 @@ final homePermissionsProvider = NotifierProvider<HomePermissions, bool>(
   HomePermissions.new,
 );
 
+/// True while the driver is reviewing an incoming job's cargo. The offer
+/// countdown pauses so reading the description and photos cannot silently
+/// decline the job.
+final offerReviewHoldProvider = NotifierProvider<OfferReviewHold, bool>(
+  OfferReviewHold.new,
+);
+
+class OfferReviewHold extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
 class HomeNotifier extends Notifier<HomeState> {
   Timer? _idleTimer;
   Timer? _incomingTimer;
@@ -546,6 +560,7 @@ class HomeNotifier extends Notifier<HomeState> {
         timer.cancel();
         return;
       }
+      if (ref.read(offerReviewHoldProvider)) return;
       final next = state.countdownSeconds - 1;
       if (next <= 0) {
         unawaited(declineJob());
