@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/errors/error_handler.dart';
-import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../providers/vehicle_provider.dart';
@@ -62,7 +62,7 @@ class VehicleScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0B63D6).withValues(
+                              color: context.colors.primary.withValues(
                                 alpha: 0.1,
                               ),
                               borderRadius: BorderRadius.circular(16),

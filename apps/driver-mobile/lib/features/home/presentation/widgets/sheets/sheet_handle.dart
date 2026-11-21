@@ -16,7 +16,7 @@ class SheetHandle extends StatelessWidget {
         height: 4,
         margin: const EdgeInsets.only(bottom: AppSizes.md),
         decoration: BoxDecoration(
-          color: AppColors.divider,
+          color: context.colors.outlineVariant,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -41,7 +41,7 @@ class SheetStat extends StatelessWidget {
           Text(
             label,
             style: TextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
             ),
           ),
         ],

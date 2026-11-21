@@ -26,7 +26,9 @@ class InfoCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.all(Radius.circular(radius)),
         border: Border.all(
-          color: selected ? AppColors.primary : AppColors.divider,
+          color: selected
+              ? context.colors.primary
+              : context.colors.outlineVariant,
           width: selected ? 1.6 : 0.9,
         ),
         boxShadow: AppColors.cardShadow,

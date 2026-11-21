@@ -96,23 +96,34 @@ export class InternalError extends AppError {
 export function normalizeError(error: unknown): AppError {
   if (error instanceof AppError) return error;
 
-  if (error instanceof Error) {
-    const code = (error as Error & { code?: string }).code;
+  // supabase-js returns PostgREST errors as plain objects ({ code, message,
+  // details, hint }), not Error instances. Treat them like database errors
+  // so a validation failure reaches the client as a 4xx with its message
+  // instead of a generic 500.
+  const isDbError =
+    error instanceof Error ||
+    (typeof error === 'object' && error !== null &&
+      typeof (error as { message?: unknown }).message === 'string' &&
+      typeof (error as { code?: unknown }).code === 'string');
+
+  if (isDbError) {
+    const error_ = error as { code?: string; message: string; name?: string };
+    const code = error_.code;
     switch (code) {
       case 'P0002':
-        return new NotFoundError(error.message);
+        return new NotFoundError(error_.message);
       case '42501':
-        return new ForbiddenError(error.message);
+        return new ForbiddenError(error_.message);
       case '23505':
-        return new ConflictError(error.message);
+        return new ConflictError(error_.message);
       case '22023':
       case '22004':
       case '23514':
-        return new ValidationError(error.message);
+        return new ValidationError(error_.message);
       case '23503':
-        return new ValidationError(error.message);
+        return new ValidationError(error_.message);
       default:
-        return new InternalError('Internal server error', { type: error.name });
+        return new InternalError('Internal server error', { type: error_.name ?? 'DatabaseError' });
     }
   }
 

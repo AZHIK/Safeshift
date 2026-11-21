@@ -4,12 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../../core/config/env_config.dart';
-import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizes.dart';
-import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../providers/home_provider.dart';
+import 'cargo_review_sheet.dart';
 import 'load_details.dart';
 import 'sheet_handle.dart';
 
@@ -33,162 +32,182 @@ class IncomingJobSheet extends ConsumerWidget {
       );
     }
     final progress = home.countdownSeconds / 15;
-    return ListView(
-      shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.lg,
-        AppSizes.sm,
-        AppSizes.lg,
-        AppSizes.lg,
-      ),
+    return Column(
       children: [
-        const SheetHandle(),
-        Center(
-          child: Stack(
-            alignment: Alignment.center,
+        Expanded(
+          child: ListView(
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.sm,
+              AppSizes.lg,
+              AppSizes.lg,
+            ),
             children: [
-              SizedBox(
-                width: 72,
-                height: 72,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 6,
-                  backgroundColor: AppColors.divider,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.onlineGreen,
+              const SheetHandle(),
+              Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 72,
+                      height: 72,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 6,
+                        backgroundColor: context.colors.outlineVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          context.colors.secondary,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${home.countdownSeconds}s',
+                      style: TextStyles.title.copyWith(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSizes.sm),
+              Center(
+                child: Text(
+                  'New job request · ${job.pickupDistanceKm.toStringAsFixed(1)} km away',
+                  style: TextStyles.body.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              Text(
-                '${home.countdownSeconds}s',
-                style: TextStyles.title.copyWith(fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.sm),
-        Center(
-          child: Text(
-            'New job request · ${job.pickupDistanceKm.toStringAsFixed(1)} km away',
-            style: TextStyles.body.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSizes.md),
-        InfoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    size: 18,
-                    color: AppColors.onlineGreen,
-                  ),
-                  const SizedBox(width: AppSizes.sm),
-                  Expanded(
-                    child: Text(job.pickup, style: TextStyles.title),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.sm),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.flag_rounded,
-                    size: 18,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(width: AppSizes.sm),
-                  Expanded(
-                    child: Text(job.destination, style: TextStyles.title),
-                  ),
-                ],
-              ),
-              const Divider(height: AppSizes.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Meta(
-                      label: 'Cargo',
-                      value: job.cargoClass,
-                      leading: CatalogIcon(
-                        iconUrl: job.cargoIconUrl,
-                        supabaseUrl: _iconBaseUrl,
-                        fallbackIcon: Icons.inventory_2_outlined,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: _Meta(
-                      label: 'Trip',
-                      value: '${job.distanceKm.toStringAsFixed(1)} km',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Meta(label: 'Customer', value: job.customerName),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: AppSizes.md),
+              InfoCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (job.cargoPhotoPaths.isNotEmpty) ...[
+                      CargoPhotoStrip(job: job),
+                      const SizedBox(height: AppSizes.md),
+                    ],
+                    Row(
                       children: [
-                        Text(
-                          'Estimated fare',
-                          style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 18,
+                          color: context.colors.secondary,
                         ),
-                        Text(
-                          _tzs(job.estimatedFareTzs),
-                          style: TextStyles.headline.copyWith(fontSize: 18),
+                        const SizedBox(width: AppSizes.sm),
+                        Expanded(
+                          child: Text(job.pickup, style: TextStyles.title),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSizes.sm),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.flag_rounded,
+                          size: 18,
+                          color: context.colors.error,
+                        ),
+                        const SizedBox(width: AppSizes.sm),
+                        Expanded(
+                          child: Text(job.destination, style: TextStyles.title),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: AppSizes.lg),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Meta(
+                            label: 'Cargo',
+                            value: job.cargoClass,
+                            leading: CatalogIcon(
+                              iconUrl: job.cargoIconUrl,
+                              supabaseUrl: _iconBaseUrl,
+                              fallbackIcon: Icons.inventory_2_outlined,
+                              size: 16,
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _Meta(
+                            label: 'Trip',
+                            value: '${job.distanceKm.toStringAsFixed(1)} km',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Meta(
+                            label: 'Customer',
+                            value: job.customerName,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Estimated fare',
+                                style: TextStyles.caption.copyWith(
+                                  color: context.colors.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                _tzs(job.estimatedFareTzs),
+                                style: TextStyles.headline.copyWith(
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    LoadDetails(job: job, showPhotoStrip: false),
+                  ],
+                ),
               ),
-              LoadDetails(job: job),
             ],
           ),
         ),
-        const SizedBox(height: AppSizes.md),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () =>
-                    ref.read(homeProvider.notifier).declineJob(),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+        SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(
+            AppSizes.lg,
+            AppSizes.sm,
+            AppSizes.lg,
+            AppSizes.sm,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => ref.read(homeProvider.notifier).declineJob(),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
+                  child: const Text('Decline'),
                 ),
-                child: const Text('Decline'),
               ),
-            ),
-            const SizedBox(width: AppSizes.md),
-            Expanded(
-              flex: 2,
-              child: PrimaryButton(
-                label: 'Accept',
-                icon: Icons.check_rounded,
-                onPressed: () =>
-                    ref.read(homeProvider.notifier).acceptJob(),
+              const SizedBox(width: AppSizes.md),
+              Expanded(
+                flex: 2,
+                child: PrimaryButton(
+                  label: 'Accept',
+                  icon: Icons.check_rounded,
+                  onPressed: () => ref.read(homeProvider.notifier).acceptJob(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -211,14 +230,13 @@ class _Meta extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.caption.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         Row(
           children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 6),
-            ],
+            if (leading != null) ...[leading!, const SizedBox(width: 6)],
             Flexible(child: Text(value, style: TextStyles.title)),
           ],
         ),

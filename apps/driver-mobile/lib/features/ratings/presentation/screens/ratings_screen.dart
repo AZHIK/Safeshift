@@ -67,8 +67,8 @@ class RatingsScreen extends ConsumerWidget {
                                   Icons.star_rounded,
                                   size: 20,
                                   color: average.round() > i
-                                      ? const Color(0xFFFFB300)
-                                      : AppColors.divider,
+                                      ? context.colors.tertiary
+                                      : context.colors.outlineVariant,
                                 ),
                               ),
                             ),
@@ -76,7 +76,7 @@ class RatingsScreen extends ConsumerWidget {
                             Text(
                               '${ratings.length} recent ratings',
                               style: TextStyles.caption.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.colors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -107,8 +107,8 @@ class RatingsScreen extends ConsumerWidget {
                                   Icons.star_rounded,
                                   size: 14,
                                   color: rating.score > i
-                                      ? const Color(0xFFFFB300)
-                                      : AppColors.divider,
+                                      ? context.colors.tertiary
+                                      : context.colors.outlineVariant,
                                 ),
                               ),
                             ),
@@ -127,7 +127,7 @@ class RatingsScreen extends ConsumerWidget {
                                   'd MMM yyyy',
                                 ).format(rating.createdAt!),
                           style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                       ],

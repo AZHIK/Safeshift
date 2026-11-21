@@ -34,7 +34,7 @@ select 1, 'Enum public.' || e.typname,
        case when v.labels is not null and v.labels = e.expected then 'PASS' else 'FAIL' end,
        coalesce(array_to_string(v.labels, ','), 'missing')
 from (values
-  ('job_status', array['requested','quoted','matched','accepted','heading_to_pickup','arrived','loading','in_transit','delivered','completed','cancelled','disputed']),
+  ('job_status', array['requested','quoted','matched','accepted','heading_to_pickup','arrived','cargo_verified','loading','in_transit','arrived_destination','delivered','completed','cancelled','disputed']),
   ('payment_status', array['pending','paid','refunded','failed','partially_refunded']),
   ('payment_method', array['mpesa','tigopesa','airtelmoney','halopesa','card','cash','wallet']),
   ('evidence_type', array['pickup_photo','delivery_photo','signature','otp','document','item_photo','cargo_manifest']),
@@ -933,8 +933,10 @@ begin
 
   perform public.job_advance_status(v_job_b, 'heading_to_pickup', 'Leaving');
   perform public.job_advance_status(v_job_b, 'arrived', 'At pickup');
+  perform public.job_advance_status(v_job_b, 'cargo_verified', 'Verified cargo');
   perform public.job_advance_status(v_job_b, 'loading', 'Loading');
   perform public.job_advance_status(v_job_b, 'in_transit', 'Departed');
+  perform public.job_advance_status(v_job_b, 'arrived_destination', 'At destination');
   perform public.job_advance_status(v_job_b, 'delivered', 'Delivered');
   perform public.job_advance_status(v_job_b, 'completed', 'Completed');
 

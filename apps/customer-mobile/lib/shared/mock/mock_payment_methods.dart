@@ -12,6 +12,10 @@ class MockPaymentMethod {
   final String name;
   final IconData icon;
   final Color color;
+
+  Color iconColor(Brightness brightness) => brightness == Brightness.dark
+      ? Color.lerp(color, Colors.white, 0.5)!
+      : color;
 }
 
 const List<MockPaymentMethod> mockPaymentMethods = <MockPaymentMethod>[

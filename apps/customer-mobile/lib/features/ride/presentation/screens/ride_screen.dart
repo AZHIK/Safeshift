@@ -26,6 +26,41 @@ class _RideScreenState extends ConsumerState<RideScreen> {
   final GlobalKey<ShinyMapViewState> _mapKey = GlobalKey<ShinyMapViewState>();
   String? _handledJobId;
 
+  static const _initialSheetExtent = 0.52;
+
+  /// How far the sheet is open (fraction of the screen), updated once a drag
+  /// settles so the map is not re-padded on every frame.
+  double _sheetExtent = _initialSheetExtent;
+  Timer? _sheetSettle;
+
+  bool _onSheetMoved(DraggableScrollableNotification notification) {
+    final extent = notification.extent;
+    _sheetSettle?.cancel();
+    _sheetSettle = Timer(const Duration(milliseconds: 180), () {
+      if (mounted && (extent - _sheetExtent).abs() > 0.01) {
+        setState(() => _sheetExtent = extent);
+      }
+    });
+    return false;
+  }
+
+  /// The part of the map hidden by the top bar and the sheet. The map fits
+  /// the route into what is left, so it is never drawn under the sheet.
+  EdgeInsets _mapPadding(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height;
+    final top = MediaQuery.paddingOf(context).top + 64;
+    // With the sheet almost full screen there is no useful map left; keep
+    // the route in the top strip rather than squeezing it to nothing.
+    final bottom = (height * _sheetExtent).clamp(0.0, height * 0.62);
+    return EdgeInsets.only(top: top, bottom: bottom);
+  }
+
+  @override
+  void dispose() {
+    _sheetSettle?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -87,140 +122,154 @@ class _RideScreenState extends ConsumerState<RideScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          // 1. Full-screen shiny map.
-          Positioned.fill(
-            child: ShinyMapView(key: _mapKey, state: ride),
-          ),
+      body: NotificationListener<DraggableScrollableNotification>(
+        onNotification: _onSheetMoved,
+        child: Stack(
+          children: [
+            // 1. Full-screen shiny map, padded so the route is framed in the
+            // part the sheet does not cover.
+            Positioned.fill(
+              child: ShinyMapView(
+                key: _mapKey,
+                state: ride,
+                mapPadding: _mapPadding(context),
+              ),
+            ),
 
-          // 2. Top floating bar: avatar + SafeShift + notifications.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => context.push('/profile'),
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.brandGradient,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: AppColors.cardShadow,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'AZ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
+            // 2. Top floating bar: avatar + SafeShift + notifications.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => context.push('/profile'),
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.brandGradient,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: context.colors.outlineVariant,
+                              width: 2,
+                            ),
+                            boxShadow: AppColors.cardShadow,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'AZ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: GlassCard(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        radius: 999,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.bolt_rounded,
-                              size: 18,
-                              color: AppColors.primaryDark,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'safeshift',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GlassCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 11,
+                          ),
+                          radius: 999,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.bolt_rounded,
+                                size: 18,
+                                color: context.colors.primary,
                               ),
-                            ),
-                            Spacer(),
-                            Text(
-                              'Dar es Salaam',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
+                              const SizedBox(width: 6),
+                              const Text(
+                                'safeshift',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                          ],
+                              const Spacer(),
+                              Text(
+                                'Dar es Salaam',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: context.colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    _RoundIcon(
-                      icon: Icons.notifications_none_rounded,
-                      onTap: () => context.push('/settings/notifications'),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      _RoundIcon(
+                        icon: Icons.notifications_none_rounded,
+                        onTap: () => context.push('/settings/notifications'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // 3. Map side controls — pinned near the top so the sheet
-          // and bottom nav can never cover them.
-          Positioned(
-            right: 16,
-            top: 132,
-            child: Column(
-              children: [
-                _RoundIcon(
-                  icon: Icons.my_location_rounded,
-                  onTap: _goToMyLocation,
-                ),
-                const SizedBox(height: 10),
-                _RoundIcon(
-                  icon: Icons.swap_vert_rounded,
-                  onTap: () => ref.read(rideProvider.notifier).swap(),
-                ),
-              ],
-            ),
-          ),
-
-          // 4. Draggable glass sheet — the whole funnel lives here.
-          // No explicit controller: lets Flutter own the sheet lifecycle
-          // and avoids "controller is already attached" crashes on rebuilds.
-          DraggableScrollableSheet(
-            initialChildSize: 0.52,
-            minChildSize: 0.32,
-            maxChildSize: 0.92,
-            snap: true,
-            snapSizes: const [0.32, 0.52, 0.92],
-            builder: (context, scrollController) => Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.94),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                border: Border.all(color: Colors.white, width: 1.2),
-                boxShadow: [
-                  const BoxShadow(
-                    color: Color(0x334E5E73),
-                    blurRadius: 40,
-                    offset: Offset(0, -12),
+            // 3. Map side controls — pinned near the top so the sheet
+            // and bottom nav can never cover them.
+            Positioned(
+              right: 16,
+              top: 132,
+              child: Column(
+                children: [
+                  _RoundIcon(
+                    icon: Icons.my_location_rounded,
+                    onTap: _goToMyLocation,
+                  ),
+                  const SizedBox(height: 10),
+                  _RoundIcon(
+                    icon: Icons.swap_vert_rounded,
+                    onTap: () => ref.read(rideProvider.notifier).swap(),
                   ),
                 ],
               ),
-              child: RideSheetBody(scrollController: scrollController),
             ),
-          ),
-        ],
+
+            // 4. Draggable glass sheet — the whole funnel lives here.
+            // No explicit controller: lets Flutter own the sheet lifecycle
+            // and avoids "controller is already attached" crashes on rebuilds.
+            DraggableScrollableSheet(
+              initialChildSize: _initialSheetExtent,
+              minChildSize: 0.32,
+              maxChildSize: 0.92,
+              snap: true,
+              snapSizes: const [0.32, 0.52, 0.92],
+              builder: (context, scrollController) => Container(
+                decoration: BoxDecoration(
+                  color: context.colors.surface.withValues(alpha: 0.94),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border.all(
+                    color: context.colors.outlineVariant,
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    const BoxShadow(
+                      color: Color(0x334E5E73),
+                      blurRadius: 40,
+                      offset: Offset(0, -12),
+                    ),
+                  ],
+                ),
+                child: RideSheetBody(scrollController: scrollController),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -232,7 +281,7 @@ class _RoundIcon extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white.withValues(alpha: 0.92),
+    color: context.colors.surface.withValues(alpha: 0.92),
     shape: const CircleBorder(),
     elevation: 6,
     shadowColor: const Color(0x334E5E73),
@@ -241,7 +290,7 @@ class _RoundIcon extends StatelessWidget {
       customBorder: const CircleBorder(),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Icon(icon, size: 20, color: AppColors.textPrimary),
+        child: Icon(icon, size: 20, color: context.colors.onSurface),
       ),
     ),
   );

@@ -40,11 +40,11 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
       ),
       children: [
         const SheetHandle(),
-        const Center(
+        Center(
           child: Icon(
             Icons.check_circle_rounded,
             size: 56,
-            color: AppColors.onlineGreen,
+            color: context.colors.secondary,
           ),
         ),
         const SizedBox(height: AppSizes.sm),
@@ -60,7 +60,7 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
                 'Check Earnings for confirmed amounts.',
                 textAlign: TextAlign.center,
                 style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -79,7 +79,9 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
               onPressed: () => setState(() => _stars = i + 1),
               icon: const Icon(Icons.star_rounded),
               iconSize: 32,
-              color: _stars > i ? const Color(0xFFFFB300) : AppColors.divider,
+              color: _stars > i
+                  ? context.colors.tertiary
+                  : context.colors.outlineVariant,
             ),
           ),
         ),
@@ -115,7 +117,7 @@ class _Row extends StatelessWidget {
             child: Text(
               label,
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 fontSize: isTotal ? 14 : 12,
               ),
             ),

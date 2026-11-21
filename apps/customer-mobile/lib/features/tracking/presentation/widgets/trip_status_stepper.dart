@@ -9,9 +9,11 @@ class TripStatusStepper extends StatelessWidget {
 
   static const List<String> _labels = <String>[
     'Heading to Pickup',
-    'Arrived',
+    'At pickup',
+    'Cargo verified',
     'Loading',
     'In Transit',
+    'At destination',
     'Delivered',
   ];
 
@@ -30,22 +32,24 @@ class TripStatusStepper extends StatelessWidget {
                   height: 26,
                   decoration: BoxDecoration(
                     color: index < currentStep
-                        ? AppColors.success
+                        ? context.colors.secondary
                         : index == currentStep
-                        ? AppColors.primary
-                        : AppColors.background,
+                        ? context.colors.primary
+                        : Theme.of(context).scaffoldBackgroundColor,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: index <= currentStep
                           ? Colors.transparent
-                          : AppColors.divider,
+                          : context.colors.outlineVariant,
                     ),
                   ),
                   child: Icon(
                     index < currentStep ? Icons.check_rounded : _iconFor(index),
-                    color: index <= currentStep
-                        ? Colors.white
-                        : AppColors.textDisabled,
+                    color: index < currentStep
+                        ? context.colors.onSecondary
+                        : index == currentStep
+                        ? context.colors.onPrimary
+                        : context.colors.onSurfaceVariant,
                     size: 15,
                   ),
                 ),
@@ -58,8 +62,8 @@ class TripStatusStepper extends StatelessWidget {
                     fontSize: 8,
                     height: 1.15,
                     color: index <= currentStep
-                        ? AppColors.textPrimary
-                        : AppColors.textDisabled,
+                        ? context.colors.onSurface
+                        : context.colors.onSurfaceVariant,
                     fontWeight: index == currentStep
                         ? FontWeight.w700
                         : FontWeight.w500,
@@ -74,8 +78,8 @@ class TripStatusStepper extends StatelessWidget {
               height: 2,
               margin: const EdgeInsets.only(bottom: 18),
               color: index < currentStep
-                  ? AppColors.success
-                  : AppColors.divider,
+                  ? context.colors.secondary
+                  : context.colors.outlineVariant,
             ),
         ],
       ],
@@ -86,7 +90,9 @@ class TripStatusStepper extends StatelessWidget {
     0 => Icons.directions_car_rounded,
     1 => Icons.place_rounded,
     2 => Icons.inventory_2_rounded,
-    3 => Icons.local_shipping_rounded,
+    3 => Icons.inventory_rounded,
+    4 => Icons.local_shipping_rounded,
+    5 => Icons.place_rounded,
     _ => Icons.check_rounded,
   };
 }

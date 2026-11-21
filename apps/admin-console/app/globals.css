@@ -358,6 +358,13 @@ tr:last-child td {
   font-size: 12px;
   border-radius: 8px;
 }
+
+.input-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: 120px;
+  width: auto;
+}
 .btn[disabled] {
   opacity: 0.55;
   cursor: not-allowed;

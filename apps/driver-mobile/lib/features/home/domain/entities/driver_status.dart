@@ -8,9 +8,11 @@ enum DriverStatus {
   incomingJob,
   headingToPickup,
   arrivedAtPickup,
+  cargoVerified,
   loading,
   inTransit,
   arrivedAtDestination,
+  delivered,
   tripCompleted,
 }
 
@@ -20,9 +22,11 @@ extension DriverStatusX on DriverStatus {
     DriverStatus.incomingJob ||
     DriverStatus.headingToPickup ||
     DriverStatus.arrivedAtPickup ||
+    DriverStatus.cargoVerified ||
     DriverStatus.loading ||
     DriverStatus.inTransit ||
     DriverStatus.arrivedAtDestination ||
+    DriverStatus.delivered ||
     DriverStatus.tripCompleted => true,
     _ => false,
   };

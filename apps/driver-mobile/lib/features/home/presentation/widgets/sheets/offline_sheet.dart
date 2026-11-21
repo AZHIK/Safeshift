@@ -36,11 +36,11 @@ class OfflineSheet extends ConsumerWidget {
         const SheetHandle(),
         if (!verified) ...[
           Card(
-            color: AppColors.warning.withValues(alpha: 0.1),
+            color: context.colors.tertiary.withValues(alpha: 0.1),
             child: ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.verified_user_outlined,
-                color: AppColors.warning,
+                color: context.colors.tertiary,
               ),
               title: Text(
                 status == 'rejected'
@@ -62,16 +62,15 @@ class OfflineSheet extends ConsumerWidget {
           ),
           const SizedBox(height: AppSizes.sm),
         ],
-        OnlineToggle(
-          isOnline: false,
-          onTap: () => _goOnline(context, ref),
-        ),
+        OnlineToggle(isOnline: false, onTap: () => _goOnline(context, ref)),
         if (!verified) ...[
           const SizedBox(height: AppSizes.xs),
           Text(
             'Going online is locked until verification is complete.',
             textAlign: TextAlign.center,
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
         ],
         const SizedBox(height: AppSizes.md),
@@ -91,7 +90,8 @@ class OfflineSheet extends ConsumerWidget {
 
   Future<void> _goOnline(BuildContext context, WidgetRef ref) async {
     if (!ref.read(authProvider).canGoOnline) {
-      final status = ref.read(authProvider).driverVerificationStatus ?? 'pending';
+      final status =
+          ref.read(authProvider).driverVerificationStatus ?? 'pending';
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(

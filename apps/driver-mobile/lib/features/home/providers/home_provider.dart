@@ -18,6 +18,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/mock/mock_earnings.dart';
 import '../../../shared/mock/mock_jobs.dart';
 import '../data/driver_repository.dart';
+import '../data/live_location.dart';
 import '../domain/entities/driver_job.dart';
 import '../domain/entities/driver_status.dart';
 import '../domain/entities/home_state.dart';
@@ -39,20 +40,6 @@ class HomePermissions extends Notifier<bool> {
 final homePermissionsProvider = NotifierProvider<HomePermissions, bool>(
   HomePermissions.new,
 );
-
-/// True while the driver is reviewing an incoming job's cargo. The offer
-/// countdown pauses so reading the description and photos cannot silently
-/// decline the job.
-final offerReviewHoldProvider = NotifierProvider<OfferReviewHold, bool>(
-  OfferReviewHold.new,
-);
-
-class OfferReviewHold extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void set(bool value) => state = value;
-}
 
 class HomeNotifier extends Notifier<HomeState> {
   Timer? _idleTimer;
@@ -112,13 +99,19 @@ class HomeNotifier extends Notifier<HomeState> {
     if (user == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final earnings = await _repo.earnings();
       final active = await _repo.activeJob();
+      DriverEarningsSnapshot? earnings;
+      try {
+        earnings = await _repo.earnings();
+      } catch (_) {
+        // Earnings can refresh later. Restore the active trip first.
+      }
+      if (!ref.mounted) return;
       if (active == null) {
         state = state.copyWith(
           isLoading: false,
-          todayEarnings: earnings.todayAmount,
-          completedToday: earnings.todayTrips,
+          todayEarnings: earnings?.todayAmount,
+          completedToday: earnings?.todayTrips,
         );
         return;
       }
@@ -127,11 +120,13 @@ class HomeNotifier extends Notifier<HomeState> {
         isLoading: false,
         activeJob: active,
         driverStatus: _statusFor(active.status),
-        todayEarnings: earnings.todayAmount,
-        completedToday: earnings.todayTrips,
+        todayEarnings: earnings?.todayAmount,
+        completedToday: earnings?.todayTrips,
       );
       _subscribeJob(active.id);
+      _startPolling();
       _startLocationUpdates(jobId: active.id);
+      _syncPickupWait(active);
     } catch (error, stack) {
       state = state.copyWith(
         isLoading: false,
@@ -145,9 +140,11 @@ class HomeNotifier extends Notifier<HomeState> {
   DriverStatus _statusFor(String? status) => switch (status) {
     'accepted' || 'heading_to_pickup' => DriverStatus.headingToPickup,
     'arrived' => DriverStatus.arrivedAtPickup,
+    'cargo_verified' => DriverStatus.cargoVerified,
     'loading' => DriverStatus.loading,
     'in_transit' => DriverStatus.inTransit,
-    'delivered' => DriverStatus.arrivedAtDestination,
+    'arrived_destination' => DriverStatus.arrivedAtDestination,
+    'delivered' => DriverStatus.delivered,
     'completed' => DriverStatus.tripCompleted,
     _ => DriverStatus.onlineSearching,
   };
@@ -171,8 +168,7 @@ class HomeNotifier extends Notifier<HomeState> {
         state = state.copyWith(
           driverStatus: DriverStatus.offline,
           isLoading: false,
-          errorMessage:
-              'Add a vehicle and wait for it to be verified before going online.',
+          errorMessage: 'Add a vehicle and wait for it to be verified before going online.',
         );
         return;
       }
@@ -218,7 +214,11 @@ class HomeNotifier extends Notifier<HomeState> {
 
   Future<void> acceptJob() async {
     final job = state.incomingJob;
-    if (job == null || state.driverStatus != DriverStatus.incomingJob) return;
+    if (job == null ||
+        state.driverStatus != DriverStatus.incomingJob ||
+        state.isSubmitting) {
+      return;
+    }
     _cancelCountdown();
     _incomingTimer?.cancel();
 
@@ -236,33 +236,47 @@ class HomeNotifier extends Notifier<HomeState> {
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
       await _repo.acceptOffer(offerId);
-      final active = await _repo.activeJob();
-      if (active == null) {
-        throw StateError('The job could not be loaded after acceptance.');
-      }
-      _activeJobId = active.id;
+      // The confirmed offer already contains the two endpoints and cargo.
+      _activeJobId = job.id;
       state = state.copyWith(
         driverStatus: DriverStatus.headingToPickup,
-        activeJob: active,
-        isSubmitting: false,
+        activeJob: job.copyWith(status: 'accepted'),
         clearIncoming: true,
       );
-      _subscribeJob(active.id);
-      _startLocationUpdates(jobId: active.id);
-      await _repo.advanceJob(active.id, 'heading_to_pickup');
+      _subscribeJob(job.id);
+      unawaited(_startLocationUpdates(jobId: job.id));
+      await _repo.advanceJob(job.id, 'heading_to_pickup');
+      state = state.copyWith(
+        isSubmitting: false,
+        activeJob: job.copyWith(status: 'heading_to_pickup'),
+      );
     } catch (error, stack) {
+      if (_activeJobId == null) await _bootstrap();
+      if (_activeJobId != null) {
+        state = state.copyWith(
+          isSubmitting: false,
+          clearIncoming: true,
+          errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
+        );
+        await _refreshActiveJob(_activeJobId!);
+        return;
+      }
+      final message = ErrorHandler.map(error, stackTrace: stack).message;
       state = state.copyWith(
         isSubmitting: false,
         driverStatus: DriverStatus.onlineSearching,
         clearIncoming: true,
-        errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
+        errorMessage: message,
+        notice: message,
       );
       await _checkOffer();
     }
   }
 
   Future<void> declineJob() async {
-    if (state.driverStatus != DriverStatus.incomingJob) return;
+    if (state.driverStatus != DriverStatus.incomingJob || state.isSubmitting) {
+      return;
+    }
     _cancelCountdown();
     final offerId = state.incomingJob?.offerId;
     state = state.copyWith(
@@ -350,13 +364,15 @@ class HomeNotifier extends Notifier<HomeState> {
   }
 
   Future<void> advanceStage() async {
+    if (state.isSubmitting) return;
     final next = switch (state.driverStatus) {
       DriverStatus.headingToPickup => DriverStatus.arrivedAtPickup,
-      DriverStatus.arrivedAtPickup => DriverStatus.loading,
+      DriverStatus.arrivedAtPickup => DriverStatus.cargoVerified,
+      DriverStatus.cargoVerified => DriverStatus.loading,
       DriverStatus.loading => DriverStatus.inTransit,
       DriverStatus.inTransit => DriverStatus.arrivedAtDestination,
-      DriverStatus.arrivedAtDestination =>
-        _isMock ? DriverStatus.tripCompleted : null,
+      DriverStatus.arrivedAtDestination => DriverStatus.delivered,
+      DriverStatus.delivered => DriverStatus.tripCompleted,
       _ => null,
     };
     if (next == null) return;
@@ -371,35 +387,49 @@ class HomeNotifier extends Notifier<HomeState> {
     }
 
     final job = state.activeJob;
-    if (job == null) return;
+    if (job == null ||
+        next == DriverStatus.delivered ||
+        next == DriverStatus.tripCompleted) {
+      return;
+    }
     final backendStatus = switch (next) {
       DriverStatus.arrivedAtPickup => 'arrived',
+      DriverStatus.cargoVerified => 'cargo_verified',
       DriverStatus.loading => 'loading',
       DriverStatus.inTransit => 'in_transit',
+      DriverStatus.arrivedAtDestination => 'arrived_destination',
       _ => null,
     };
-    state = state.copyWith(
-      driverStatus: next,
-      isSubmitting: true,
-      clearError: true,
-    );
+    state = state.copyWith(isSubmitting: true, clearError: true);
     try {
+      if (job.status == 'accepted' && next == DriverStatus.arrivedAtPickup) {
+        await _repo.advanceJob(job.id, 'heading_to_pickup');
+      }
       if (backendStatus != null) {
         await _repo.advanceJob(job.id, backendStatus);
       }
-      state = state.copyWith(isSubmitting: false);
+      final advanced = job.copyWith(status: backendStatus);
+      state = state.copyWith(
+        isSubmitting: false,
+        activeJob: advanced,
+        driverStatus: next,
+      );
+      _syncPickupWait(advanced);
     } catch (error, stack) {
       state = state.copyWith(
         isSubmitting: false,
         errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
       );
+      await _refreshActiveJob(job.id);
     }
   }
 
-  /// Called by the arrived-at-destination sheet. The driver asks the customer
-  /// for the 6-digit code shown in the customer app. Only a successful verify
-  /// completes the trip and moves money/receipts forward.
+  /// Confirms handover using the code shown in the customer's app.
   Future<bool> verifyDeliveryOtp(String code) async {
+    if (state.isSubmitting ||
+        state.driverStatus != DriverStatus.arrivedAtDestination) {
+      return false;
+    }
     final job = state.activeJob;
     if (job == null || code.trim().length != 6) {
       state = state.copyWith(errorMessage: 'Enter the 6-digit delivery code.');
@@ -416,7 +446,13 @@ class HomeNotifier extends Notifier<HomeState> {
         );
         return false;
       }
-      await _completeRealTrip(job);
+      // OTP verification moves the backend to `delivered`; the driver still
+      // confirms completion from the next screen.
+      state = state.copyWith(
+        driverStatus: DriverStatus.delivered,
+        activeJob: job.copyWith(status: 'delivered'),
+        isSubmitting: false,
+      );
       return true;
     } catch (error, stack) {
       state = state.copyWith(
@@ -427,6 +463,22 @@ class HomeNotifier extends Notifier<HomeState> {
     }
   }
 
+  /// Completes a delivered job (separate from confirming delivery).
+  Future<void> completeTrip() async {
+    final job = state.activeJob;
+    if (job == null ||
+        state.driverStatus != DriverStatus.delivered ||
+        state.isSubmitting) {
+      return;
+    }
+    if (_isMock) {
+      _completeMockTrip();
+      return;
+    }
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    await _completeRealTrip(job);
+  }
+
   Future<void> _completeRealTrip(DriverJob job) async {
     try {
       await _repo.advanceJob(job.id, 'completed');
@@ -434,18 +486,24 @@ class HomeNotifier extends Notifier<HomeState> {
       // OTP verification already moved the job to delivered. A retry can still
       // complete it, so keep the UI in the delivered state and show the error.
       state = state.copyWith(
-        driverStatus: DriverStatus.arrivedAtDestination,
+        driverStatus: DriverStatus.delivered,
         isSubmitting: false,
         errorMessage: 'Delivery verified. Completing the trip will retry.',
       );
       return;
     }
-    final earnings = await _repo.earnings();
+    DriverEarningsSnapshot? earnings;
+    try {
+      earnings = await _repo.earnings();
+    } catch (_) {
+      // The job is already complete. Earnings can refresh on the next load.
+    }
     state = state.copyWith(
       driverStatus: DriverStatus.tripCompleted,
       isSubmitting: false,
-      todayEarnings: earnings.todayAmount,
-      completedToday: earnings.todayTrips,
+      activeJob: job.copyWith(status: 'completed'),
+      todayEarnings: earnings?.todayAmount,
+      completedToday: earnings?.todayTrips,
     );
     _cancelAll();
   }
@@ -462,8 +520,7 @@ class HomeNotifier extends Notifier<HomeState> {
           driverStatus: DriverStatus.offline,
           clearIncoming: true,
           clearActive: true,
-          errorMessage:
-              'Add a vehicle and wait for it to be verified before going online.',
+          errorMessage: 'Add a vehicle and wait for it to be verified before going online.',
         );
         return;
       }
@@ -492,7 +549,7 @@ class HomeNotifier extends Notifier<HomeState> {
   }
 
   Future<void> _checkOffer() async {
-    if (_isMock || !ref.mounted) return;
+    if (_isMock || !ref.mounted || state.isSubmitting) return;
     final searching =
         state.driverStatus == DriverStatus.onlineSearching ||
         state.driverStatus == DriverStatus.onlineIdle;
@@ -500,7 +557,12 @@ class HomeNotifier extends Notifier<HomeState> {
     if (!searching && !incoming) return;
     try {
       final offer = await _repo.nextOffer();
-      if (!ref.mounted) return;
+      if (!ref.mounted ||
+          state.isSubmitting ||
+          _activeJobId != null ||
+          state.driverStatus == DriverStatus.offline) {
+        return;
+      }
 
       if (offer == null) {
         // Our offer expired or another driver accepted first.
@@ -560,7 +622,6 @@ class HomeNotifier extends Notifier<HomeState> {
         timer.cancel();
         return;
       }
-      if (ref.read(offerReviewHoldProvider)) return;
       final next = state.countdownSeconds - 1;
       if (next <= 0) {
         unawaited(declineJob());
@@ -619,10 +680,19 @@ class HomeNotifier extends Notifier<HomeState> {
   }
 
   Future<void> _refreshActiveJob(String jobId) async {
+    if (state.isSubmitting) return;
+    final statusAtRequest = state.driverStatus;
     try {
       final active = await _repo.activeJob();
-      if (!ref.mounted || _activeJobId != jobId) return;
+      if (!ref.mounted ||
+          _activeJobId != jobId ||
+          state.isSubmitting ||
+          state.driverStatus != statusAtRequest) {
+        return;
+      }
       if (active == null) {
+        final message = await _outcomeMessage(jobId);
+        if (!ref.mounted || _activeJobId != jobId) return;
         _activeJobId = null;
         _jobChannel?.unsubscribe();
         _jobChannel = null;
@@ -637,16 +707,118 @@ class HomeNotifier extends Notifier<HomeState> {
         state = state.copyWith(
           driverStatus: DriverStatus.onlineSearching,
           clearActive: true,
+          notice: message,
         );
         unawaited(_startLocationUpdates());
         await _checkOffer();
         return;
       }
-      state = state.copyWith(activeJob: active);
+      state = state.copyWith(
+        activeJob: active,
+        driverStatus: _statusFor(active.status),
+      );
+      _syncPickupWait(active);
     } catch (_) {
       // Realtime failures are non-fatal.
     }
   }
+
+  /// Explains a job that left this driver's screen without them finishing it.
+  Future<String?> _outcomeMessage(String jobId) async {
+    try {
+      final outcome = await _repo.jobOutcome(jobId);
+      final reason = outcome.reason?.trim();
+      return switch (outcome.outcome) {
+        'cancelled' =>
+          reason == null || reason.isEmpty
+              ? 'This job was cancelled.'
+              : 'This job was cancelled: $reason',
+        'released' =>
+          reason == null || reason.isEmpty
+              ? 'This job was given to another driver.'
+              : 'This job was given to another driver. Reason: $reason',
+        'assigned' => null,
+        _ => 'This job is no longer assigned to you.',
+      };
+    } catch (_) {
+      return 'This job is no longer assigned to you.';
+    }
+  }
+
+  String? _pickupWaitFor;
+
+  void _syncPickupWait(DriverJob job) {
+    if (job.status == 'arrived') {
+      if (_pickupWaitFor == job.id) return;
+      _pickupWaitFor = job.id;
+      unawaited(() async {
+        try {
+          final endsAt = await _repo.pickupFreeWaitEndsAt(job.id);
+          if (!ref.mounted || _activeJobId != job.id) return;
+          state = state.copyWith(
+            pickupFreeWaitEndsAt: endsAt,
+            clearPickupWait: endsAt == null,
+          );
+        } catch (_) {
+          _pickupWaitFor = null;
+        }
+      }());
+    } else if (_pickupWaitFor != null || state.pickupFreeWaitEndsAt != null) {
+      _pickupWaitFor = null;
+      state = state.copyWith(clearPickupWait: true);
+    }
+  }
+
+  /// Ends the driver's part in the active job (release, no-show, cargo
+  /// mismatch) and returns them to searching.
+  Future<bool> _leaveActiveJob(
+    Future<void> Function(String jobId) action,
+    String doneMessage,
+  ) async {
+    final job = state.activeJob;
+    if (job == null || state.isSubmitting || _isMock) return false;
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    try {
+      await action(job.id);
+    } catch (error, stack) {
+      state = state.copyWith(
+        isSubmitting: false,
+        notice: ErrorHandler.map(error, stackTrace: stack).message,
+      );
+      return false;
+    }
+    if (!ref.mounted) return false;
+    _activeJobId = null;
+    _pickupWaitFor = null;
+    _jobChannel?.unsubscribe();
+    _jobChannel = null;
+    _lastNotifiedOfferId = null;
+    state = state.copyWith(
+      isSubmitting: false,
+      driverStatus: DriverStatus.onlineSearching,
+      clearActive: true,
+      notice: doneMessage,
+    );
+    unawaited(_startLocationUpdates());
+    await _checkOffer();
+    return true;
+  }
+
+  /// "I can't do this job": hands it back so another driver can take it.
+  Future<bool> releaseActiveJob(String reason) => _leaveActiveJob(
+    (jobId) => _repo.releaseJob(jobId, reason),
+    'Job released. We are finding the customer another driver.',
+  );
+
+  Future<bool> reportCustomerNoShow() => _leaveActiveJob(
+    _repo.reportCustomerNoShow,
+    'Recorded as a customer no-show. You are free for new jobs.',
+  );
+
+  Future<bool> reportCargoMismatch(String reason) => _leaveActiveJob(
+    (jobId) => _repo.reportCargoMismatch(jobId, reason),
+    'Cargo refused and the job was cancelled. You are free for new jobs.',
+  );
 
   void _startPolling() {
     _pollTimer?.cancel();
@@ -661,18 +833,23 @@ class HomeNotifier extends Notifier<HomeState> {
 
   /// Streams GPS fixes while the driver is online or on a trip.
   ///
-  /// A one-shot `getCurrentPosition` every 30 s wakes the radio only to drop
-  /// the lock immediately, which on Android often returns a cached fix and
-  /// makes dispatch believe the driver never moves. A position stream keeps
-  /// the fused provider warm and, on Android, runs behind a foreground-service
-  /// notification so the OS keeps delivering updates while the app is in the
-  /// background.
+  /// Like the big ride-hailing apps, the rate depends on what the driver is
+  /// doing. On a job the stream runs every ~3 s and each accepted fix is
+  /// broadcast live to the customer over the job's private Realtime channel
+  /// (no database write). Idle, it runs every ~20 s. In both cases a point is
+  /// stored in `driver_locations` at most every 30 s, which keeps dispatch,
+  /// the watchdog and the history fed without a write per fix.
+  ///
+  /// On Android the stream runs behind a foreground-service notification so
+  /// the OS keeps delivering updates in the background.
   Future<String?> _startLocationUpdates({String? jobId}) async {
     if (_isMock) return null;
     _locationTimer?.cancel();
     _locationTimer = null;
     await _positionSubscription?.cancel();
     _positionSubscription = null;
+    _gpsFilter.reset();
+    _attachBroadcaster(jobId);
 
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
@@ -694,36 +871,100 @@ class HomeNotifier extends Notifier<HomeState> {
     // waiting for the first stream event.
     final failure = await _pushLocation(jobId);
 
-    var lastPushed = DateTime.now();
     try {
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: _locationSettings(),
-      ).listen(
-        (position) {
-          final now = DateTime.now();
-          // The fused stream can be chatty; the server only needs a fix a few
-          // times a minute.
-          if (now.difference(lastPushed) < const Duration(seconds: 15)) return;
-          lastPushed = now;
-          unawaited(_pushPosition(position, jobId));
-        },
-        onError: (_) {
-          // A single bad fix is not fatal; the stream keeps running.
-        },
-      );
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: _locationSettings(onJob: jobId != null),
+          ).listen(
+            (position) => unawaited(_onPosition(position, jobId)),
+            onError: (_) {
+              // A single bad fix is not fatal; the stream keeps running.
+            },
+          );
     } catch (error, stack) {
-      // Fall back to the periodic safety push below.
-      debugPrint('Position stream unavailable: '
-          '${ErrorHandler.map(error, stackTrace: stack).message}');
+      debugPrint(
+        'Position stream unavailable: '
+        '${ErrorHandler.map(error, stackTrace: stack).message}',
+      );
     }
 
-    // Safety net for ROMs/configs that stop the stream: re-assert a fix
-    // periodically even if no stream event has arrived.
-    _locationTimer = Timer.periodic(
-      const Duration(seconds: 45),
-      (_) => unawaited(_pushLocation(jobId)),
-    );
+    // Safety net for ROMs that stop the stream: store a fresh fix if none
+    // was stored recently.
+    _locationTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      final last = _lastPersistedAt;
+      if (last == null ||
+          DateTime.now().difference(last) > const Duration(seconds: 40)) {
+        unawaited(_pushLocation(jobId));
+      }
+    });
     return failure;
+  }
+
+  final GpsFilter _gpsFilter = GpsFilter();
+  LiveLocationBroadcaster? _broadcaster;
+
+  /// Opens (or closes, with null) the live channel for the job in progress.
+  void _attachBroadcaster(String? jobId) {
+    if (jobId == null) {
+      _broadcaster?.detach();
+      return;
+    }
+    (_broadcaster ??= LiveLocationBroadcaster(
+      ref.read(supabaseProvider),
+    )).attach(jobId);
+  }
+
+  DateTime? _lastPersistedAt;
+  static const _persistEvery = Duration(seconds: 30);
+
+  static LiveFix _fixFrom(Position position) {
+    // Sensor heading is noise below walking pace.
+    final moving = position.speed.isFinite && position.speed >= 1.5;
+    return LiveFix(
+      lat: position.latitude,
+      lng: position.longitude,
+      at: position.timestamp,
+      heading: moving && position.heading.isFinite && position.heading >= 0
+          ? position.heading % 360
+          : null,
+      speedKmh: position.speed.isFinite && position.speed >= 0
+          ? position.speed * 3.6
+          : null,
+      accuracyM: position.accuracy.isFinite ? position.accuracy : null,
+    );
+  }
+
+  Future<void> _onPosition(Position position, String? jobId) async {
+    final fix = _gpsFilter.accept(_fixFrom(position));
+    if (fix == null || !ref.mounted) return;
+    state = state.copyWith(
+      driverLat: fix.lat,
+      driverLng: fix.lng,
+      driverHeading: fix.heading,
+      driverSpeedKmh: fix.speedKmh,
+    );
+    if (jobId != null) unawaited(_broadcaster?.send(fix));
+    final last = _lastPersistedAt;
+    if (last == null || DateTime.now().difference(last) >= _persistEvery) {
+      await _persist(fix, jobId);
+    }
+  }
+
+  Future<void> _persist(LiveFix fix, String? jobId) async {
+    _lastPersistedAt = DateTime.now();
+    try {
+      await _repo.updateLocation(
+        latitude: fix.lat,
+        longitude: fix.lng,
+        jobId: jobId,
+        heading: fix.heading,
+        speedKmh: fix.speedKmh,
+        accuracyM: fix.accuracyM,
+      );
+    } catch (_) {
+      // Retry on the next fix rather than waiting another 30 s.
+      _lastPersistedAt = null;
+    }
   }
 
   /// Android-specific settings so location keeps flowing in the background.
@@ -732,42 +973,35 @@ class HomeNotifier extends Notifier<HomeState> {
   /// notification is what prevents the OS from freezing updates once the app
   /// leaves the foreground. The plugin starts and stops that service with the
   /// stream, so it does not leak after [_cancelAll].
-  LocationSettings _locationSettings() {
+  LocationSettings _locationSettings({required bool onJob}) {
     const accuracy = LocationAccuracy.high;
-    const distanceFilter = 15;
+    final distanceFilter = onJob ? 5 : 25;
+    final interval = onJob
+        ? const Duration(seconds: 3)
+        : const Duration(seconds: 20);
     if (defaultTargetPlatform != TargetPlatform.android) {
-      return const LocationSettings(
-        accuracy: accuracy,
+      return LocationSettings(
+        accuracy: onJob ? LocationAccuracy.bestForNavigation : accuracy,
         distanceFilter: distanceFilter,
       );
     }
     return AndroidSettings(
       accuracy: accuracy,
       distanceFilter: distanceFilter,
-      intervalDuration: const Duration(seconds: 15),
-      foregroundNotificationConfig: const ForegroundNotificationConfig(
-        notificationTitle: 'SafeShift Driver is online',
-        notificationText:
-            'Sharing your location so nearby customers can find you.',
+      intervalDuration: interval,
+      foregroundNotificationConfig: ForegroundNotificationConfig(
+        notificationTitle: onJob
+            ? 'SafeShift Driver is on a trip'
+            : 'SafeShift Driver is online',
+        notificationText: onJob
+            ? 'Sharing your live location with the customer.'
+            : 'Sharing your location so nearby customers can find you.',
         notificationChannelName: 'Driver location',
-        notificationIcon: AndroidResource(name: 'ic_launcher'),
+        notificationIcon: const AndroidResource(name: 'ic_launcher'),
         enableWakeLock: true,
         setOngoing: true,
       ),
     );
-  }
-
-  Future<void> _pushPosition(Position position, String? jobId) async {
-    if (_isMock) return;
-    try {
-      await _repo.updateLocation(
-        latitude: position.latitude,
-        longitude: position.longitude,
-        jobId: jobId,
-      );
-    } catch (_) {
-      // The periodic safety push retries.
-    }
   }
 
   /// Publishes the driver's GPS fix.
@@ -795,13 +1029,28 @@ class HomeNotifier extends Notifier<HomeState> {
           accuracy: LocationAccuracy.high,
         ),
       );
+      final fix = _fixFrom(position);
+      if (ref.mounted) {
+        state = state.copyWith(
+          driverLat: fix.lat,
+          driverLng: fix.lng,
+          driverHeading: fix.heading,
+          driverSpeedKmh: fix.speedKmh,
+        );
+      }
+      if (jobId != null) unawaited(_broadcaster?.send(fix));
+      _lastPersistedAt = DateTime.now();
       await _repo.updateLocation(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: fix.lat,
+        longitude: fix.lng,
         jobId: jobId,
+        heading: fix.heading,
+        speedKmh: fix.speedKmh,
+        accuracyM: fix.accuracyM,
       );
       return null;
     } catch (error, stack) {
+      _lastPersistedAt = null;
       return ErrorHandler.map(error, stackTrace: stack).message;
     }
   }
@@ -812,6 +1061,8 @@ class HomeNotifier extends Notifier<HomeState> {
       clearIncoming: true,
       clearActive: true,
       clearError: true,
+      driverLat: -6.79,
+      driverLng: 39.25,
     );
     _idleTimer = Timer(HomeDelays.idleToSearching, () {
       if (!ref.mounted) return;
@@ -867,6 +1118,7 @@ class HomeNotifier extends Notifier<HomeState> {
     _offersChannel = null;
     _jobChannel = null;
     _activeJobId = null;
+    _broadcaster?.detach();
   }
 }
 

@@ -5,10 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../core/config/env_config.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/errors/error_handler.dart';
-import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../providers/booking_provider.dart';
@@ -69,7 +67,7 @@ class QuoteScreen extends ConsumerWidget {
                               const SizedBox(height: AppSizes.md),
                               _RouteLine(
                                 icon: Icons.trip_origin_rounded,
-                                color: AppColors.success,
+                                color: context.colors.secondary,
                                 label: draft.pickup.name,
                                 district: draft.pickup.district,
                               ),
@@ -78,12 +76,12 @@ class QuoteScreen extends ConsumerWidget {
                                 child: Container(
                                   width: 2,
                                   height: 18,
-                                  color: AppColors.divider,
+                                  color: context.colors.outlineVariant,
                                 ),
                               ),
                               _RouteLine(
                                 icon: Icons.location_on_rounded,
-                                color: AppColors.error,
+                                color: context.colors.error,
                                 label: draft.destination.name,
                                 district: draft.destination.district,
                               ),
@@ -99,14 +97,14 @@ class QuoteScreen extends ConsumerWidget {
                                 height: 46,
                                 decoration: BoxDecoration(
                                   color:
-                                      AppColors.primary.withValues(alpha: 0.1),
+                                      context.colors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: CatalogIcon(
                                   iconUrl: draft.vehicleClass.iconUrl,
                                   supabaseUrl: _iconBaseUrl,
                                   fallbackIcon: Icons.local_shipping_outlined,
-                                  color: AppColors.primaryDark,
+                                  color: context.colors.primary,
                                   size: 24,
                                 ),
                               ),
@@ -122,7 +120,7 @@ class QuoteScreen extends ConsumerWidget {
                                     Text(
                                       draft.vehicleClass.capacityLabel,
                                       style: TextStyles.caption.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: context.colors.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -131,7 +129,7 @@ class QuoteScreen extends ConsumerWidget {
                               Text(
                                 'Vehicle',
                                 style: TextStyles.caption.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -191,7 +189,7 @@ class QuoteScreen extends ConsumerWidget {
                         Text(
                           'This is an estimate. Final price may adjust if cargo details change.',
                           style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -256,7 +254,7 @@ class _RouteLine extends StatelessWidget {
             Text(
               district,
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -287,7 +285,7 @@ class _PriceRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: isTotal ? 16 : 13,
-              color: isTotal ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isTotal ? context.colors.onSurface : context.colors.onSurfaceVariant,
               fontWeight: isTotal ? FontWeight.w700 : FontWeight.w400,
             ),
           ),
@@ -296,7 +294,7 @@ class _PriceRow extends StatelessWidget {
           'TZS ${format.format(value)}',
           style: TextStyle(
             fontSize: isTotal ? 18 : 13,
-            color: AppColors.textPrimary,
+            color: context.colors.onSurface,
             fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600,
           ),
         ),

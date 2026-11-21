@@ -41,7 +41,7 @@ class OnlineSheet extends ConsumerWidget {
             Text(
               'Going online…',
               style: TextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),

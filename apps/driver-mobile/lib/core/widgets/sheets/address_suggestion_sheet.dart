@@ -44,9 +44,11 @@ class _AddressSuggestionSheetState extends State<AddressSuggestionSheet> {
           AppSizes.lg,
           AppSizes.md,
         ),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +58,7 @@ class _AddressSuggestionSheetState extends State<AddressSuggestionSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: context.colors.outlineVariant,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -83,12 +85,12 @@ class _AddressSuggestionSheetState extends State<AddressSuggestionSheet> {
                 itemBuilder: (context, index) {
                   final location = matches[index];
                   return Material(
-                    color: AppColors.surface,
+                    color: context.colors.surface,
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.location_on_outlined,
-                        color: AppColors.primary,
+                        color: context.colors.primary,
                       ),
                       title: Text(
                         location.name,

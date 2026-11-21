@@ -56,6 +56,100 @@ class CatalogRepository {
     return rows.map(_vehicleFromRow).toList(growable: false);
   }
 
+  /// Active vehicle categories that can actually be priced right now.
+  ///
+  /// The booking flow must not offer a vehicle that has no active plan with a
+  /// published version in effect: quoting it raises PostgreSQL `P0002`, which
+  /// the customer cannot resolve. Vehicles without pricing are omitted.
+  ///
+  /// Pricing tables are readable by every authenticated user. If the lookup is
+  /// denied, or returns no plans at all (an unconfigured market), the plain
+  /// catalogue is returned so a configuration gap cannot empty the screen.
+  Future<List<VehicleTypeOption>> getQuotableVehicleTypes({
+    String? countryId,
+  }) async {
+    final vehicles = await getVehicleTypes(countryId: countryId);
+    if (vehicles.isEmpty) return vehicles;
+    try {
+      final quotableIds = await _quotableVehicleIds();
+      if (quotableIds.isEmpty) return vehicles;
+      final filtered = vehicles
+          .where((vehicle) => quotableIds.contains(vehicle.id))
+          .toList(growable: false);
+      return filtered.isEmpty ? vehicles : filtered;
+    } catch (_) {
+      return vehicles;
+    }
+  }
+
+  /// Vehicle ids covered by an active plan whose published version is in
+  /// effect now. Mirrors `active_pricing_plan_for` and
+  /// `active_pricing_plan_version` on the server.
+  Future<Set<String>> _quotableVehicleIds() async {
+    final plans = await _client
+        .from('pricing_plans')
+        .select('id, vehicle_type_id')
+        .eq('is_active', true);
+    if (plans.isEmpty) return const <String>{};
+
+    final versions = await _client
+        .from('pricing_plan_versions')
+        .select(
+          'id, pricing_plan_id, version_number, published_at, '
+          'effective_from, effective_to',
+        )
+        .inFilter(
+          'pricing_plan_id',
+          plans.map((plan) => plan['id'] as String).toList(growable: false),
+        );
+
+    final now = DateTime.now().toUtc();
+    DateTime? parseTime(Object? value) =>
+        value is String ? DateTime.tryParse(value)?.toUtc() : null;
+
+    // active_pricing_plan_version() picks the newest published version whose
+    // effective window contains the current time.
+    final latestLiveVersion = <String, String>{};
+    final latestLiveNumber = <String, int>{};
+    for (final version in versions) {
+      final planId = version['pricing_plan_id'] as String?;
+      final versionId = version['id'] as String?;
+      if (planId == null || versionId == null) continue;
+      if (version['published_at'] == null) continue;
+      final from = parseTime(version['effective_from']);
+      final to = parseTime(version['effective_to']);
+      if (from == null || from.isAfter(now)) continue;
+      if (to != null && !to.isAfter(now)) continue;
+      final number = (version['version_number'] as num?)?.toInt() ?? 0;
+      if ((latestLiveNumber[planId] ?? -1) >= number) continue;
+      latestLiveNumber[planId] = number;
+      latestLiveVersion[planId] = versionId;
+    }
+    if (latestLiveVersion.isEmpty) return const <String>{};
+
+    final ids = <String>{};
+    for (final plan in plans) {
+      final planId = plan['id'] as String?;
+      if (planId == null || !latestLiveVersion.containsKey(planId)) continue;
+      final vehicleTypeId = plan['vehicle_type_id'] as String?;
+      if (vehicleTypeId != null) ids.add(vehicleTypeId);
+    }
+
+    // A version can also cover extra vehicle types.
+    final mappings = await _client
+        .from('pricing_plan_vehicle_types')
+        .select('vehicle_type_id')
+        .inFilter(
+          'pricing_plan_version_id',
+          latestLiveVersion.values.toList(growable: false),
+        );
+    for (final mapping in mappings) {
+      final vehicleTypeId = mapping['vehicle_type_id'] as String?;
+      if (vehicleTypeId != null) ids.add(vehicleTypeId);
+    }
+    return ids;
+  }
+
   /// Active cargo types visible in [countryId].
   ///
   /// Pass null to use the signed-in profile's country, or the empty string to
@@ -127,7 +221,9 @@ class CatalogRepository {
       requiresInsurance: row['requires_insurance'] == true,
       maxValueTzs: (row['max_value_tzs'] as num?)?.toDouble(),
       allowedVehicleTypeCodes: _codesOf(row['allowed_vehicle_type_codes']),
-      prohibitedVehicleTypeCodes: _codesOf(row['prohibited_vehicle_type_codes']),
+      prohibitedVehicleTypeCodes: _codesOf(
+        row['prohibited_vehicle_type_codes'],
+      ),
     );
   }
 

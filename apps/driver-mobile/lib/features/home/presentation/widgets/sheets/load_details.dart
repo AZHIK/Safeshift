@@ -13,9 +13,11 @@ import 'cargo_review_sheet.dart';
 ///
 /// Used on the offer card (before accepting) and while heading to pickup, so
 /// the driver knows whether the load fits the vehicle before committing.
-/// Tapping the photos opens the full cargo review with every cargo field.
+/// The incoming offer displays its photos above the route and fare.
 class LoadDetails extends ConsumerWidget {
-  const LoadDetails({super.key, required this.job});
+  const LoadDetails({super.key, required this.job, this.showPhotoStrip = true});
+
+  final bool showPhotoStrip;
 
   final DriverJob job;
 
@@ -76,19 +78,17 @@ class LoadDetails extends ConsumerWidget {
         if (hasDescription)
           Text(
             description,
-            style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.body.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
         if (hasDescription && chips.isNotEmpty)
           const SizedBox(height: AppSizes.sm),
         if (chips.isNotEmpty)
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.xs,
-            children: chips,
-          ),
+          Wrap(spacing: AppSizes.sm, runSpacing: AppSizes.xs, children: chips),
         if (photoCount > 0) ...[
           const SizedBox(height: AppSizes.sm),
-          CargoPhotoStrip(job: job),
+          if (showPhotoStrip) CargoPhotoStrip(job: job, compact: true),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -114,18 +114,18 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.divider.withValues(alpha: 0.35),
+        color: context.colors.outlineVariant.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: AppColors.textSecondary),
+          Icon(icon, size: 13, color: context.colors.onSurfaceVariant),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),

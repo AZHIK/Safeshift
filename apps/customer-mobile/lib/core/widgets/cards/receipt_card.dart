@@ -47,18 +47,18 @@ class ReceiptCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSizes.md),
     decoration: BoxDecoration(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.divider),
+      border: Border.all(color: context.colors.outlineVariant),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Row(
+        Row(
           children: <Widget>[
-            Icon(Icons.receipt_long_rounded, color: AppColors.primary),
-            SizedBox(width: AppSizes.sm),
-            Text('Trip receipt', style: TextStyles.title),
+            Icon(Icons.receipt_long_rounded, color: context.colors.primary),
+            const SizedBox(width: AppSizes.sm),
+            const Text('Trip receipt', style: TextStyles.title),
           ],
         ),
         const SizedBox(height: AppSizes.md),
@@ -103,7 +103,7 @@ class _ReceiptRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
               fontSize: isTotal ? 14 : 12,
             ),
           ),
@@ -114,7 +114,7 @@ class _ReceiptRow extends StatelessWidget {
             value,
             textAlign: TextAlign.end,
             style: isTotal
-                ? TextStyles.title.copyWith(color: AppColors.textPrimary)
+                ? TextStyles.title.copyWith(color: context.colors.onSurface)
                 : const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),

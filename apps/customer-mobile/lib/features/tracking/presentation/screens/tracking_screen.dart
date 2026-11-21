@@ -12,7 +12,8 @@ import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../booking/providers/booking_provider.dart';
 import '../../../phase9/presentation/phase9_screens.dart';
 import '../../../ride/providers/ride_provider.dart';
-import '../widgets/map_view.dart';
+import '../../../ride/presentation/widgets/shiny_map_view.dart';
+import '../../providers/tracking_provider.dart';
 import '../widgets/trip_status_stepper.dart';
 
 /// Live tracking route, also reachable from `safeshift://tracking/<jobId>`.
@@ -76,21 +77,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     });
   }
 
-  int _stepFor(String? status) => switch (status) {
-    'accepted' || 'heading_to_pickup' => 0,
-    'arrived' => 1,
-    'loading' => 2,
-    'in_transit' => 3,
-    'delivered' || 'completed' => 4,
-    _ => 0,
-  };
-
   String _labelFor(String? status) => switch (status) {
     'accepted' || 'heading_to_pickup' => 'Driver is heading to pickup',
     'arrived' => 'Driver has arrived at pickup',
+    'cargo_verified' => 'Driver verified the cargo',
     'loading' => 'Cargo is being loaded',
     'in_transit' => 'On the way to destination',
-    'delivered' => 'Delivered',
+    'arrived_destination' => 'Driver has arrived at the destination',
+    'delivered' => 'Delivery confirmed',
     'completed' => 'Move completed',
     'cancelled' => 'Move cancelled',
     _ => 'Looking for a driver',
@@ -116,15 +110,17 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       appBar: AppBar(title: const Text('Track your move')),
       body: Column(
         children: <Widget>[
-          const Expanded(flex: 4, child: MapView()),
+          Expanded(flex: 4, child: ShinyMapView(state: ride)),
           Expanded(
             flex: 6,
             child: Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
                 boxShadow: <BoxShadow>[
-                  BoxShadow(
+                  const BoxShadow(
                     color: Color(0x14000000),
                     blurRadius: 16,
                     offset: Offset(0, -4),
@@ -142,11 +138,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   if (ride.errorMessage != null) ...<Widget>[
                     Text(
                       ride.errorMessage!,
-                      style: TextStyles.body.copyWith(color: AppColors.error),
+                      style: TextStyles.body.copyWith(
+                        color: context.colors.error,
+                      ),
                     ),
                     const SizedBox(height: AppSizes.sm),
                   ],
-                  TripStatusStepper(currentStep: _stepFor(ride.jobStatus)),
+                  TripStatusStepper(
+                    currentStep: ref.watch(trackingProvider).currentStep,
+                  ),
                   const SizedBox(height: AppSizes.md),
                   Text(
                     _labelFor(ride.jobStatus),
@@ -163,19 +163,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           : 'Assigning the nearest driver…',
                       textAlign: TextAlign.center,
                       style: TextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       ),
                     ),
                   const SizedBox(height: AppSizes.sm),
                   _JobRouteRow(
                     icon: Icons.trip_origin_rounded,
-                    color: AppColors.success,
+                    color: context.colors.secondary,
                     title: pickup,
                   ),
                   const SizedBox(height: AppSizes.xs),
                   _JobRouteRow(
                     icon: Icons.location_on_rounded,
-                    color: AppColors.error,
+                    color: context.colors.error,
                     title: destination,
                   ),
                   const SizedBox(height: AppSizes.sm),
@@ -185,8 +185,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         : 'Delivery code: ${ride.deliveryOtp}',
                     style: TextStyles.caption.copyWith(
                       color: ride.deliveryOtp == null
-                          ? AppColors.textSecondary
-                          : AppColors.primary,
+                          ? context.colors.onSurfaceVariant
+                          : context.colors.primary,
                       fontWeight: ride.deliveryOtp == null
                           ? FontWeight.w400
                           : FontWeight.w700,
@@ -208,13 +208,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         onPressed: ride.jobId == null
                             ? null
                             : () => raiseSos(context, ref, ride.jobId!),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.emergency_outlined,
-                          color: AppColors.error,
+                          color: context.colors.error,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Emergency',
-                          style: TextStyle(color: AppColors.error),
+                          style: TextStyle(color: context.colors.error),
                         ),
                       ),
                     ],
@@ -238,6 +238,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     label: const Text('Add delivery photo'),
                   ),
                   const SizedBox(height: AppSizes.md),
+                  if (ride.jobStatus == 'arrived_destination')
+                    PrimaryButton(
+                      label: 'Confirm delivery',
+                      isLoading: ride.isSubmitting,
+                      onPressed: ref
+                          .read(rideProvider.notifier)
+                          .confirmDelivery,
+                    ),
                   PrimaryButton(
                     label: 'Back to home',
                     onPressed: () => context.go('/home'),

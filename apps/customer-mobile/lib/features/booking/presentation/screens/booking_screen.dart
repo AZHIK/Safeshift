@@ -5,9 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../core/config/env_config.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
@@ -184,7 +182,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             label: 'Pickup address',
             location: _pickup,
             icon: Icons.trip_origin_rounded,
-            color: AppColors.success,
+            color: context.colors.secondary,
             onTap: () => _chooseAddress(pickup: true),
           ),
           const SizedBox(height: AppSizes.sm),
@@ -192,7 +190,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             label: 'Destination',
             location: _destination,
             icon: Icons.location_on_rounded,
-            color: AppColors.error,
+            color: context.colors.error,
             onTap: () => _chooseAddress(pickup: false),
           ),
           const SizedBox(height: AppSizes.lg),
@@ -221,14 +219,14 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             supabaseUrl: _iconBaseUrl,
                             fallbackIcon: Icons.category_rounded,
                             size: 17,
-                            color: selected ? Colors.white : AppColors.textSecondary,
+                            color: selected ? context.colors.onPrimary : context.colors.onSurfaceVariant,
                           ),
                           label: Text(category.name),
                           selected: selected,
                           showCheckmark: false,
-                          selectedColor: AppColors.primary,
+                          selectedColor: context.colors.primary,
                           labelStyle: TextStyle(
-                            color: selected ? Colors.white : AppColors.textPrimary,
+                            color: selected ? context.colors.onPrimary : context.colors.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                           onSelected: (_) => setState(() => _cargo = category),
@@ -268,9 +266,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             child: InfoCard(
               child: Row(
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.calendar_month_outlined,
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                   ),
                   const SizedBox(width: AppSizes.md),
                   Expanded(
@@ -288,15 +286,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               : DateFormat('EEE, d MMM · h:mm a')
                                     .format(_scheduledTime!),
                           style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -334,7 +332,7 @@ class _SectionTitle extends StatelessWidget {
       const SizedBox(height: 3),
       Text(
         subtitle,
-        style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+        style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant),
       ),
     ],
   );
@@ -369,7 +367,7 @@ class _AddressCard extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -379,8 +377,8 @@ class _AddressCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyles.title.copyWith(
                     color: location == null
-                        ? AppColors.textDisabled
-                        : AppColors.textPrimary,
+                        ? context.colors.onSurfaceVariant
+                        : context.colors.onSurface,
                     fontSize: 12,
                   ),
                 ),
@@ -388,15 +386,15 @@ class _AddressCard extends StatelessWidget {
                   Text(
                     location!.district,
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.search_rounded,
-            color: AppColors.textSecondary,
+            color: context.colors.onSurfaceVariant,
             size: 20,
           ),
         ],
@@ -423,11 +421,11 @@ class _VehicleOption extends StatelessWidget {
       padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
         color: selected
-            ? AppColors.primary.withValues(alpha: 0.07)
-            : AppColors.surface,
+            ? context.colors.primary.withValues(alpha: 0.07)
+            : context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? AppColors.primary : AppColors.divider,
+          color: selected ? context.colors.primary : context.colors.outlineVariant,
           width: selected ? 1.5 : 1,
         ),
       ),
@@ -438,15 +436,15 @@ class _VehicleOption extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.primary.withValues(alpha: 0.14)
-                  : AppColors.background,
+                  ? context.colors.primary.withValues(alpha: 0.14)
+                  : Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: CatalogIcon(
               iconUrl: vehicle.iconUrl,
               supabaseUrl: _iconBaseUrl,
               fallbackIcon: Icons.local_shipping_outlined,
-              color: AppColors.primaryDark,
+              color: context.colors.primary,
               size: 24,
             ),
           ),
@@ -459,7 +457,7 @@ class _VehicleOption extends StatelessWidget {
                 Text(
                   vehicle.capacityLabel,
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
                 if (vehicle.description.isNotEmpty)
@@ -468,7 +466,7 @@ class _VehicleOption extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
               ],
@@ -479,7 +477,7 @@ class _VehicleOption extends StatelessWidget {
             selected
                 ? Icons.radio_button_checked_rounded
                 : Icons.radio_button_off_rounded,
-            color: selected ? AppColors.primary : AppColors.textDisabled,
+            color: selected ? context.colors.primary : context.colors.onSurfaceVariant,
             size: 20,
           ),
         ],

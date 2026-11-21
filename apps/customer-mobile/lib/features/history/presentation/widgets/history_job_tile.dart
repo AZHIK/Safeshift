@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 
 import '../../../../core/config/env_config.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/cards/status_pill.dart';
 import '../../../booking/domain/entities/job.dart';
@@ -29,8 +28,8 @@ class HistoryJobTile extends StatelessWidget {
             Container(
               width: 42,
               height: 42,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F4FD),
+              decoration: BoxDecoration(
+                color: context.colors.primaryContainer,
                 shape: BoxShape.circle,
               ),
               // The icon comes from the vehicle category row in the database.
@@ -38,7 +37,7 @@ class HistoryJobTile extends StatelessWidget {
                 iconUrl: job.vehicleClassIconUrl,
                 supabaseUrl: _iconBaseUrl,
                 fallbackIcon: Icons.local_shipping_rounded,
-                color: AppColors.primaryDark,
+                color: context.colors.primary,
                 size: 21,
               ),
             ),
@@ -59,10 +58,10 @@ class HistoryJobTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.south_rounded,
                         size: 13,
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -70,9 +69,9 @@ class HistoryJobTile extends StatelessWidget {
                           job.destinationAddress,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -82,17 +81,17 @@ class HistoryJobTile extends StatelessWidget {
                   Text(
                     DateFormat('d MMM yyyy')
                         .format(job.createdAt ?? DateTime.now()),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'TZS ${NumberFormat('#,##0').format(job.quoteAmount)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.onSurface,
                     ),
                   ),
                 ],

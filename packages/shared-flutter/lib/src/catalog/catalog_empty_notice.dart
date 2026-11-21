@@ -56,24 +56,24 @@ class CatalogEmptyNotice extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
-        color: SafeShiftColors.background,
+        color: context.colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: SafeShiftColors.divider),
+        border: Border.all(color: context.colors.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(icon ?? _icon, size: 20, color: SafeShiftColors.textSecondary),
+              Icon(icon ?? _icon, size: 20, color: context.colors.onSurfaceVariant),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: SafeShiftColors.textPrimary,
+                    color: context.colors.onSurface,
                   ),
                 ),
               ),
@@ -82,10 +82,10 @@ class CatalogEmptyNotice extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             message ?? _message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               height: 1.35,
-              color: SafeShiftColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
             ),
           ),
         ],

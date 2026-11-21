@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 
-/// Quiet progress pills for white onboarding. Active pill uses brand
-/// gradient, inactive pills are light grey.
+/// Highlights the current onboarding page.
 class PageIndicator extends StatelessWidget {
   const PageIndicator({super.key, required this.currentIndex, this.count = 3});
 
@@ -25,7 +24,7 @@ class PageIndicator extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
           decoration: BoxDecoration(
             gradient: active ? AppColors.brandGradient : null,
-            color: active ? null : AppColors.divider,
+            color: active ? null : context.colors.outlineVariant,
             borderRadius: BorderRadius.circular(AppSizes.radiusFull),
           ),
         );

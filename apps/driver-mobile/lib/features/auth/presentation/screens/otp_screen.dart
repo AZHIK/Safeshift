@@ -127,23 +127,26 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final isComplete = _code.length == _codeLength;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: context.colors.onSurface),
           onPressed: () => context.pop(),
         ),
       ),
       body: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFEAF3FD), Colors.white],
+                  colors: [
+                    context.colors.primaryContainer,
+                    context.colors.surface,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.5],
@@ -180,7 +183,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                   Radius.circular(24),
                                 ),
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: context.colors.outlineVariant,
                                   width: 2,
                                 ),
                                 boxShadow: AppColors.cardShadow,
@@ -203,7 +206,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             'We sent a 6-digit code to $phoneLabel',
                             textAlign: TextAlign.center,
                             style: TextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.xs),
@@ -213,7 +216,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               'Change number',
                               textAlign: TextAlign.center,
                               style: TextStyles.body.copyWith(
-                                color: AppColors.primaryDark,
+                                color: context.colors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -226,16 +229,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.background,
+                                color: Theme.of(context)
+                                    .scaffoldBackgroundColor,
                                 borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: AppColors.divider),
+                                border: Border.all(
+                                  color: context.colors.outlineVariant,
+                                ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Step 2 of 2 · Code',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -247,9 +253,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               vertical: 18,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.divider),
+                              border: Border.all(
+                                color: context.colors.outlineVariant,
+                              ),
                               boxShadow: AppColors.cardShadow,
                             ),
                             child: Column(
@@ -266,7 +274,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                     ? Text(
                                         'Resend code in ${_secondsLeft}s',
                                         style: TextStyles.body.copyWith(
-                                          color: AppColors.textSecondary,
+                                          color:
+                                              context.colors.onSurfaceVariant,
                                         ),
                                       )
                                     : GestureDetector(
@@ -274,7 +283,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                         child: Text(
                                           'Resend code',
                                           style: TextStyles.body.copyWith(
-                                            color: AppColors.primaryDark,
+                                            color: context.colors.primary,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -301,7 +310,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             'Check your SMS inbox',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
-                              color: AppColors.textDisabled,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),

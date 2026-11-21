@@ -47,6 +47,8 @@ abstract final class ErrorHandler {
       if (error.code == 'PGRST116') {
         return const ServerFailure('That record could not be found.');
       }
+      final offerMessage = _offerMessage(error.message);
+      if (offerMessage != null) return ServerFailure(offerMessage);
       return const ServerFailure('The server could not complete that request.');
     }
 
@@ -91,6 +93,50 @@ abstract final class ErrorHandler {
       return const ServerFailure('Too many requests. Please wait and retry.');
     }
     return const ServerFailure('The service is unavailable right now.');
+  }
+
+  /// Plain-language outcomes for accepting a job offer, which the server
+  /// raises as check violations with stable messages.
+  static String? _offerMessage(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('already been taken by another driver') ||
+        lower.contains('auto_reassigned')) {
+      return 'Another driver accepted this job first.';
+    }
+    if (lower.contains('customer cancelled this job')) {
+      return 'The customer cancelled this job.';
+    }
+    if (lower.contains('offer has expired') ||
+        lower.contains('offer is no longer available') ||
+        lower.contains('job is no longer available')) {
+      return 'This offer is no longer available.';
+    }
+    if (lower.contains('already have an active job')) {
+      return 'Finish your current job before accepting another.';
+    }
+    if (lower.contains('does not match the quoted vehicle type')) {
+      return 'Your current vehicle does not match the vehicle this job needs.';
+    }
+    if (lower.contains('deadlock')) {
+      return 'Another driver accepted this job first.';
+    }
+    if (lower.contains('can no longer be released')) {
+      return 'The cargo is already verified, so this job cannot be handed '
+          'back. Contact support.';
+    }
+    if (lower.contains('before reporting a no-show')) {
+      return 'Wait the full free waiting time before reporting a no-show.';
+    }
+    if (lower.contains('mark yourself as arrived')) {
+      return 'Mark yourself as arrived at the pickup first.';
+    }
+    if (lower.contains('cargo can only be refused')) {
+      return 'Cargo can only be refused at the pickup, before loading.';
+    }
+    if (lower.contains('only the assigned driver')) {
+      return 'This job is no longer assigned to you.';
+    }
+    return null;
   }
 
   static String _friendlyServerMessage(String raw) {

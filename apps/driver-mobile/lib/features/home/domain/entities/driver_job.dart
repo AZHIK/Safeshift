@@ -29,6 +29,10 @@ class DriverJob {
     this.declaredValueTzs,
     this.cargoPhotoPaths = const <String>[],
     this.offerTtlSeconds,
+    this.pickupLat,
+    this.pickupLng,
+    this.destinationLat,
+    this.destinationLng,
   });
 
   final String id;
@@ -74,13 +78,16 @@ class DriverJob {
   /// Remaining seconds on the offer, measured by the server when it was read.
   final int? offerTtlSeconds;
 
+  /// Job coordinates, used to place map markers and request road routes.
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? destinationLat;
+  final double? destinationLng;
+
   bool get isScheduled =>
       scheduledAt != null && scheduledAt!.isAfter(DateTime.now());
 
-  DriverJob copyWith({
-    String? status,
-    String? offerId,
-  }) => DriverJob(
+  DriverJob copyWith({String? status, String? offerId}) => DriverJob(
     id: id,
     pickup: pickup,
     destination: destination,
@@ -105,5 +112,9 @@ class DriverJob {
     declaredValueTzs: declaredValueTzs,
     cargoPhotoPaths: cargoPhotoPaths,
     offerTtlSeconds: offerTtlSeconds,
+    pickupLat: pickupLat,
+    pickupLng: pickupLng,
+    destinationLat: destinationLat,
+    destinationLng: destinationLng,
   );
 }

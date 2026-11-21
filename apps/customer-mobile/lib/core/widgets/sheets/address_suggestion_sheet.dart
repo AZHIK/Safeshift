@@ -363,9 +363,11 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
         top: false,
         child: Container(
           height: height,
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
           ),
           child: ListenableBuilder(
             listenable: _search,
@@ -449,14 +451,14 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
                       ),
                       const Spacer(),
                       if (!_search.isProviderConfigured)
-                        const Tooltip(
+                        Tooltip(
                           message:
                               'Live place search is unavailable. Saved places '
                               'and SafeShift areas still work.',
                           child: Icon(
                             Icons.info_outline_rounded,
                             size: 18,
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                     ],
@@ -499,10 +501,10 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.place_outlined,
                         size: 12,
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -510,7 +512,7 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
                             ? 'Saved SafeShift places'
                             : 'Powered by Google',
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                           fontSize: 10,
                         ),
                       ),
@@ -557,7 +559,7 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
           Text(
             'Saved places',
             style: TextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
             ),
@@ -658,7 +660,7 @@ class _DragHandle extends StatelessWidget {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.divider,
+          color: context.colors.outlineVariant,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -704,7 +706,7 @@ class _CurrentLocationTile extends StatelessWidget {
         : state.message ?? 'Search results will not be ranked near you.';
 
     return Material(
-      color: AppColors.background,
+      color: Theme.of(context).scaffoldBackgroundColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: isLoading ? null : (needsSettings ? onSettings : onUse),
@@ -720,14 +722,14 @@ class _CurrentLocationTile extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: context.colors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   isReady
                       ? Icons.my_location_rounded
                       : Icons.location_searching_rounded,
-                  color: AppColors.primaryDark,
+                  color: context.colors.primary,
                   size: 20,
                 ),
               ),
@@ -748,7 +750,7 @@ class _CurrentLocationTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                         fontSize: 10,
                       ),
                     ),
@@ -768,15 +770,15 @@ class _CurrentLocationTile extends StatelessWidget {
                   icon: const Icon(Icons.refresh_rounded, size: 20),
                 )
               else if (needsSettings)
-                const Icon(
+                Icon(
                   Icons.settings_rounded,
                   size: 20,
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 )
               else
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 ),
             ],
           ),
@@ -801,19 +803,19 @@ class _SuggestionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final distance = formatDistanceMeters(suggestion.distanceMeters);
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         leading: Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             _suggestionIcon(suggestion.types),
-            color: AppColors.primaryDark,
+            color: context.colors.primary,
             size: 20,
           ),
         ),
@@ -827,7 +829,9 @@ class _SuggestionTile extends StatelessWidget {
           suggestion.subtitle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.caption.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         trailing: isResolving
             ? const SizedBox(
@@ -839,13 +843,13 @@ class _SuggestionTile extends StatelessWidget {
             ? Text(
                 distance,
                 style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               )
-            : const Icon(
+            : Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
         onTap: isResolving ? null : onTap,
       ),
@@ -890,7 +894,9 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isError ? AppColors.error : AppColors.textSecondary;
+    final color = isError
+        ? context.colors.error
+        : context.colors.onSurfaceVariant;
     return Container(
       margin: const EdgeInsets.fromLTRB(
         AppSizes.lg,
@@ -901,13 +907,13 @@ class _InfoBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 6),
       decoration: BoxDecoration(
         color: isError
-            ? AppColors.error.withValues(alpha: 0.08)
-            : AppColors.background,
+            ? context.colors.error.withValues(alpha: 0.08)
+            : Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isError
-              ? AppColors.error.withValues(alpha: 0.25)
-              : AppColors.divider,
+              ? context.colors.error.withValues(alpha: 0.25)
+              : context.colors.outlineVariant,
         ),
       ),
       child: Row(
@@ -958,7 +964,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 40, color: AppColors.textDisabled),
+            Icon(icon, size: 40, color: context.colors.onSurfaceVariant),
             const SizedBox(height: AppSizes.sm),
             Text(title, textAlign: TextAlign.center, style: TextStyles.title),
             const SizedBox(height: AppSizes.xs),
@@ -966,7 +972,7 @@ class _EmptyState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
             ),
             if (actionLabel != null && onAction != null) ...<Widget>[

@@ -84,6 +84,13 @@ class RideState {
     this.routePoints = const <LatLng>[],
     this.driverLatitude,
     this.driverLongitude,
+    this.alternativeVehicles = const <AlternativeVehicle>[],
+    this.pickupFreeWaitEndsAt,
+    this.recipientName,
+    this.recipientPhone,
+    this.driverHeading,
+    this.liveEtaMin,
+    this.liveRemainingKm,
   }) : paymentMethod = paymentMethod ?? mockPaymentMethods.first;
 
   final RideStage stage;
@@ -147,6 +154,63 @@ class RideState {
   final List<LatLng> routePoints;
   final double? driverLatitude;
   final double? driverLongitude;
+
+  /// Other vehicle classes that can carry this load and have free drivers
+  /// nearby. Filled only when dispatch found no driver with the booked class.
+  final List<AlternativeVehicle> alternativeVehicles;
+
+  /// When the driver's free waiting time at the pickup ends. Set only while
+  /// the job is in `arrived`.
+  final DateTime? pickupFreeWaitEndsAt;
+
+  /// Person receiving the goods when it is not the customer. They get the
+  /// tracking link and the delivery code by SMS.
+  final String? recipientName;
+  final String? recipientPhone;
+  bool get hasRecipient => (recipientPhone ?? '').isNotEmpty;
+
+  /// Driver's direction of travel (0–359), from the live broadcast.
+  final double? driverHeading;
+
+  /// Minutes and km left on the leg in progress, from the locally trimmed
+  /// route. Null outside a driving leg.
+  final int? liveEtaMin;
+  final double? liveRemainingKm;
+
+  /// Coordinates sent to the road-routing service for this job status.
+  ({LatLng origin, LatLng target})? get trackingLeg {
+    final start = pickup;
+    final end = destination;
+    if (start == null ||
+        end == null ||
+        !start.hasCoordinates ||
+        !end.hasCoordinates) {
+      return null;
+    }
+    final pickupPoint = LatLng(start.latitude, start.longitude);
+    final destinationPoint = LatLng(end.latitude, end.longitude);
+    switch (jobStatus) {
+      case 'accepted':
+      case 'heading_to_pickup':
+      case 'in_transit':
+        final lat = driverLatitude;
+        final lng = driverLongitude;
+        if (lat == null || lng == null) return null;
+        return (
+          origin: LatLng(lat, lng),
+          target: jobStatus == 'in_transit' ? destinationPoint : pickupPoint,
+        );
+      case 'requested':
+      case 'quoted':
+      case 'matched':
+      case 'arrived':
+      case 'cargo_verified':
+      case 'loading':
+        return (origin: pickupPoint, target: destinationPoint);
+      default:
+        return null;
+    }
+  }
 
   bool get hasRoute => pickup != null && destination != null;
   bool get isScheduled => scheduledAt != null;
@@ -219,7 +283,19 @@ class RideState {
     double? driverLatitude,
     double? driverLongitude,
     List<LatLng>? routePoints,
+    List<AlternativeVehicle>? alternativeVehicles,
+    bool clearAlternatives = false,
+    DateTime? pickupFreeWaitEndsAt,
+    bool clearPickupWait = false,
+    String? recipientName,
+    String? recipientPhone,
+    bool clearRecipient = false,
+    double? driverHeading,
+    int? liveEtaMin,
+    double? liveRemainingKm,
+    bool clearLiveEta = false,
     bool clearDriver = false,
+    bool clearDriverLocation = false,
     bool clearParcel = false,
     bool clearQuote = false,
     bool clearJob = false,
@@ -280,10 +356,10 @@ class RideState {
       dispatchAttempts: clearJob
           ? 0
           : (dispatchAttempts ?? this.dispatchAttempts),
-      driverLocationFresh: clearDriver
+      driverLocationFresh: clearDriver || clearDriverLocation
           ? false
           : (driverLocationFresh ?? this.driverLocationFresh),
-      driverLocationUpdatedAt: clearDriver
+      driverLocationUpdatedAt: clearDriver || clearDriverLocation
           ? null
           : (driverLocationUpdatedAt ?? this.driverLocationUpdatedAt),
       isQuoting: isQuoting ?? this.isQuoting,
@@ -291,26 +367,77 @@ class RideState {
       isUploadingPhotos: isUploadingPhotos ?? this.isUploadingPhotos,
       isRouting: isRouting ?? this.isRouting,
       routePoints: routePoints ?? this.routePoints,
-      driverLatitude: clearDriver
+      driverLatitude: clearDriver || clearDriverLocation
           ? null
           : (driverLatitude ?? this.driverLatitude),
-      driverLongitude: clearDriver
+      driverLongitude: clearDriver || clearDriverLocation
           ? null
           : (driverLongitude ?? this.driverLongitude),
+      alternativeVehicles: clearAlternatives || clearJob
+          ? const <AlternativeVehicle>[]
+          : (alternativeVehicles ?? this.alternativeVehicles),
+      pickupFreeWaitEndsAt: clearPickupWait || clearJob
+          ? null
+          : (pickupFreeWaitEndsAt ?? this.pickupFreeWaitEndsAt),
+      recipientName: clearRecipient
+          ? null
+          : (recipientName ?? this.recipientName),
+      recipientPhone: clearRecipient
+          ? null
+          : (recipientPhone ?? this.recipientPhone),
+      driverHeading: clearDriver || clearDriverLocation
+          ? null
+          : (driverHeading ?? this.driverHeading),
+      liveEtaMin: clearLiveEta || clearDriver || clearJob
+          ? null
+          : (liveEtaMin ?? this.liveEtaMin),
+      liveRemainingKm: clearLiveEta || clearDriver || clearJob
+          ? null
+          : (liveRemainingKm ?? this.liveRemainingKm),
     );
   }
 }
+
+/// A vehicle class the customer can switch to while searching.
+class AlternativeVehicle {
+  const AlternativeVehicle({required this.vehicle, required this.driverCount});
+
+  final VehicleTypeOption vehicle;
+
+  /// Free, online drivers with this class near the pickup.
+  final int driverCount;
+}
+
+/// Server reason when no online driver has the booked vehicle class.
+const _noDriverOfClassReason =
+    'no online driver has a vehicle of the requested class';
 
 final _tzs = NumberFormat('#,##0');
 
 class RideNotifier extends Notifier<RideState> {
   int _quoteGen = 0;
   int _routeGen = 0;
+  int _refreshGeneration = 0;
   Timer? _routeTimer;
   RealtimeChannel? _channel;
+  RealtimeChannel? _locationChannel;
   Timer? _poll;
   String? _otpIssuedFor;
+  String? _pickupWaitFor;
+  String? _recipientLoadedFor;
   DateTime? _lastAutoDispatch;
+
+  /// Catalogue ids of the job being tracked, used to restore the vehicle and
+  /// cargo selection after a cold-start resume.
+  String? _jobVehicleTypeId;
+  String? _jobCargoTypeId;
+  String? _jobPaymentMethod;
+  Future<void>? _catalogRestore;
+  String? _catalogRestoreFor;
+
+  /// Parcel photos already in storage under a previous job, to copy into the
+  /// next job when the local files are no longer available.
+  List<String> _carryOverPhotoPaths = const <String>[];
 
   static const Duration _autoDispatchCooldown = Duration(seconds: 50);
 
@@ -323,10 +450,79 @@ class RideNotifier extends Notifier<RideState> {
     return RideState();
   }
 
+  /// Latest vehicle availability near the pickup; null when unknown (not
+  /// loaded or failed), in which case booking is never blocked.
+  Map<String, VehicleAvailability>? _availability;
+
+  /// True once the customer tapped a vehicle themselves. Until then the app
+  /// may move the selection to a vehicle that has drivers nearby.
+  bool _vehiclePickedByUser = false;
+
+  /// Availability of [vehicleTypeId], or null when unknown.
+  VehicleAvailability? availabilityFor(String? vehicleTypeId) {
+    final availability = _availability;
+    if (availability == null || vehicleTypeId == null) return null;
+    return availability[vehicleTypeId] ?? VehicleAvailability.unavailable;
+  }
+
+  /// Whether the pickup is far enough ahead that dispatch waits (the server
+  /// starts searching 45 minutes before pickup).
+  bool get _scheduledForLater {
+    final at = state.scheduledAt;
+    return at != null &&
+        at.isAfter(DateTime.now().add(const Duration(minutes: 45)));
+  }
+
+  /// Records fresh availability and, while the customer has not chosen a
+  /// vehicle themselves, moves the selection to the best available one.
+  /// [compatible] is the picker's list in catalogue order (smallest and
+  /// cheapest first).
+  void applyVehicleAvailability(
+    Map<String, VehicleAvailability>? availability,
+    List<VehicleTypeOption> compatible,
+  ) {
+    _availability = availability;
+    if (availability == null || compatible.isEmpty) return;
+    if (_vehiclePickedByUser || state.jobId != null) return;
+    if (state.stage != RideStage.vehicle && state.stage != RideStage.confirm) {
+      return;
+    }
+    int rank(VehicleTypeOption v) =>
+        (availability[v.id] ?? VehicleAvailability.unavailable).rank;
+    VehicleTypeOption? best;
+    for (final v in compatible) {
+      if (best == null || rank(v) < rank(best)) best = v;
+    }
+    final current = state.vehicleClass;
+    if (best == null || best.id == current?.id) return;
+    if (current != null &&
+        compatible.any((v) => v.id == current.id) &&
+        rank(current) <= rank(best)) {
+      return;
+    }
+    state = state.copyWith(
+      vehicleClass: best,
+      clearQuote: true,
+      clearError: true,
+    );
+    if (state.hasRoute) unawaited(refreshQuote());
+  }
+
   void ensureVehicleSelected(List<VehicleTypeOption> vehicles) {
-    if (state.vehicleClass != null || vehicles.isEmpty) return;
+    if (vehicles.isEmpty) return;
+    final current = state.vehicleClass;
+    // Keep a valid selection. If the selected vehicle disappeared from the
+    // bookable catalogue (for example its pricing plan was disabled), replace
+    // it so the customer cannot keep quoting an unpriceable vehicle.
+    if (current != null && vehicles.any((v) => v.id == current.id)) {
+      return;
+    }
     final preferred = vehicles.length > 1 ? vehicles[1] : vehicles.first;
-    state = state.copyWith(vehicleClass: preferred);
+    state = state.copyWith(
+      vehicleClass: preferred,
+      clearQuote: true,
+      clearError: true,
+    );
   }
 
   void setPickup(RidePlace location) {
@@ -438,7 +634,141 @@ class RideNotifier extends Notifier<RideState> {
     }
   }
 
+  /// Shows the current driving leg, and the booked route between legs.
+  ///
+  /// The route is fetched once per leg and trimmed on the device as the
+  /// driver advances. It is fetched again only when the driver strays more
+  /// than 80 m from it, the leg changes, or it is older than 5 minutes.
+  Future<void> _computeTrackingRoute() async {
+    final leg = state.trackingLeg;
+    if (leg == null) {
+      _trackingRoute = const <LatLng>[];
+      _trackingTarget = null;
+      _routeGen++;
+      if (state.routePoints.isNotEmpty ||
+          state.isRouting ||
+          state.liveEtaMin != null) {
+        state = state.copyWith(
+          routePoints: const <LatLng>[],
+          isRouting: false,
+          clearLiveEta: true,
+        );
+      }
+      return;
+    }
+    final (:origin, :target) = leg;
+    final originIsDriver = _driverLegStatuses.contains(state.jobStatus);
+
+    final legChanged =
+        _trackingTarget != target || _trackingOriginIsDriver != originIsDriver;
+    if (legChanged) {
+      _trackingRoute = const <LatLng>[];
+      _trackingFetchedAt = null;
+      _trackingTarget = target;
+      _trackingOriginIsDriver = originIsDriver;
+    }
+
+    final needsFetch =
+        _trackingRoute.length < 2 ||
+        (originIsDriver &&
+            _rerouteRule.needsReroute(
+              route: _trackingRoute.map(_geo).toList(),
+              position: _geo(origin),
+              fetchedAt: _trackingFetchedAt ?? DateTime(2000),
+            ));
+    if (!needsFetch) {
+      _applyTrackingRoute();
+      return;
+    }
+
+    final now = DateTime.now();
+    final lastAttempt = _trackingLastAttempt;
+    if (!legChanged &&
+        lastAttempt != null &&
+        now.difference(lastAttempt) < const Duration(seconds: 20)) {
+      _applyTrackingRoute();
+      return;
+    }
+    _trackingLastAttempt = now;
+
+    final generation = ++_routeGen;
+    try {
+      final result = await _routeService.computeRoute(
+        originLat: origin.latitude,
+        originLng: origin.longitude,
+        destinationLat: target.latitude,
+        destinationLng: target.longitude,
+      );
+      if (generation != _routeGen || !ref.mounted) return;
+      _trackingRoute = decodePolyline(result.encodedPolyline);
+      _trackingFetchedAt = DateTime.now();
+      _trackingKm = result.distanceKm;
+      _trackingMin = result.durationMin;
+      state = state.copyWith(isRouting: false);
+      _applyTrackingRoute();
+    } catch (_) {
+      if (generation != _routeGen || !ref.mounted) return;
+      // Keep the previous route (if any); retry after the gap.
+      state = state.copyWith(isRouting: false);
+      _applyTrackingRoute();
+    }
+  }
+
+  static const _rerouteRule = RerouteRule();
+  static const _driverLegStatuses = <String?>{
+    'accepted',
+    'heading_to_pickup',
+    'in_transit',
+  };
+  static GeoPoint _geo(LatLng p) => (lat: p.latitude, lng: p.longitude);
+
+  List<LatLng> _trackingRoute = const <LatLng>[];
+  DateTime? _trackingFetchedAt;
+  DateTime? _trackingLastAttempt;
+  LatLng? _trackingTarget;
+  bool _trackingOriginIsDriver = false;
+  double _trackingKm = 0;
+  int _trackingMin = 0;
+
+  /// Publishes the route still ahead of the driver, and its ETA.
+  void _applyTrackingRoute() {
+    final route = _trackingRoute;
+    if (route.length < 2) {
+      if (state.routePoints.isNotEmpty) {
+        state = state.copyWith(
+          routePoints: const <LatLng>[],
+          clearLiveEta: true,
+        );
+      }
+      return;
+    }
+    final lat = state.driverLatitude;
+    final lng = state.driverLongitude;
+    if (!_trackingOriginIsDriver || lat == null || lng == null) {
+      state = state.copyWith(routePoints: route, clearLiveEta: true);
+      return;
+    }
+    final remaining = remainingRoute(route.map(_geo).toList(), (
+      lat: lat,
+      lng: lng,
+    ));
+    final remainingKm = polylineLengthMeters(remaining) / 1000;
+    final totalKm = _trackingKm <= 0 ? remainingKm : _trackingKm;
+    final minutes = totalKm <= 0
+        ? 0
+        : (_trackingMin * (remainingKm / totalKm)).ceil();
+    state = state.copyWith(
+      routePoints: <LatLng>[
+        LatLng(lat, lng),
+        ...remaining.skip(1).map((p) => LatLng(p.lat, p.lng)),
+      ],
+      liveEtaMin: minutes,
+      liveRemainingKm: remainingKm,
+    );
+  }
+
   void selectVehicle(VehicleTypeOption vehicle) {
+    _vehiclePickedByUser = true;
     state = state.copyWith(
       vehicleClass: vehicle,
       stage: RideStage.confirm,
@@ -451,8 +781,11 @@ class RideNotifier extends Notifier<RideState> {
   void selectCargo(CargoTypeOption cargo) {
     final currentVehicle = state.vehicleClass;
     final weight = state.parcelWeightKg;
-    final clearVehicle = currentVehicle != null &&
+    final clearVehicle =
+        currentVehicle != null &&
         !canVehicleCarryCargo(currentVehicle, cargo, weight);
+    // The customer must pick again when their vehicle no longer fits.
+    if (clearVehicle) _vehiclePickedByUser = false;
     state = state.copyWith(
       cargo: cargo,
       clearVehicle: clearVehicle,
@@ -491,8 +824,10 @@ class RideNotifier extends Notifier<RideState> {
     final newWeight = weightKg ?? state.parcelWeightKg;
     final currentVehicle = state.vehicleClass;
     final cargo = state.cargo;
-    final clearVehicle = currentVehicle != null &&
+    final clearVehicle =
+        currentVehicle != null &&
         !canVehicleCarryCargo(currentVehicle, cargo, newWeight);
+    if (clearVehicle) _vehiclePickedByUser = false;
     state = state.copyWith(
       parcelDescription: description ?? state.parcelDescription,
       parcelWeightKg: weightKg ?? state.parcelWeightKg,
@@ -502,6 +837,39 @@ class RideNotifier extends Notifier<RideState> {
       clearQuote: true,
     );
     if (state.hasRoute) unawaited(refreshQuote());
+  }
+
+  /// Sets the recipient, or clears it with nulls ("I'm receiving it").
+  void setRecipient({String? name, String? phone}) {
+    final trimmedName = name?.trim() ?? '';
+    final trimmedPhone = phone?.replaceAll(RegExp(r'[\s()-]'), '') ?? '';
+    if (trimmedName.isEmpty || trimmedPhone.isEmpty) {
+      state = state.copyWith(clearRecipient: true);
+    } else {
+      state = state.copyWith(
+        recipientName: trimmedName,
+        recipientPhone: trimmedPhone,
+      );
+    }
+    final jobId = state.jobId;
+    if (jobId != null) unawaited(_saveRecipient(jobId));
+  }
+
+  Future<void> _saveRecipient(String jobId) async {
+    try {
+      await _repo.setRecipient(
+        jobId,
+        name: state.recipientName,
+        phone: state.recipientPhone,
+      );
+    } catch (error, stack) {
+      if (!ref.mounted || state.jobId != jobId) return;
+      state = state.copyWith(
+        errorMessage:
+            'Your move is booked, but the recipient could not be saved. '
+            '${ErrorHandler.map(error, stackTrace: stack).message}',
+      );
+    }
   }
 
   void clearParcelDetails() {
@@ -633,6 +1001,28 @@ class RideNotifier extends Notifier<RideState> {
   /// Creates the job from the persisted quote and starts dispatch. The search
   /// stays on the same screen and updates through realtime plus a slow poll
   /// fallback for unreliable mobile networks.
+  /// False only when availability is known and no driver of [vehicle] is
+  /// online nearby for a move that would be dispatched now. The list may be
+  /// up to 25 s old, so a "none" is re-checked once before blocking.
+  Future<bool> _vehicleCanBeBookedNow(VehicleTypeOption vehicle) async {
+    if (_scheduledForLater) return true;
+    if (!(availabilityFor(vehicle.id)?.isNone ?? false)) return true;
+    final pickup = state.pickup;
+    if (pickup == null) return true;
+    try {
+      final fresh = await _repo.vehicleAvailabilityNear(
+        lat: pickup.latitude,
+        lng: pickup.longitude,
+      );
+      if (!ref.mounted) return false;
+      _availability = fresh;
+      return !(availabilityFor(vehicle.id)?.isNone ?? false);
+    } catch (_) {
+      // Unknown: let dispatch decide rather than blocking the booking.
+      return true;
+    }
+  }
+
   Future<void> confirmAndFindDriver() async {
     if (!state.hasRoute || state.isSubmitting) return;
     final user = ref.read(authProvider).currentUser;
@@ -653,6 +1043,15 @@ class RideNotifier extends Notifier<RideState> {
       state = state.copyWith(
         stage: RideStage.confirm,
         errorMessage: validationError,
+      );
+      return;
+    }
+    if (!await _vehicleCanBeBookedNow(vehicle)) {
+      state = state.copyWith(
+        stage: RideStage.confirm,
+        errorMessage:
+            'No ${vehicle.name} drivers are near your pickup right now. '
+            'Choose another vehicle or schedule the move for later.',
       );
       return;
     }
@@ -690,6 +1089,7 @@ class RideNotifier extends Notifier<RideState> {
       // path the storage policy expects. A failure here must not lose the
       // move: the customer can still complete it, and support can see the job.
       await _attachParcelPhotos(job.id);
+      if (state.hasRecipient) await _saveRecipient(job.id);
 
       final dispatch = await _repo.dispatch(job.id);
       _lastAutoDispatch = DateTime.now();
@@ -700,9 +1100,14 @@ class RideNotifier extends Notifier<RideState> {
           errorMessage: message,
           clearError: message == null,
         );
+        unawaited(_updateAlternatives(job.id, dispatch));
         return;
       }
-      state = state.copyWith(isSubmitting: false, clearError: true);
+      state = state.copyWith(
+        isSubmitting: false,
+        clearError: true,
+        clearAlternatives: true,
+      );
     } catch (error, stack) {
       state = state.copyWith(
         stage: state.jobId == null ? RideStage.confirm : RideStage.searching,
@@ -714,13 +1119,14 @@ class RideNotifier extends Notifier<RideState> {
 
   Future<void> _attachParcelPhotos(String jobId) async {
     final paths = state.parcelPhotoPaths;
-    if (paths.isEmpty) return;
+    final carryOver = _carryOverPhotoPaths;
+    _carryOverPhotoPaths = const <String>[];
+    if (paths.isEmpty && carryOver.isEmpty) return;
     state = state.copyWith(isUploadingPhotos: true);
     try {
-      final uploaded = await _repo.uploadParcelPhotos(
-        jobId: jobId,
-        localPaths: paths,
-      );
+      final uploaded = paths.isNotEmpty
+          ? await _repo.uploadParcelPhotos(jobId: jobId, localPaths: paths)
+          : await _repo.copyParcelPhotos(jobId: jobId, sourcePaths: carryOver);
       if (state.jobId == jobId) {
         state = state.copyWith(
           cargoPhotoPaths: uploaded,
@@ -775,6 +1181,11 @@ class RideNotifier extends Notifier<RideState> {
     switch (reason) {
       case 'waiting for a driver to respond':
         return null;
+      case 'a search round just ran':
+        // A round ran moments ago; keep whatever the customer already sees.
+        return state.errorMessage;
+      case 'no driver was available for this move':
+        return _noDriverFoundMessage;
       case 'job is scheduled for later':
         return 'Your move is scheduled for ${state.scheduledLabel}. '
             'We will start looking for a driver 45 minutes before pickup.';
@@ -788,7 +1199,13 @@ class RideNotifier extends Notifier<RideState> {
       case 'drivers have no verified vehicle attached':
         return 'The drivers online are still waiting for a vehicle to be '
             'verified. We will keep looking.';
-      case 'no online driver has a vehicle of the requested class':
+      case _noDriverOfClassReason:
+        if (state.alternativeVehicles.isNotEmpty) {
+          return 'No online driver has a '
+              '${state.vehicleClass?.name ?? 'vehicle of this class'} right '
+              'now. You can switch to another vehicle that can carry your '
+              'load, or wait for one to come online.';
+        }
         return 'No online driver has a vehicle of the class you selected. '
             'Try a different vehicle, or wait for one to come online.';
       case 'every matching driver is already on a job':
@@ -802,6 +1219,116 @@ class RideNotifier extends Notifier<RideState> {
       default:
         return 'No verified drivers are nearby right now. We will keep looking.';
     }
+  }
+
+  /// Looks up other vehicle classes the customer could switch to when
+  /// dispatch found no online driver with the booked class.
+  ///
+  /// Only classes that are bookable, can carry the declared cargo and weight,
+  /// and have at least one free driver near the pickup are offered.
+  Future<void> _updateAlternatives(
+    String jobId,
+    DispatchResult dispatch,
+  ) async {
+    final noDriverOfClass =
+        dispatch.count == 0 &&
+        dispatch.reason?.trim() == _noDriverOfClassReason;
+    if (noDriverOfClass && state.vehicleClass == null) {
+      // A resumed job starts without the catalogue selection; restore it so
+      // the alternatives can be filtered by what the load needs.
+      await _restoreCatalogSelection(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+    }
+    final current = state.vehicleClass;
+    if (!noDriverOfClass || current == null) {
+      if (state.alternativeVehicles.isNotEmpty) {
+        state = state.copyWith(clearAlternatives: true);
+      }
+      return;
+    }
+    try {
+      final counts = await _repo.availableVehicleTypes(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      if (counts.isEmpty) {
+        state = state.copyWith(clearAlternatives: true);
+        return;
+      }
+      final catalogue = await ref.read(rideVehicleTypesProvider.future);
+      if (!ref.mounted || state.jobId != jobId) return;
+      final alternatives = <AlternativeVehicle>[
+        for (final vehicle in catalogue)
+          if (vehicle.id != current.id &&
+              (counts[vehicle.id] ?? 0) > 0 &&
+              canVehicleCarryCargo(vehicle, state.cargo, state.parcelWeightKg))
+            AlternativeVehicle(
+              vehicle: vehicle,
+              driverCount: counts[vehicle.id]!,
+            ),
+      ];
+      state = state.copyWith(alternativeVehicles: alternatives);
+      state = state.copyWith(errorMessage: _noDriverMessage(dispatch));
+    } catch (_) {
+      // Suggestions are best-effort; the generic message still applies.
+    }
+  }
+
+  /// Cancels the unmatched job and books the same move with [vehicle].
+  ///
+  /// The job is tied to a quote for one vehicle class, so switching means a
+  /// new quote and a new job. Nobody accepted the old job, so the server
+  /// charges no cancellation fee.
+  Future<void> switchVehicleAndRedispatch(VehicleTypeOption vehicle) async {
+    if (state.isSubmitting) return;
+    final jobId = state.jobId;
+    final userId = ref.read(authProvider).currentUser?.id;
+    if (jobId == null || userId == null) return;
+    if (state.driver != null) return;
+
+    final storedPhotos = state.cargoPhotoPaths;
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    // Stop listening first so the old job's cancellation does not flip the
+    // sheet back to the confirm stage with a "cancelled" message.
+    _cleanup();
+    try {
+      await _repo.cancelJob(
+        jobId,
+        userId,
+        reason: 'Customer switched to a ${vehicle.name}',
+      );
+    } catch (error, stack) {
+      if (!ref.mounted) return;
+      _subscribe(jobId);
+      _startPolling(jobId);
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
+      );
+      return;
+    }
+    if (!ref.mounted) return;
+    _quoteGen++;
+    _lastAutoDispatch = null;
+    // Without the local files (a resumed search), reuse the stored photos.
+    _carryOverPhotoPaths = state.parcelPhotoPaths.isEmpty
+        ? storedPhotos
+        : const <String>[];
+    // A pickup time that has already passed while searching means "now" for
+    // the new booking; keep only a time that is still ahead.
+    final scheduled = state.scheduledAt;
+    final keepSchedule =
+        scheduled != null &&
+        scheduled.isAfter(DateTime.now().add(const Duration(minutes: 5)));
+    state = state.copyWith(
+      vehicleClass: vehicle,
+      isSubmitting: false,
+      clearSchedule: !keepSchedule,
+      clearQuote: true,
+      clearJob: true,
+      clearDriver: true,
+      clearOtp: true,
+      clearError: true,
+    );
+    await confirmAndFindDriver();
   }
 
   Future<void> retryDispatch() async {
@@ -824,6 +1351,7 @@ class RideNotifier extends Notifier<RideState> {
         errorMessage: message,
         clearError: message == null,
       );
+      unawaited(_updateAlternatives(jobId, result));
       _startPolling(jobId);
     } catch (error, stack) {
       state = state.copyWith(
@@ -838,23 +1366,17 @@ class RideNotifier extends Notifier<RideState> {
     _cleanup();
     _lastAutoDispatch = null;
     _otpIssuedFor = null;
+    _forgetJobCatalog();
     state = RideState(stage: RideStage.searching, jobId: jobId);
     try {
       final job = await _repo.getJob(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
       if (job == null) {
         state = state.copyWith(errorMessage: 'That move could not be found.');
         return;
       }
       _applyJob(job);
-      // A resumed job only carries its endpoints, not the road geometry, so
-      // rebuild the route once for the map. The guarded call is a no-op when
-      // the customer was already mid-flow with a route on screen.
-      if (state.routePoints.isEmpty &&
-          state.pickup != null &&
-          state.destination != null) {
-        unawaited(_computeRoute(++_routeGen));
-      }
-      if (!job.isTerminal && !job.isDelivered) {
+      if (!job.isTerminal) {
         _subscribe(jobId);
         _startPolling(jobId);
       }
@@ -948,7 +1470,13 @@ class RideNotifier extends Notifier<RideState> {
     if (jobId != null && userId != null) {
       state = state.copyWith(isSubmitting: true, clearError: true);
       try {
-        await _repo.cancelJob(jobId, userId);
+        await _repo.cancelJob(
+          jobId,
+          userId,
+          reason: state.driver != null
+              ? 'Customer cancelled after a driver was assigned'
+              : 'Customer cancelled while searching',
+        );
       } catch (error, stack) {
         if (!ref.mounted) return;
         state = state.copyWith(
@@ -959,14 +1487,35 @@ class RideNotifier extends Notifier<RideState> {
       }
     }
     _cleanup();
-    state = state.copyWith(
-      stage: RideStage.vehicle,
-      isSubmitting: false,
-      clearDriver: true,
-      clearJob: true,
-      clearOtp: true,
-      clearError: true,
-    );
+    _quoteGen++;
+    _forgetJobCatalog();
+    // Wipe the whole request form (route, vehicle, parcel, schedule, quote)
+    // so the customer can start a brand-new request from scratch.
+    state = RideState();
+  }
+
+  /// Confirms delivery on the server. The driver's completion then follows.
+  Future<void> confirmDelivery() async {
+    final jobId = state.jobId;
+    if (jobId == null ||
+        state.isSubmitting ||
+        state.jobStatus != 'arrived_destination') {
+      return;
+    }
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    try {
+      await _repo.confirmDelivery(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      await _refreshJob(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      state = state.copyWith(isSubmitting: false);
+    } catch (error, stack) {
+      if (!ref.mounted || state.jobId != jobId) return;
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
+      );
+    }
   }
 
   void complete() {
@@ -977,7 +1526,68 @@ class RideNotifier extends Notifier<RideState> {
   void reset() {
     _cleanup();
     _quoteGen++;
+    _vehiclePickedByUser = false;
+    _availability = null;
+    _forgetJobCatalog();
     state = RideState();
+  }
+
+  void _forgetJobCatalog() {
+    _jobVehicleTypeId = null;
+    _jobCargoTypeId = null;
+    _jobPaymentMethod = null;
+    _catalogRestore = null;
+    _catalogRestoreFor = null;
+    _carryOverPhotoPaths = const <String>[];
+  }
+
+  /// Rebuilds the vehicle, cargo and payment selection of a resumed job from
+  /// the catalogue, so a search restored after an app restart behaves like
+  /// one started in this session (load checks, vehicle alternatives).
+  ///
+  /// Runs once per job; concurrent callers share the same lookup.
+  Future<void> _restoreCatalogSelection(String jobId) {
+    if (_catalogRestoreFor == jobId && _catalogRestore != null) {
+      return _catalogRestore!;
+    }
+    _catalogRestoreFor = jobId;
+    return _catalogRestore = () async {
+      final vehicleId = _jobVehicleTypeId;
+      final cargoId = _jobCargoTypeId;
+      final paymentId = _jobPaymentMethod;
+      try {
+        final vehicles = vehicleId != null && state.vehicleClass == null
+            ? await ref.read(rideVehicleTypesProvider.future)
+            : const <VehicleTypeOption>[];
+        final cargoTypes = cargoId != null && state.cargo == null
+            ? await ref.read(rideCargoTypesProvider.future)
+            : const <CargoTypeOption>[];
+        if (!ref.mounted || state.jobId != jobId) return;
+        VehicleTypeOption? vehicle;
+        for (final v in vehicles) {
+          if (v.id == vehicleId) vehicle = v;
+        }
+        CargoTypeOption? cargo;
+        for (final c in cargoTypes) {
+          if (c.id == cargoId) cargo = c;
+        }
+        MockPaymentMethod? payment;
+        for (final m in mockPaymentMethods) {
+          if (m.id == paymentId) payment = m;
+        }
+        state = state.copyWith(
+          vehicleClass: state.vehicleClass ?? vehicle,
+          cargo: state.cargo ?? cargo,
+          paymentMethod: payment,
+        );
+      } catch (_) {
+        // Best-effort: allow a later call to try again.
+        if (_catalogRestoreFor == jobId) {
+          _catalogRestore = null;
+          _catalogRestoreFor = null;
+        }
+      }
+    }();
   }
 
   void backToRoute() {
@@ -1015,6 +1625,75 @@ class RideNotifier extends Notifier<RideState> {
         .subscribe();
   }
 
+  /// Statuses in which the driver broadcasts a live position.
+  static const _liveStatuses = <String?>{
+    'accepted',
+    'heading_to_pickup',
+    'arrived',
+    'cargo_verified',
+    'loading',
+    'in_transit',
+    'arrived_destination',
+  };
+
+  String? _liveChannelFor;
+  DateTime? _lastLiveFixAt;
+
+  bool get _liveFixIsRecent {
+    final at = _lastLiveFixAt;
+    return at != null &&
+        DateTime.now().difference(at) < const Duration(seconds: 60);
+  }
+
+  /// Joins (or leaves) the job's private live-location channel.
+  ///
+  /// The driver broadcasts every few seconds; the database only authorises
+  /// the channel (RLS on realtime.messages), so live tracking costs no row
+  /// writes. The 8 s job poll stays as the fallback.
+  void _syncLiveChannel(String jobId, String? status) {
+    final live = _liveStatuses.contains(status);
+    if (live && _liveChannelFor == jobId) return;
+    if (!live && _liveChannelFor == null) return;
+    final client = ref.read(supabaseProvider);
+    final previous = _locationChannel;
+    _locationChannel = null;
+    _liveChannelFor = null;
+    _lastLiveFixAt = null;
+    if (previous != null) unawaited(client.removeChannel(previous));
+    if (!live) return;
+    _liveChannelFor = jobId;
+    _locationChannel = client
+        .channel(
+          'job-location:$jobId',
+          opts: const RealtimeChannelConfig(private: true),
+        )
+        .onBroadcast(
+          event: 'position',
+          callback: (payload) => _onLiveFix(jobId, payload),
+        )
+        .subscribe();
+  }
+
+  void _onLiveFix(String jobId, Map<String, dynamic> payload) {
+    if (!ref.mounted || state.jobId != jobId) return;
+    // Broadcast payloads arrive wrapped under 'payload' on some clients.
+    final data = payload['payload'] is Map
+        ? (payload['payload'] as Map).cast<String, dynamic>()
+        : payload;
+    final lat = (data['lat'] as num?)?.toDouble();
+    final lng = (data['lng'] as num?)?.toDouble();
+    if (lat == null || lng == null) return;
+    _lastLiveFixAt = DateTime.now();
+    state = state.copyWith(
+      driverLatitude: lat,
+      driverLongitude: lng,
+      driverHeading: (data['heading'] as num?)?.toDouble(),
+      driverLocationFresh: true,
+      driverLocationUpdatedAt: DateTime.now(),
+    );
+    unawaited(_computeTrackingRoute());
+  }
+
   void _startPolling(String jobId) {
     _poll?.cancel();
     _poll = Timer.periodic(
@@ -1025,9 +1704,13 @@ class RideNotifier extends Notifier<RideState> {
 
   Future<void> _refreshJob(String jobId) async {
     if (state.jobId != jobId) return;
+    final generation = ++_refreshGeneration;
     try {
       final job = await _repo.getJob(jobId);
-      if (job != null && state.jobId == jobId) {
+      if (ref.mounted &&
+          generation == _refreshGeneration &&
+          job != null &&
+          state.jobId == jobId) {
         _applyJob(job);
         _maybeAutoRedispatch(job);
       }
@@ -1078,9 +1761,7 @@ class RideNotifier extends Notifier<RideState> {
         jobStatus: status,
         cancellationReason: job.cancellationReason,
         cancellationFee: job.cancellationFee,
-        errorMessage: job.cancellationReason?.trim().isNotEmpty == true
-            ? 'This move was cancelled: ${job.cancellationReason!.trim()}'
-            : 'This move was cancelled.',
+        errorMessage: _cancelledMessage(job.cancellationReason),
         clearDriver: true,
       );
       return;
@@ -1099,7 +1780,7 @@ class RideNotifier extends Notifier<RideState> {
       );
     }
 
-    final completed = job.isDelivered && status == 'completed';
+    final completed = status == 'completed';
     final scheduledLater =
         driver == null &&
         job.scheduledAt != null &&
@@ -1116,9 +1797,22 @@ class RideNotifier extends Notifier<RideState> {
       stage = RideStage.searching;
     }
 
+    // The previous driver handed the job back (or the server released them)
+    // and the move is searching again.
+    final driverReleased =
+        state.driver != null &&
+        driver == null &&
+        !completed &&
+        (status == 'requested' || status == 'quoted' || status == 'matched');
+    if (driverReleased) _lastAutoDispatch = DateTime.now();
+
     String? message = state.errorMessage;
     if (driver != null || completed) {
       message = null;
+    } else if (driverReleased) {
+      message =
+          'Your driver could not make it. We are finding you another driver '
+          'at the same price.';
     } else if (scheduledLater) {
       message =
           'Your move is scheduled for ${_formatSchedule(job.scheduledAt!)}. '
@@ -1147,15 +1841,23 @@ class RideNotifier extends Notifier<RideState> {
       longitude: job.destinationLng,
     );
 
+    _syncLiveChannel(job.id, status);
+    final liveRecent = _liveFixIsRecent && _liveStatuses.contains(status);
+    if (state.jobStatus != status) {
+      _routeGen++;
+    }
     state = state.copyWith(
       stage: stage,
       jobStatus: status,
+      isRouting: state.jobStatus != status ? false : null,
+      clearOtp: status != 'arrived_destination' && status != 'in_transit',
+      routePoints: state.jobStatus != status ? const <LatLng>[] : null,
       pickup: pickupPlace,
       destination: destinationPlace,
       pickupAddress: job.pickupAddress,
       destinationAddress: job.destinationAddress,
-      scheduledAt: job.scheduledAt,
-      clearSchedule: job.scheduledAt == null,
+      scheduledAt: job.customerPickupTime,
+      clearSchedule: job.customerPickupTime == null,
       acceptedAt: job.acceptedAt,
       dispatchAttempts: job.dispatchAttempts,
       parcelDescription: job.cargoDescription,
@@ -1164,24 +1866,59 @@ class RideNotifier extends Notifier<RideState> {
       cargoPhotoPaths: job.cargoPhotoPaths,
       driver: driver,
       clearDriver: driver == null,
+      clearDriverLocation:
+          job.isDelivered ||
+          status == 'disputed' ||
+          (!liveRecent && (job.driverLat == null || job.driverLng == null)),
       distanceKm: job.distanceKm > 0 ? job.distanceKm : null,
       quoteTotal: job.amount > 0 ? job.amount : null,
-      driverLatitude: job.driverLat,
-      driverLongitude: job.driverLng,
-      driverLocationFresh: job.driverLocationFresh,
-      driverLocationUpdatedAt: job.driverLocationUpdatedAt,
+      // A live broadcast fix is newer than the polled 30 s history point.
+      driverLatitude: liveRecent ? null : job.driverLat,
+      driverLongitude: liveRecent ? null : job.driverLng,
+      driverLocationFresh: liveRecent ? true : job.driverLocationFresh,
+      driverLocationUpdatedAt: liveRecent ? null : job.driverLocationUpdatedAt,
       errorMessage: message,
       clearError: message == null,
     );
 
-    if (driver != null &&
-        !completed &&
+    _jobVehicleTypeId = job.vehicleTypeId ?? _jobVehicleTypeId;
+    _jobCargoTypeId = job.cargoTypeId ?? _jobCargoTypeId;
+    _jobPaymentMethod = job.paymentMethod ?? _jobPaymentMethod;
+    if ((state.vehicleClass == null && _jobVehicleTypeId != null) ||
+        (state.cargo == null && _jobCargoTypeId != null)) {
+      unawaited(_restoreCatalogSelection(job.id));
+    }
+
+    if (status == 'arrived') {
+      if (_pickupWaitFor != job.id) {
+        _pickupWaitFor = job.id;
+        unawaited(_loadPickupWait(job.id));
+      }
+    } else if (state.pickupFreeWaitEndsAt != null || _pickupWaitFor != null) {
+      _pickupWaitFor = null;
+      state = state.copyWith(clearPickupWait: true);
+    }
+
+    if (_recipientLoadedFor != job.id) {
+      _recipientLoadedFor = job.id;
+      unawaited(_loadRecipient(job.id));
+    }
+
+    // With a separate recipient the server texts the code to them when the
+    // goods leave the pickup; issuing here would replace that code. The
+    // customer can still resend it from the tracking card.
+    if (status == 'arrived_destination' &&
+        !state.hasRecipient &&
         state.deliveryOtp == null &&
         _otpIssuedFor != job.id) {
       _otpIssuedFor = job.id;
       unawaited(_issueOtp(job.id));
     }
-    if (completed) _cleanup();
+    if (completed) {
+      _cleanup();
+    } else {
+      unawaited(_computeTrackingRoute());
+    }
   }
 
   /// Runs the client-side dispatch fallback while the customer is searching.
@@ -1224,9 +1961,23 @@ class RideNotifier extends Notifier<RideState> {
         errorMessage: message,
         clearError: message == null,
       );
+      unawaited(_updateAlternatives(jobId, result));
     } catch (_) {
       // Silent retry; the next poll tick tries again.
     }
+  }
+
+  static const _noDriverFoundMessage =
+      'We could not find a driver for this move. You were not charged. '
+      'Confirm again to search once more, or choose another vehicle.';
+
+  static String _cancelledMessage(String? reason) {
+    final trimmed = reason?.trim() ?? '';
+    if (trimmed.isEmpty) return 'This move was cancelled.';
+    if (trimmed.toLowerCase().startsWith('no driver was available')) {
+      return _noDriverFoundMessage;
+    }
+    return 'This move was cancelled: $trimmed';
   }
 
   static String _formatSchedule(DateTime at) {
@@ -1241,10 +1992,67 @@ class RideNotifier extends Notifier<RideState> {
     return '${DateFormat('EEE d MMM').format(local)} at $time';
   }
 
+  Future<void> _loadRecipient(String jobId) async {
+    try {
+      final recipient = await _repo.getRecipient(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      final phone = recipient.phone;
+      if (phone == null || phone.isEmpty) return;
+      state = state.copyWith(
+        recipientName: recipient.name,
+        recipientPhone: phone,
+      );
+    } catch (_) {
+      _recipientLoadedFor = null;
+    }
+  }
+
+  /// Issues a new delivery code: shown here and texted to the recipient.
+  Future<void> resendDeliveryCode() async {
+    final jobId = state.jobId;
+    if (jobId == null || state.isSubmitting) return;
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    try {
+      final code = await _repo.issueDeliveryOtp(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      _otpIssuedFor = jobId;
+      state = state.copyWith(isSubmitting: false, deliveryOtp: code);
+    } catch (error, stack) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: ErrorHandler.map(error, stackTrace: stack).message,
+      );
+    }
+  }
+
+  Future<void> _loadPickupWait(String jobId) async {
+    try {
+      final endsAt = await _repo.pickupFreeWaitEndsAt(jobId);
+      if (!ref.mounted || state.jobId != jobId) return;
+      state = state.copyWith(
+        pickupFreeWaitEndsAt: endsAt,
+        clearPickupWait: endsAt == null,
+      );
+    } catch (_) {
+      // The countdown is informational; retry on the next status change.
+      _pickupWaitFor = null;
+    }
+  }
+
+  /// What cancelling right now would cost. Read-only.
+  Future<CancellationPreview?> cancellationPreview() async {
+    final jobId = state.jobId;
+    if (jobId == null) return null;
+    return _repo.cancellationPreview(jobId);
+  }
+
   Future<void> _issueOtp(String jobId) async {
     try {
       final code = await _repo.issueDeliveryOtp(jobId);
-      if (state.jobId == jobId) {
+      if (ref.mounted &&
+          state.jobId == jobId &&
+          state.jobStatus == 'arrived_destination') {
         state = state.copyWith(deliveryOtp: code);
       }
     } catch (_) {
@@ -1253,12 +2061,21 @@ class RideNotifier extends Notifier<RideState> {
   }
 
   void _cleanup() {
+    _routeGen++;
+    _refreshGeneration++;
     _routeTimer?.cancel();
     _routeTimer = null;
     _poll?.cancel();
     _poll = null;
     _channel?.unsubscribe();
     _channel = null;
+    final liveChannel = _locationChannel;
+    _locationChannel = null;
+    _liveChannelFor = null;
+    _lastLiveFixAt = null;
+    if (liveChannel != null) unawaited(liveChannel.unsubscribe());
+    _trackingRoute = const <LatLng>[];
+    _trackingTarget = null;
   }
 }
 
@@ -1267,8 +2084,34 @@ final rideProvider = NotifierProvider<RideNotifier, RideState>(
 );
 
 final rideVehicleTypesProvider = FutureProvider<List<VehicleTypeOption>>((ref) {
-  return CatalogRepository(ref.watch(supabaseProvider)).getVehicleTypes();
+  // Hide vehicles that have no live pricing plan. Offering them would make
+  // every quote for that vehicle fail with a server-side P0002.
+  return CatalogRepository(ref.watch(supabaseProvider))
+      .getQuotableVehicleTypes();
 });
+
+/// Pickup point rounded to ~100 m so small GPS changes reuse the same query.
+typedef PickupPoint = ({double lat, double lng});
+
+PickupPoint pickupPointOf(RidePlace place) => (
+  lat: (place.latitude * 1000).round() / 1000,
+  lng: (place.longitude * 1000).round() / 1000,
+);
+
+/// Vehicle availability near a pickup point, refreshed every 25 s while the
+/// vehicle picker watches it. Resolves to null when it cannot be loaded, so
+/// the picker falls back to showing every vehicle as bookable.
+final vehicleAvailabilityProvider = FutureProvider.autoDispose
+    .family<Map<String, VehicleAvailability>?, PickupPoint>((ref, point) async {
+      final timer = Timer(const Duration(seconds: 25), ref.invalidateSelf);
+      ref.onDispose(timer.cancel);
+      try {
+        return await RideRepository(ref.watch(supabaseProvider))
+            .vehicleAvailabilityNear(lat: point.lat, lng: point.lng);
+      } catch (_) {
+        return null;
+      }
+    });
 
 final rideCargoTypesProvider = FutureProvider<List<CargoTypeOption>>((ref) {
   return CatalogRepository(ref.watch(supabaseProvider)).getCargoTypes();

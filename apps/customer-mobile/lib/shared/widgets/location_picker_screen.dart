@@ -4,8 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:safeshift_shared/safeshift_shared.dart'
+    show SafeShiftThemeContext, safeShiftDarkMapStyle;
 
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/theme/text_styles.dart';
 import '../../core/widgets/buttons/primary_button.dart';
@@ -203,6 +204,9 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       body: Stack(
         children: <Widget>[
           GoogleMap(
+            style: Theme.of(context).brightness == Brightness.dark
+                ? safeShiftDarkMapStyle
+                : null,
             initialCameraPosition: CameraPosition(target: _center, zoom: 16),
             onMapCreated: (controller) => _controller = controller,
             onCameraMove: _onCameraMove,
@@ -212,14 +216,14 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
             compassEnabled: true,
             mapToolbarEnabled: false,
           ),
-          const IgnorePointer(
+          IgnorePointer(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.only(bottom: 44),
+                padding: const EdgeInsets.only(bottom: 44),
                 child: Icon(
                   Icons.location_pin,
                   size: 52,
-                  color: AppColors.error,
+                  color: context.colors.error,
                 ),
               ),
             ),
@@ -228,15 +232,15 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
             right: AppSizes.md,
             top: AppSizes.md,
             child: Material(
-              color: Colors.white,
+              color: context.colors.surface,
               shape: const CircleBorder(),
               elevation: 4,
               child: IconButton(
                 tooltip: 'Use my current location',
                 onPressed: _useMyLocation,
-                icon: const Icon(
+                icon: Icon(
                   Icons.my_location_rounded,
-                  color: AppColors.primaryDark,
+                  color: context.colors.primary,
                 ),
               ),
             ),
@@ -284,10 +288,7 @@ class _PickerCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.location_on_rounded,
-                color: AppColors.primaryDark,
-              ),
+              Icon(Icons.location_on_rounded, color: context.colors.primary),
               const SizedBox(width: AppSizes.sm),
               Expanded(
                 child: Text(
@@ -306,7 +307,7 @@ class _PickerCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -318,7 +319,7 @@ class _PickerCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               error!,
-              style: TextStyles.caption.copyWith(color: AppColors.error),
+              style: TextStyles.caption.copyWith(color: context.colors.error),
             ),
           ],
           const SizedBox(height: 10),

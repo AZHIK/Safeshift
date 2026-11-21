@@ -44,9 +44,9 @@ class HistoryScreen extends ConsumerWidget {
                   label: Text(filter),
                   selected: isSelected,
                   showCheckmark: false,
-                  selectedColor: AppColors.primary,
+                  selectedColor: context.colors.primary,
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected ? context.colors.onPrimary : context.colors.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                   onSelected: (_) =>
@@ -66,10 +66,10 @@ class HistoryScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(
+                        Icon(
                           Icons.cloud_off_rounded,
                           size: 56,
-                          color: AppColors.textDisabled,
+                          color: context.colors.onSurfaceVariant,
                         ),
                         const SizedBox(height: AppSizes.md),
                         Text(
@@ -96,10 +96,10 @@ class HistoryScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            const Icon(
+                            Icon(
                               Icons.route_outlined,
                               size: 56,
-                              color: AppColors.primary,
+                              color: context.colors.primary,
                             ),
                             const SizedBox(height: AppSizes.md),
                             Text(

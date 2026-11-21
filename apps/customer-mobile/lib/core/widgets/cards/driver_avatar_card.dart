@@ -23,10 +23,10 @@ class DriverAvatarCard extends StatelessWidget {
         children: <Widget>[
           CircleAvatar(
             radius: 26,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            backgroundColor: context.colors.primary.withValues(alpha: 0.12),
             child: Text(
               driver.initials,
-              style: TextStyles.title.copyWith(color: AppColors.primaryDark),
+              style: TextStyles.title.copyWith(color: context.colors.primary),
             ),
           ),
           const SizedBox(width: AppSizes.md),
@@ -45,12 +45,12 @@ class DriverAvatarCard extends StatelessWidget {
                       ),
                     ),
                     if (driver.verified)
-                      const Tooltip(
+                      Tooltip(
                         message: 'Verified driver',
                         child: Icon(
                           Icons.verified_rounded,
                           size: 16,
-                          color: AppColors.primary,
+                          color: context.colors.primary,
                         ),
                       ),
                   ],
@@ -58,10 +58,10 @@ class DriverAvatarCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Row(
                   children: <Widget>[
-                    const Icon(
+                    Icon(
                       Icons.star_rounded,
                       size: 16,
-                      color: Color(0xFFFFB300),
+                      color: context.colors.tertiary,
                     ),
                     Expanded(
                       child: Text(
@@ -69,7 +69,7 @@ class DriverAvatarCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -79,7 +79,7 @@ class DriverAvatarCard extends StatelessWidget {
                 Text(
                   '${driver.completedTrips} completed trips',
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
               ],

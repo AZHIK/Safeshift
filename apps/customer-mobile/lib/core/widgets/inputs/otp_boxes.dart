@@ -95,15 +95,15 @@ class _OtpBox extends StatelessWidget {
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: digit.isNotEmpty
-          ? AppColors.primary.withValues(alpha: 0.1)
-          : AppColors.background,
+          ? context.colors.primary.withValues(alpha: 0.1)
+          : Theme.of(context).scaffoldBackgroundColor,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.divider, width: 1),
+      border: Border.all(color: context.colors.outlineVariant, width: 1),
     ),
     child: Text(
       digit,
       style: TextStyles.title.copyWith(
-        color: AppColors.textPrimary,
+        color: context.colors.onSurface,
         fontSize: 19,
       ),
     ),

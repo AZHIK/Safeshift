@@ -34,10 +34,10 @@ class EarningsChart extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     day.day,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],

@@ -141,6 +141,13 @@ JOB_ID="$(api "$CUSTOMER_TOKEN" POST '/rest/v1/jobs?select=id' \
   "$(jq -nc --arg quote "$QUOTE_ID" '{quote_id: $quote}')" | jq -r '.[0].id')"
 check_nonempty 'customer can create a job from the quote' "$JOB_ID"
 
+PARCEL_PATH="$JOB_ID/parcel_integration.png"
+curl -fsS -X POST "$BASE_URL/storage/v1/object/job-evidence/$PARCEL_PATH" \
+  -H "apikey: $ANON_KEY" -H "authorization: Bearer $CUSTOMER_TOKEN" \
+  -H 'content-type: image/png' --data-binary @/tmp/safeshift-phase8-evidence.png >/dev/null
+api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/job_attach_parcel_photos \
+  "$(jq -nc --arg job "$JOB_ID" --arg photo "$PARCEL_PATH" '{p_job_id:$job,p_photo_paths:[$photo]}')" >/dev/null
+
 DISPATCH="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/match_dispatch \
   "$(jq -nc --arg job "$JOB_ID" '{
     p_job_id: $job, p_radius_km: 20, p_limit: 5, p_timeout_seconds: 60
@@ -151,6 +158,13 @@ check_eq 'match_dispatch creates at least one offer' 'true' \
 OFFERS="$(api "$DRIVER_TOKEN" POST /rest/v1/rpc/driver_pending_offers '{}')"
 OFFER_ID="$(jq -r --arg job "$JOB_ID" '.[] | select(.job_id == $job) | .offer_id' <<<"$OFFERS" | head -n1)"
 check_nonempty 'driver sees the pending offer' "$OFFER_ID"
+check_eq 'offer includes booked coordinates and the parcel photo' true \
+  "$(jq --arg job "$JOB_ID" --arg photo "$PARCEL_PATH" 'any(.[];
+    .job_id == $job and .pickup_lat == -6.815 and .pickup_lng == 39.275 and
+    .destination_lat == -6.8 and .destination_lng == 39.25 and .cargo_photo_paths == [$photo])' <<<"$OFFERS")"
+SIGNED_PHOTO="$(api "$DRIVER_TOKEN" POST "/storage/v1/object/sign/job-evidence/$PARCEL_PATH" '{"expiresIn":60}')"
+check_nonempty 'offered driver can open the booked photo before accepting' \
+  "$(jq -r '.signedURL // empty' <<<"$SIGNED_PHOTO")"
 
 # ---------------------------------------------------------------------------
 # 2. Accept and advance the job through the driver flow
@@ -161,11 +175,13 @@ ACTIVE="$(api "$DRIVER_TOKEN" POST /rest/v1/rpc/driver_active_job '{}')"
 check_eq 'driver_active_job returns the accepted job' "$JOB_ID" \
   "$(jq -r '.[0].job_id // empty' <<<"$ACTIVE")"
 
-for status in heading_to_pickup arrived loading in_transit; do
+for status in heading_to_pickup arrived cargo_verified loading in_transit; do
   api "$DRIVER_TOKEN" POST /rest/v1/rpc/job_advance_status \
     "$(jq -nc --arg job "$JOB_ID" --arg status "$status" '{
       p_job_id: $job, p_new_status: $status, p_reason: "Phase 8 integration test"
     }')" >/dev/null
+  current="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/customer_job "{\"p_job_id\":\"$JOB_ID\"}")"
+  check_eq "customer sees $status" "$status" "$(jq -r '.[0].status' <<<"$current")"
 done
 ok 'driver advanced the job to in_transit'
 
@@ -201,6 +217,10 @@ check_eq 'chat attachment row was stored' '1' "$ATTACHMENT_COUNT"
 # ---------------------------------------------------------------------------
 # 3. Delivery OTP: customer issues, driver verifies
 # ---------------------------------------------------------------------------
+api "$DRIVER_TOKEN" POST /rest/v1/rpc/job_advance_status \
+  "{\"p_job_id\":\"$JOB_ID\",\"p_new_status\":\"arrived_destination\"}" >/dev/null
+current="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/customer_job "{\"p_job_id\":\"$JOB_ID\"}")"
+check_eq 'customer sees arrival before handover' arrived_destination "$(jq -r '.[0].status' <<<"$current")"
 DELIVERY_CODE="$(api "$CUSTOMER_TOKEN" POST /rest/v1/rpc/job_issue_delivery_otp \
   "$(jq -nc --arg job "$JOB_ID" '{p_job_id: $job}')" | jq -r '.')"
 check_eq 'customer issued a 6-digit delivery code' 'true' \

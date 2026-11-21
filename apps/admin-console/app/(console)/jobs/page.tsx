@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
@@ -31,6 +33,11 @@ export default async function JobsPage({
       <PageHeader
         title="Jobs"
         description="Marketplace jobs across all stages. Use status filters to focus operations."
+        actions={
+          <Link className="btn btn-primary" href="/jobs/stuck">
+            Stuck jobs
+          </Link>
+        }
       />
       <form className="card card-pad form-row" method="get" style={{ marginBottom: 16 }}>
         <div className="field">

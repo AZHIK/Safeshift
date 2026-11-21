@@ -81,7 +81,7 @@ class _TripDetails extends StatelessWidget {
                         : DateFormat('d MMM yyyy, h:mm a')
                               .format(trip.completedAt!),
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -89,14 +89,14 @@ class _TripDetails extends StatelessWidget {
               const SizedBox(height: AppSizes.md),
               _Leg(
                 icon: Icons.location_on_rounded,
-                color: AppColors.onlineGreen,
+                color: context.colors.secondary,
                 label: 'Pickup',
                 value: trip.pickup,
               ),
               const SizedBox(height: AppSizes.sm),
               _Leg(
                 icon: Icons.flag_rounded,
-                color: AppColors.error,
+                color: context.colors.error,
                 label: 'Destination',
                 value: trip.destination,
               ),
@@ -152,7 +152,7 @@ class _Leg extends StatelessWidget {
               Text(
                 label,
                 style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 ),
               ),
               Text(value, style: TextStyles.title),
@@ -181,7 +181,7 @@ class _Row extends StatelessWidget {
             child: Text(
               label,
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 fontSize: isTotal ? 14 : 12,
               ),
             ),

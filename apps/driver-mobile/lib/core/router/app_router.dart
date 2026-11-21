@@ -17,6 +17,7 @@ import '../../features/ratings/presentation/screens/ratings_screen.dart';
 import '../../features/trips/presentation/screens/trip_detail_screen.dart';
 import '../../features/trips/presentation/screens/trips_screen.dart';
 import '../../features/vehicle/presentation/screens/vehicle_screen.dart';
+import '../constants/app_colors.dart';
 import 'route_guards.dart';
 
 /// Provides the app router. There is NO /job-request, NO /active-trip and
@@ -170,9 +171,12 @@ class MainScaffold extends ConsumerWidget {
       bottomNavigationBar: showNav
           ? Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
-                border: const Border(
-                  top: BorderSide(color: Color(0xFFE1EBF2), width: 0.8),
+                color: context.colors.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: context.colors.outlineVariant,
+                    width: 0.8,
+                  ),
                 ),
                 boxShadow: const [
                   BoxShadow(

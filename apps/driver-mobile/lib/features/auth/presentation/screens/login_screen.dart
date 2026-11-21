@@ -10,6 +10,7 @@ import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../providers/auth_provider.dart';
+import '../../../../core/utils/validators.dart';
 import '../widgets/phone_input_field.dart';
 
 /// Phone entry screen: enter a +255 phone number and request an OTP.
@@ -40,7 +41,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  bool get _isValid => _digits.length == 9;
+  /// Nine digits after +255 that match Tanzania's mobile numbering plan
+  /// (Vodacom, Airtel, Tigo/Yas, Halotel, TTCL, Zantel prefixes).
+  bool get _isValid =>
+      _digits.length == 9 && Validators.isValidPhone('+255$_digits');
 
   Future<void> _send() async {
     if (ref.read(authProvider).isLoading) {
@@ -62,15 +66,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.surface,
       body: Stack(
         children: [
           // Soft brand tint up top + faint orbs — matches onboarding/ride.
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFEAF3FD), Colors.white],
+                  colors: [
+                    context.colors.primaryContainer,
+                    context.colors.surface,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.5],
@@ -107,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Radius.circular(24),
                                 ),
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: context.colors.outlineVariant,
                                   width: 2,
                                 ),
                                 boxShadow: AppColors.cardShadow,
@@ -130,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             "Sign in to drive with SafeShift",
                             textAlign: TextAlign.center,
                             style: TextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
@@ -142,16 +149,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Text(
                             "We'll send you a verification code",
                             style: TextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.divider),
+                              border: Border.all(
+                                color: context.colors.outlineVariant,
+                              ),
                               boxShadow: AppColors.cardShadow,
                             ),
                             child: Column(
@@ -170,19 +179,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : Icons.info_outline_rounded,
                                       size: 15,
                                       color: _isValid
-                                          ? AppColors.success
-                                          : AppColors.textSecondary,
+                                          ? context.colors.secondary
+                                          : context.colors.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         _isValid
                                             ? 'Valid Tanzanian number — ready to send'
-                                            : '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed',
+                                            : _digits.length < 9
+                                            ? '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed'
+                                            : 'This is not a Tanzanian mobile number',
                                         style: TextStyles.caption.copyWith(
                                           color: _isValid
-                                              ? AppColors.success
-                                              : AppColors.textSecondary,
+                                              ? context.colors.secondary
+                                              : context.colors.onSurfaceVariant,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -210,38 +221,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             onPressed: authState.isLoading
                                 ? null
                                 : () async {
-                                      final notifier = ref.read(authProvider.notifier);
-                                      await notifier.signInWithGoogle();
-                                      if (!context.mounted) return;
-                                      AppSnackbar.showInfo(
-                                        context,
-                                        'Opening Google sign‑in…',
-                                      );
-                                    },
-                             icon: const Icon(Icons.gesture, size: 20),
-                             label: const Text(
-                               'Continue with Google',
-                               style: TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.w600,
-                               ),
-                             ),
-                             style: ElevatedButton.styleFrom(
-                               minimumSize: const Size(double.infinity,
-                                   AppSizes.buttonHeight),
-                               backgroundColor: AppColors.primary,
-                               shape: RoundedRectangleBorder(
-                                 borderRadius:
-                                     BorderRadius.circular(20),
-                               ),
-                             ),
-                           ),
+                                    final notifier = ref.read(
+                                      authProvider.notifier,
+                                    );
+                                    await notifier.signInWithGoogle();
+                                    if (!context.mounted) return;
+                                    AppSnackbar.showInfo(
+                                      context,
+                                      'Opening Google sign‑in…',
+                                    );
+                                  },
+                            icon: const Icon(Icons.gesture, size: 20),
+                            label: const Text(
+                              'Continue with Google',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSizes.buttonHeight,
+                              ),
+                              backgroundColor: context.colors.primary,
+                              foregroundColor: context.colors.onPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
                             'Standard SMS rates may apply',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
-                              color: AppColors.textDisabled,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
@@ -281,8 +293,12 @@ class _TermsText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyles.caption.copyWith(color: AppColors.textSecondary);
-    final linkStyle = TextStyles.caption.copyWith(color: AppColors.primary);
+    final style = TextStyles.caption.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
+    final linkStyle = TextStyles.caption.copyWith(
+      color: context.colors.primary,
+    );
     void showTermsNotice() {
       AppSnackbar.showInfo(
         context,

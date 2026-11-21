@@ -29,7 +29,7 @@ class AppEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 56, color: AppColors.primary),
+            Icon(icon, size: 56, color: context.colors.primary),
             const SizedBox(height: AppSizes.md),
             Text(
               title,
@@ -41,7 +41,7 @@ class AppEmptyState extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+                style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant),
               ),
             ],
             if (actionLabel != null && onAction != null) ...<Widget>[

@@ -76,10 +76,9 @@ class _LoadingSheetState extends ConsumerState<LoadingSheet> {
                   value: _checked[i],
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  activeColor: AppColors.onlineGreen,
+                  activeColor: context.colors.secondary,
                   title: Text(_items[i], style: TextStyles.body),
-                  onChanged: (v) =>
-                      setState(() => _checked[i] = v ?? false),
+                  onChanged: (v) => setState(() => _checked[i] = v ?? false),
                 ),
             ],
           ),

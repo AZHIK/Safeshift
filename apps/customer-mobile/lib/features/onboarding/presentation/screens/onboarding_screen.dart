@@ -10,8 +10,7 @@ import '../../providers/onboarding_provider.dart';
 import '../widgets/onboarding_page.dart';
 import '../widgets/page_indicator.dart';
 
-/// Clean light onboarding. White background, ink text, subtle illustration
-/// card. No emojis, no dark gradients.
+/// Illustrated introduction to the app.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -76,15 +75,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final last = _currentIndex == onboardingSlides.length - 1;
     final progress = (_currentIndex + 1) / onboardingSlides.length;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.surface,
       body: Stack(
         children: [
-          // Very subtle brand tint at the top — keeps it white, not flat.
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFEAF3FD), Colors.white],
+                  colors: [context.colors.primaryContainer, context.colors.surface],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.45],
@@ -106,19 +104,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           onTap: _back,
                         )
                       else
-                        const Row(
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.bolt_rounded,
                               size: 18,
-                              color: AppColors.primaryDark,
+                              color: context.colors.primary,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
                               'safeshift',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: context.colors.onSurface,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,
                               ),
@@ -132,14 +130,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.divider),
+                          border: Border.all(color: context.colors.outlineVariant),
                         ),
                         child: Text(
                           '${_currentIndex + 1} of ${onboardingSlides.length}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: context.colors.onSurfaceVariant,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -155,14 +153,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               vertical: 7,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: AppColors.divider),
+                              border: Border.all(color: context.colors.outlineVariant),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Skip',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: context.colors.onSurface,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11,
                               ),
@@ -177,7 +175,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
                       height: 5,
-                      color: AppColors.divider.withValues(alpha: 0.7),
+                      color: context.colors.outlineVariant.withValues(alpha: 0.7),
                       child: AnimatedFractionallySizedBox(
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeInOut,
@@ -228,7 +226,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ? 'Rated 4.9 from over 10,000 moves in Dar es Salaam'
                         : 'Swipe to explore',
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -248,9 +246,9 @@ class _OutlineIcon extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
-    shape: const CircleBorder(
-      side: BorderSide(color: AppColors.divider),
+    color: context.colors.surface,
+    shape: CircleBorder(
+      side: BorderSide(color: context.colors.outlineVariant),
     ),
     child: InkWell(
       onTap: onTap,
@@ -260,7 +258,7 @@ class _OutlineIcon extends StatelessWidget {
         child: Icon(
           icon,
           size: 18,
-          color: AppColors.textPrimary,
+          color: context.colors.onSurface,
         ),
       ),
     ),

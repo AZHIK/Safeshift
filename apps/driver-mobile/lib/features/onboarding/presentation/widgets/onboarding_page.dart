@@ -7,8 +7,7 @@ import '../../../../core/theme/text_styles.dart';
 import '../../domain/entities/onboarding_slide.dart';
 import 'animated_text_reveal.dart';
 
-/// Clean light illustration on white — animation floats with no card
-/// behind it, ink text below. [pageOffset] drives subtle parallax.
+/// [pageOffset] drives the illustration and badge parallax.
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({
     super.key,
@@ -102,7 +101,7 @@ class OnboardingPage extends StatelessWidget {
               slide.title,
               textAlign: TextAlign.center,
               style: TextStyles.display.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.onSurface,
                 fontSize: 24,
               ),
             ),
@@ -115,7 +114,7 @@ class OnboardingPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyles.body.copyWith(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 height: 1.55,
               ),
             ),

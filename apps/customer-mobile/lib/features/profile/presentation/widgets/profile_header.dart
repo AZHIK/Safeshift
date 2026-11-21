@@ -31,11 +31,11 @@ class ProfileHeader extends StatelessWidget {
         children: <Widget>[
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            backgroundColor: context.colors.primary.withValues(alpha: 0.12),
             child: Text(
               initials,
               style: TextStyles.title.copyWith(
-                color: AppColors.primaryDark,
+                color: context.colors.primary,
                 fontSize: 16,
               ),
             ),
@@ -50,7 +50,7 @@ class ProfileHeader extends StatelessWidget {
                 Text(
                   phoneLabel,
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -59,7 +59,7 @@ class ProfileHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
               ],

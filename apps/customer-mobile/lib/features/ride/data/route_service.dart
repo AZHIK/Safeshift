@@ -59,7 +59,8 @@ class RouteException implements Exception {
 /// Provider credentials never reach the client: the function holds the Google
 /// Maps API key in Supabase Vault and attaches the user's Supabase JWT itself.
 class RouteService {
-  RouteService({SupabaseClient? client}) : _client = client ?? SupabaseInit.client;
+  RouteService({SupabaseClient? client})
+    : _client = client ?? SupabaseInit.client;
 
   final SupabaseClient _client;
 

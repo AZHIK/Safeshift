@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,11 +8,11 @@ import 'package:safeshift_shared/safeshift_shared.dart';
 import '../../../../core/config/env_config.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/sheets/address_suggestion_sheet.dart';
 import '../../../../shared/models/ride_place.dart';
+import '../../data/ride_repository.dart';
 import '../../providers/ride_provider.dart';
 import '../../../phase9/presentation/phase9_screens.dart';
 import 'parcel_dialog.dart';
@@ -63,7 +65,7 @@ class RideSheetBody extends ConsumerWidget {
             width: 44,
             height: 5,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: context.colors.outlineVariant,
               borderRadius: BorderRadius.circular(99),
             ),
           ),
@@ -107,7 +109,9 @@ class _IdleSearch extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           'Your next move, made easy.',
-          style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.body.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 14),
         _RouteInputs(
@@ -128,7 +132,7 @@ class _IdleSearch extends ConsumerWidget {
         Text(
           'Saved places',
           style: TextStyles.caption.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.onSurfaceVariant,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
           ),
@@ -141,13 +145,15 @@ class _IdleSearch extends ConsumerWidget {
           ),
           error: (_, _) => Text(
             'Could not load saved places.',
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
           data: (places) => places.isEmpty
               ? Text(
                   'Save addresses in your profile to use them here.',
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 )
               : Column(
@@ -201,6 +207,24 @@ class _RouteAndVehicles extends ConsumerWidget {
     final notifier = ref.read(rideProvider.notifier);
     final cargoAsync = ref.watch(rideCargoTypesProvider);
     final total = _totalFor(ride, ride.vehicleClass?.id);
+    final pickup = ride.pickup;
+    // Polls every 25 s while this picker is on screen; stops when it closes.
+    final availability = pickup == null
+        ? null
+        : ref.watch(vehicleAvailabilityProvider(pickupPointOf(pickup))).value;
+    final selectedAvailability = availability == null
+        ? null
+        : (availability[ride.vehicleClass?.id] ??
+              VehicleAvailability.unavailable);
+    final scheduledLater =
+        ride.scheduledAt != null &&
+        ride.scheduledAt!.isAfter(
+          DateTime.now().add(const Duration(minutes: 45)),
+        );
+    final mustSchedule =
+        ride.vehicleClass != null &&
+        (selectedAvailability?.isNone ?? false) &&
+        !scheduledLater;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -227,7 +251,9 @@ class _RouteAndVehicles extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           'Cargo type + parcel details help us size the vehicle.',
-          style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.caption.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 10),
         cargoAsync.when(
@@ -237,7 +263,9 @@ class _RouteAndVehicles extends ConsumerWidget {
           ),
           error: (_, _) => Text(
             'Could not load cargo types.',
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
           data: (cargoTypes) => cargoTypes.isEmpty
               ? const CatalogEmptyNotice(kind: CatalogKind.cargo)
@@ -257,13 +285,17 @@ class _RouteAndVehicles extends ConsumerWidget {
                           supabaseUrl: _iconBaseUrl,
                           fallbackIcon: Icons.category_rounded,
                           size: 16,
-                          color: sel ? Colors.white : AppColors.textSecondary,
+                          color: sel
+                              ? context.colors.onPrimary
+                              : context.colors.onSurfaceVariant,
                         ),
                         selected: sel,
                         showCheckmark: false,
-                        selectedColor: AppColors.primaryDeep,
+                        selectedColor: context.colors.primary,
                         labelStyle: TextStyle(
-                          color: sel ? Colors.white : AppColors.textPrimary,
+                          color: sel
+                              ? context.colors.onPrimary
+                              : context.colors.onSurface,
                           fontWeight: FontWeight.w700,
                           fontSize: 11,
                         ),
@@ -275,14 +307,16 @@ class _RouteAndVehicles extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         _ParcelCard(onTap: () => showParcelDialog(context, ref)),
+        const SizedBox(height: 10),
+        const _RecipientCard(),
         const SizedBox(height: 16),
         if (!ride.hasRequiredParcelDetails) ...[
           InfoCard(
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.inventory_2_outlined,
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -290,7 +324,7 @@ class _RouteAndVehicles extends ConsumerWidget {
                     'Describe your parcel (value + at least one photo) to see '
                     'vehicles and a price.',
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -312,7 +346,9 @@ class _RouteAndVehicles extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             'Sized from your route + parcel above.',
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 10),
           vehiclesAsync.when(
@@ -322,21 +358,48 @@ class _RouteAndVehicles extends ConsumerWidget {
             ),
             error: (e, _) => Text(
               'Could not load vehicle types.',
-              style: TextStyles.caption.copyWith(color: AppColors.error),
+              style: TextStyles.caption.copyWith(color: context.colors.error),
             ),
             data: (vehicles) {
               final compatible = vehicles
                   .where(
-                    (v) => canVehicleCarryCargo(v, ride.cargo, ride.parcelWeightKg),
+                    (v) => canVehicleCarryCargo(
+                      v,
+                      ride.cargo,
+                      ride.parcelWeightKg,
+                    ),
                   )
                   .toList(growable: false);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ref
+                    .read(rideProvider.notifier)
+                    .applyVehicleAvailability(availability, compatible);
+              });
+              // Available first, then busy, then none; catalogue order
+              // (smallest first) within each group.
+              final ordered = availability == null
+                  ? compatible
+                  : ([...compatible.indexed]..sort((a, b) {
+                          int rank(VehicleTypeOption v) =>
+                              (availability[v.id] ??
+                                      VehicleAvailability.unavailable)
+                                  .rank;
+                          final byRank = rank(a.$2).compareTo(rank(b.$2));
+                          return byRank != 0 ? byRank : a.$1.compareTo(b.$1);
+                        }))
+                        .map((e) => e.$2)
+                        .toList(growable: false);
               return compatible.isEmpty
                   ? const CatalogEmptyNotice(kind: CatalogKind.vehicles)
                   : Column(
                       children: [
-                        for (final v in compatible)
+                        for (final v in ordered)
                           _VehicleTile(
                             vehicle: v,
+                            availability: availability == null
+                                ? null
+                                : (availability[v.id] ??
+                                      VehicleAvailability.unavailable),
                             selected: v.id == ride.vehicleClass?.id,
                             price: _totalFor(ride, v.id),
                             onTap: () => notifier.selectVehicle(v),
@@ -389,14 +452,14 @@ class _RouteAndVehicles extends ConsumerWidget {
                       supabaseUrl: _iconBaseUrl,
                       fallbackIcon: Icons.local_shipping_outlined,
                       size: 16,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         '${ride.vehicleClass?.name ?? 'Vehicle'} · ${ride.vehicleClass?.capacityLabel ?? ''} · ${ride.scheduledLabel}',
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -406,16 +469,18 @@ class _RouteAndVehicles extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.inventory_2_outlined,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           [
-                            if ((ride.parcelDescription ?? '').trim().isNotEmpty)
+                            if ((ride.parcelDescription ?? '')
+                                .trim()
+                                .isNotEmpty)
                               ride.parcelDescription!.trim().length > 36
                                   ? '${ride.parcelDescription!.trim().substring(0, 36)}…'
                                   : ride.parcelDescription!.trim(),
@@ -429,7 +494,7 @@ class _RouteAndVehicles extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -456,7 +521,7 @@ class _RouteAndVehicles extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               ride.routeError!,
-              style: TextStyles.caption.copyWith(color: AppColors.error),
+              style: TextStyles.caption.copyWith(color: context.colors.error),
             ),
           ),
         if (ride.errorMessage != null)
@@ -464,33 +529,53 @@ class _RouteAndVehicles extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               ride.errorMessage!,
-              style: TextStyles.caption.copyWith(color: AppColors.error),
+              style: TextStyles.caption.copyWith(color: context.colors.error),
             ),
           ),
         const SizedBox(height: 12),
         _PaymentTile(onTap: () => showPaymentDialog(context)),
         const SizedBox(height: 12),
+        if (mustSchedule)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'No ${ride.vehicleClass!.name} drivers are near your pickup '
+              'right now. Schedule it for later or choose another vehicle.',
+              style: TextStyles.caption.copyWith(
+                color: context.colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         PrimaryButton(
-          label: total == null
+          label: mustSchedule
+              ? 'Schedule this move'
+              : total == null
               ? 'Confirm Move'
               : 'Confirm Move · TZS ${_tzs.format(total)}',
-          icon: Icons.bolt_rounded,
+          icon: mustSchedule ? Icons.schedule_rounded : Icons.bolt_rounded,
           isLoading: ride.isSubmitting || ride.isQuoting,
           onPressed:
               ride.hasRoute &&
-                      !ride.isQuoting &&
-                      ride.vehicleClass != null &&
-                      ride.parcelValueTzs != null &&
-                      ride.parcelValueTzs! > 0 &&
-                      ride.parcelPhotoPaths.isNotEmpty
-                  ? () => ref.read(rideProvider.notifier).confirmAndFindDriver()
-                  : null,
+                  !ride.isQuoting &&
+                  ride.vehicleClass != null &&
+                  ride.parcelValueTzs != null &&
+                  ride.parcelValueTzs! > 0 &&
+                  ride.parcelPhotoPaths.isNotEmpty
+              ? (mustSchedule
+                    ? () => _SchedulePill.pick(context, ref)
+                    : () => ref
+                          .read(rideProvider.notifier)
+                          .confirmAndFindDriver())
+              : null,
         ),
         const SizedBox(height: 4),
         Center(
           child: Text(
             'Final price may adjust if cargo changes',
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -506,6 +591,7 @@ class _PaymentTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final method = ref.watch(rideProvider).paymentMethod;
+    final tint = method.iconColor(Theme.of(context).brightness);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -516,21 +602,21 @@ class _PaymentTile extends ConsumerWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: method.color.withValues(alpha: 0.12),
+                color: tint.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(method.icon, color: method.color),
+              child: Icon(method.icon, color: tint),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Payment · mock, no charge',
                     style: TextStyle(
                       fontSize: 10,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -552,15 +638,15 @@ class _PaymentTile extends ConsumerWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Change',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
+                            color: context.colors.primary,
                           ),
                         ),
                       ),
@@ -570,9 +656,9 @@ class _PaymentTile extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
             ),
           ],
         ),
@@ -596,29 +682,29 @@ class _RouteInputs extends ConsumerWidget {
     final ride = ref.watch(rideProvider);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: context.colors.outlineVariant),
         boxShadow: AppColors.cardShadow,
       ),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           const SizedBox(width: 6),
-          const Column(
+          Column(
             children: [
               Icon(
                 Icons.trip_origin_rounded,
-                color: Color(0xFF34D17B),
+                color: context.colors.secondary,
                 size: 26,
               ),
-              SizedBox(
+              const SizedBox(
                 height: 30,
                 child: VerticalDivider(width: 2, thickness: 2),
               ),
               Icon(
                 Icons.location_on_rounded,
-                color: Color(0xFFFF5A5A),
+                color: context.colors.error,
                 size: 26,
               ),
             ],
@@ -646,7 +732,7 @@ class _RouteInputs extends ConsumerWidget {
               onPressed: () => ref.read(rideProvider.notifier).swap(),
               icon: const Icon(Icons.swap_vert_rounded, size: 22),
               style: IconButton.styleFrom(
-                backgroundColor: AppColors.background,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 minimumSize: const Size(48, 48),
               ),
             ),
@@ -678,15 +764,15 @@ class _InputRow extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: value == null ? FontWeight.w400 : FontWeight.w700,
                 color: value == null
-                    ? AppColors.textDisabled
-                    : AppColors.textPrimary,
+                    ? context.colors.onSurfaceVariant
+                    : context.colors.onSurface,
               ),
             ),
           ),
-          const Icon(
+          Icon(
             Icons.search_rounded,
             size: 20,
-            color: AppColors.textSecondary,
+            color: context.colors.onSurfaceVariant,
           ),
         ],
       ),
@@ -708,10 +794,10 @@ class _SavedPlaceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.colors.surface,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(18),
-      side: const BorderSide(color: AppColors.divider),
+      side: BorderSide(color: context.colors.outlineVariant),
     ),
     elevation: 2,
     shadowColor: const Color(0x144E5E73),
@@ -726,10 +812,10 @@ class _SavedPlaceTile extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, size: 26, color: AppColors.primaryDark),
+              child: Icon(icon, size: 26, color: context.colors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -738,10 +824,10 @@ class _SavedPlaceTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -749,17 +835,17 @@ class _SavedPlaceTile extends StatelessWidget {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
             ),
           ],
         ),
@@ -771,11 +857,15 @@ class _SavedPlaceTile extends StatelessWidget {
 class _VehicleTile extends StatelessWidget {
   const _VehicleTile({
     required this.vehicle,
+    required this.availability,
     required this.selected,
     required this.price,
     required this.onTap,
   });
   final VehicleTypeOption vehicle;
+
+  /// Null while unknown; then no availability line is shown.
+  final VehicleAvailability? availability;
   final bool selected;
   final int? price;
   final VoidCallback onTap;
@@ -783,95 +873,163 @@ class _VehicleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          gradient: selected ? AppColors.brandGradient : null,
-          color: selected ? null : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? Colors.transparent : AppColors.divider,
-          ),
-          boxShadow: AppColors.cardShadow,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: selected
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : AppColors.background,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: CatalogIcon(
-                iconUrl: vehicle.iconUrl,
-                supabaseUrl: _iconBaseUrl,
-                fallbackIcon: Icons.local_shipping_outlined,
-                color: selected ? Colors.white : AppColors.primaryDark,
-                size: 28,
-              ),
+    child: Opacity(
+      // Still tappable: the customer can choose it and schedule for later.
+      opacity: (availability?.isNone ?? false) && !selected ? 0.55 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: selected ? AppColors.brandGradient : null,
+            color: selected ? null : context.colors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected
+                  ? Colors.transparent
+                  : context.colors.outlineVariant,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: CatalogIcon(
+                  iconUrl: vehicle.iconUrl,
+                  supabaseUrl: _iconBaseUrl,
+                  fallbackIcon: Icons.local_shipping_outlined,
+                  color: selected ? Colors.white : context.colors.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vehicle.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: selected
+                            ? Colors.white
+                            : context.colors.onSurface,
+                      ),
+                    ),
+                    Text(
+                      vehicle.description.isNotEmpty
+                          ? '${vehicle.capacityLabel} · ${vehicle.description}'
+                          : vehicle.capacityLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: selected
+                            ? Colors.white.withValues(alpha: 0.85)
+                            : context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                    if (availability != null)
+                      _AvailabilityLine(
+                        availability: availability!,
+                        onBrand: selected,
+                      ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    vehicle.name,
+                    _formatTzs(price),
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: selected ? Colors.white : AppColors.textPrimary,
+                      fontSize: 12,
+                      color: selected ? Colors.white : context.colors.onSurface,
                     ),
                   ),
                   Text(
-                    vehicle.description.isNotEmpty
-                        ? '${vehicle.capacityLabel} · ${vehicle.description}'
-                        : vehicle.capacityLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    selected ? 'Selected' : vehicle.capacityLabel,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                       color: selected
-                          ? Colors.white.withValues(alpha: 0.85)
-                          : AppColors.textSecondary,
+                          ? AppColors.lime
+                          : context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatTzs(price),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: selected ? Colors.white : AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  selected ? 'Selected' : vehicle.capacityLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: selected ? AppColors.lime : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
   );
+}
+
+/// "≈ 4 min away", "Busy · may take longer" or "None nearby · schedule".
+class _AvailabilityLine extends StatelessWidget {
+  const _AvailabilityLine({required this.availability, required this.onBrand});
+
+  final VehicleAvailability availability;
+  final bool onBrand;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, icon, tone) = switch (availability.status) {
+      VehicleAvailabilityStatus.available => (
+        availability.etaMin == null
+            ? 'Drivers nearby'
+            : '≈ ${availability.etaMin} min away',
+        Icons.bolt_rounded,
+        context.colors.secondary,
+      ),
+      VehicleAvailabilityStatus.limited => (
+        'Busy · may take longer',
+        Icons.hourglass_bottom_rounded,
+        context.colors.tertiary,
+      ),
+      VehicleAvailabilityStatus.none => (
+        'None nearby now · schedule',
+        Icons.schedule_rounded,
+        context.colors.onSurfaceVariant,
+      ),
+    };
+    final color = onBrand ? AppColors.lime : tone;
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Parcel summary card — opens the dialog, never a new screen.
@@ -909,12 +1067,12 @@ class _ParcelCard extends ConsumerWidget {
               height: 46,
               decoration: BoxDecoration(
                 gradient: done ? AppColors.brandGradient : null,
-                color: done ? null : AppColors.background,
+                color: done ? null : Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 done ? Icons.check_rounded : Icons.inventory_2_outlined,
-                color: done ? Colors.white : AppColors.primaryDark,
+                color: done ? Colors.white : context.colors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -940,15 +1098,15 @@ class _ParcelCard extends ConsumerWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F7F3),
+                            color: context.colors.secondaryContainer,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
+                          child: Text(
                             'ADDED',
                             style: TextStyle(
                               fontSize: 8,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF166B4D),
+                              color: context.colors.onSecondaryContainer,
                               letterSpacing: 0.6,
                             ),
                           ),
@@ -961,15 +1119,15 @@ class _ParcelCard extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textSecondary,
+              color: context.colors.onSurfaceVariant,
             ),
           ],
         ),
@@ -983,24 +1141,29 @@ class _SchedulePill extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ride = ref.watch(rideProvider);
     final label = ride.scheduledLabel;
+    final foreground = ride.isScheduled
+        ? context.colors.onPrimary
+        : context.colors.onSurfaceVariant;
     return InkWell(
-      onTap: () => _pick(context, ref),
+      onTap: () => pick(context, ref),
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: ride.isScheduled ? AppColors.primaryDark : AppColors.primaryDeep,
+          color: ride.isScheduled
+              ? context.colors.primary
+              : context.colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.schedule_rounded, size: 14, color: Colors.white),
+            Icon(Icons.schedule_rounded, size: 14, color: foreground),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: foreground,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -1011,7 +1174,9 @@ class _SchedulePill extends ConsumerWidget {
     );
   }
 
-  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+  /// Opens the pickup-time chooser. Also used by the Confirm button when no
+  /// driver of the chosen vehicle is nearby.
+  static Future<void> pick(BuildContext context, WidgetRef ref) async {
     final notifier = ref.read(rideProvider.notifier);
     final current = ref.read(rideProvider).scheduledAt;
     final now = DateTime.now();
@@ -1026,7 +1191,7 @@ class _SchedulePill extends ConsumerWidget {
               leading: const Icon(Icons.bolt_rounded),
               title: const Text('Now'),
               trailing: current == null
-                  ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                  ? Icon(Icons.check_rounded, color: context.colors.primary)
                   : null,
               onTap: () => Navigator.pop(context, 'now'),
             ),
@@ -1088,7 +1253,9 @@ class _SchedulePill extends ConsumerWidget {
         );
         if (at.isBefore(DateTime.now())) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Choose a pickup time in the future.')),
+            const SnackBar(
+              content: Text('Choose a pickup time in the future.'),
+            ),
           );
           return;
         }
@@ -1147,7 +1314,7 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
                     height: 60 + ((_c.value + i / 3) % 1) * 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.primary.withValues(
+                      color: context.colors.primary.withValues(
                         alpha: (0.28 * (1 - ((_c.value + i / 3) % 1))).clamp(
                           0.0,
                           0.3,
@@ -1158,7 +1325,7 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
                 Container(
                   width: 72,
                   height: 72,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: AppColors.brandGradient,
                     shape: BoxShape.circle,
                     boxShadow: AppColors.glowShadow,
@@ -1184,7 +1351,9 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
               ? 'We will start searching 45 minutes before pickup'
               : 'Looking for verified vehicles near your pickup',
           textAlign: TextAlign.center,
-          style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.body.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         if (ride.isUploadingPhotos) ...[
           const SizedBox(height: 10),
@@ -1192,7 +1361,9 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
           const SizedBox(height: 4),
           Text(
             'Uploading parcel photos…',
-            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: TextStyles.caption.copyWith(
+              color: context.colors.onSurfaceVariant,
+            ),
           ),
         ],
         if (ride.errorMessage != null) ...[
@@ -1201,9 +1372,31 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
             ride.errorMessage!,
             textAlign: TextAlign.center,
             style: TextStyles.caption.copyWith(
-              color: scheduledLater ? AppColors.textSecondary : AppColors.error,
+              color: scheduledLater
+                  ? context.colors.onSurfaceVariant
+                  : context.colors.error,
             ),
           ),
+          if (!scheduledLater && ride.alternativeVehicles.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Available now',
+                style: TextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: context.colors.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final option in ride.alternativeVehicles)
+              _AlternativeVehicleTile(
+                option: option,
+                enabled: !ride.isSubmitting,
+                onTap: () => _confirmSwitch(context, option.vehicle),
+              ),
+          ],
           if (!scheduledLater) ...[
             const SizedBox(height: 8),
             PrimaryButton(
@@ -1230,25 +1423,169 @@ class _SearchingViewState extends ConsumerState<_SearchingView>
   }
 }
 
+extension on _SearchingViewState {
+  Future<void> _confirmSwitch(
+    BuildContext context,
+    VehicleTypeOption vehicle,
+  ) async {
+    final current = ref.read(rideProvider).vehicleClass;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Switch to ${vehicle.name}?'),
+        content: Text(
+          'We will cancel the ${current?.name ?? 'current'} request at no '
+          'charge and look for a ${vehicle.name} instead. The price will be '
+          'recalculated for the new vehicle.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep waiting'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await ref.read(rideProvider.notifier).switchVehicleAndRedispatch(vehicle);
+  }
+}
+
+class _AlternativeVehicleTile extends StatelessWidget {
+  const _AlternativeVehicleTile({
+    required this.option,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final AlternativeVehicle option;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final vehicle = option.vehicle;
+    final drivers = option.driverCount;
+    final subtitle = [
+      if (vehicle.capacityLabel.isNotEmpty) vehicle.capacityLabel,
+      '$drivers driver${drivers == 1 ? '' : 's'} nearby',
+    ].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.colors.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              CatalogIcon(
+                iconUrl: vehicle.iconUrl,
+                supabaseUrl: _iconBaseUrl,
+                fallbackIcon: Icons.local_shipping_outlined,
+                color: context.colors.primary,
+                size: 26,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vehicle.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Switch',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                  color: enabled
+                      ? context.colors.primary
+                      : context.colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TrackingView extends ConsumerWidget {
   const _TrackingView({super.key});
 
   static String _statusLabel(String? status) => switch (status) {
     'accepted' || 'heading_to_pickup' => 'Driver on the way',
-    'arrived' => 'Driver has arrived',
+    'arrived' => 'Driver has arrived at pickup',
+    'cargo_verified' => 'Driver verified the cargo',
     'loading' => 'Loading your goods',
     'in_transit' => 'On the way to the destination',
-    'delivered' => 'Delivered — confirm to finish',
+    'arrived_destination' => 'Driver has arrived at the destination',
+    'delivered' => 'Delivery confirmed',
     'completed' => 'Move completed',
+    'cancelled' => 'Move cancelled',
+    'disputed' => 'Move under review',
     _ => 'Driver assigned',
   };
+
+  /// Live ETA for the leg in progress, or the booked trip figures.
+  static String _tripMetrics(RideState ride) {
+    final eta = ride.liveEtaMin;
+    final km = ride.liveRemainingKm;
+    if (eta != null && km != null) {
+      final minutes = eta <= 1 ? 'under a minute' : '$eta min';
+      return switch (ride.jobStatus) {
+        'in_transit' => '$minutes to drop-off · ${km.toStringAsFixed(1)} km',
+        _ => 'Arrives in $minutes · ${km.toStringAsFixed(1)} km',
+      };
+    }
+    return '${ride.distanceKm.toStringAsFixed(1)} km · ${ride.durationMin} min';
+  }
+
+  /// Shown under the driver when their position has gone quiet.
+  static String? _locationNote(RideState ride) {
+    if (!ride.driverLocationFresh) return 'Location updating…';
+    final at = ride.driverLocationUpdatedAt;
+    if (at == null) return null;
+    final age = DateTime.now().difference(at.toLocal());
+    if (age < const Duration(seconds: 90)) return null;
+    return 'Location last updated ${age.inMinutes} min ago';
+  }
 
   static double _statusProgress(String? status) => switch (status) {
     'accepted' => 0.2,
     'heading_to_pickup' => 0.35,
-    'arrived' => 0.45,
-    'loading' => 0.6,
+    'arrived' => 0.5,
+    'cargo_verified' => 0.58,
+    'loading' => 0.65,
     'in_transit' => 0.8,
+    'arrived_destination' => 0.9,
     'delivered' || 'completed' => 1.0,
     _ => 0.2,
   };
@@ -1263,46 +1600,61 @@ class _TrackingView extends ConsumerWidget {
         status == 'accepted' ||
         status == 'heading_to_pickup' ||
         status == 'arrived' ||
+        status == 'cargo_verified' ||
         status == 'loading';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F7F3),
-                borderRadius: BorderRadius.circular(999),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.52,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF22B07D),
-                      shape: BoxShape.circle,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: context.colors.secondaryContainer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: context.colors.onSecondaryContainer,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _statusLabel(status),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF166B4D),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _statusLabel(status),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: context.colors.onSecondaryContainer,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const Spacer(),
             Text(
-              '${ride.distanceKm.toStringAsFixed(1)} km · ${ride.durationMin} min',
+              _tripMetrics(ride),
               style: TextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1312,17 +1664,21 @@ class _TrackingView extends ConsumerWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.schedule_rounded,
                 size: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
-              Text(
-                'Scheduled for ${ride.scheduledLabel}',
-                style: TextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  'Scheduled for ${ride.scheduledLabel}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyles.caption.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -1334,17 +1690,21 @@ class _TrackingView extends ConsumerWidget {
           child: LinearProgressIndicator(
             value: _statusProgress(status),
             minHeight: 6,
-            backgroundColor: const Color(0xFFEDF2F6),
-            color: AppColors.primary,
+            backgroundColor: context.colors.surfaceContainerHighest,
+            color: context.colors.primary,
           ),
         ),
+        if (status == 'arrived' && ride.pickupFreeWaitEndsAt != null) ...[
+          const SizedBox(height: 10),
+          _PickupWaitBanner(endsAt: ride.pickupFreeWaitEndsAt!),
+        ],
         const SizedBox(height: 12),
         InfoCard(
           child: Row(
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                backgroundColor: context.colors.primary.withValues(alpha: 0.12),
                 child: Text(
                   driver == null
                       ? '?'
@@ -1373,26 +1733,26 @@ class _TrackingView extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.verified_rounded,
                           size: 16,
-                          color: AppColors.primary,
+                          color: context.colors.primary,
                         ),
                       ],
                     ),
                     Text(
                       '${(driver?.rating ?? 0).toStringAsFixed(1)} · ${driver?.vehicleClass ?? ride.vehicleClass?.name ?? 'Vehicle'} · ${_formatTzs(_totalFor(ride, ride.vehicleClass?.id))}',
                       style: TextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       ),
                     ),
                     if (ride.driverLatitude != null &&
-                        !ride.driverLocationFresh) ...[
+                        _locationNote(ride) != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Location updating…',
+                        _locationNote(ride)!,
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1403,14 +1763,14 @@ class _TrackingView extends ConsumerWidget {
                         Icon(
                           ride.paymentMethod.icon,
                           size: 13,
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             'Paying with ${ride.paymentMethod.name}',
                             style: TextStyles.caption.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1426,7 +1786,7 @@ class _TrackingView extends ConsumerWidget {
                 ),
                 icon: const Icon(Icons.call_rounded, size: 20),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.primaryDeep,
+                  backgroundColor: context.colors.primary,
                 ),
               ),
             ],
@@ -1450,31 +1810,75 @@ class _TrackingView extends ConsumerWidget {
                 onPressed: ride.jobId == null
                     ? null
                     : () => raiseSos(context, ref, ride.jobId!),
-                icon: const Icon(
+                icon: Icon(
                   Icons.emergency_outlined,
                   size: 18,
-                  color: AppColors.error,
+                  color: context.colors.error,
                 ),
-                label: const Text(
+                label: Text(
                   'SOS',
-                  style: TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.colors.error),
                 ),
               ),
             ),
           ],
         ),
+        if (_cancellableStatuses.contains(status)) ...[
+          const SizedBox(height: 4),
+          Center(
+            child: TextButton(
+              onPressed: ride.isSubmitting
+                  ? null
+                  : () => _confirmCancelMove(context, ref),
+              child: Text(
+                'Cancel move',
+                style: TextStyle(color: context.colors.error),
+              ),
+            ),
+          ),
+        ],
+        if (ride.hasRecipient &&
+            (status == 'in_transit' || status == 'arrived_destination')) ...[
+          const SizedBox(height: 10),
+          InfoCard(
+            child: Row(
+              children: [
+                Icon(Icons.sms_outlined, color: context.colors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'We texted the delivery code and tracking link to '
+                    '${ride.recipientName ?? 'the recipient'} '
+                    '(${ride.recipientPhone}).',
+                    style: TextStyles.caption.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: ride.isSubmitting
+                      ? null
+                      : () => ref
+                            .read(rideProvider.notifier)
+                            .resendDeliveryCode(),
+                  child: const Text('Resend'),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (ride.deliveryOtp != null) ...[
           const SizedBox(height: 10),
           InfoCard(
             child: Row(
               children: [
-                const Icon(Icons.password_rounded, color: AppColors.primary),
+                Icon(Icons.password_rounded, color: context.colors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Give this delivery code to your driver',
                     style: TextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1492,14 +1896,362 @@ class _TrackingView extends ConsumerWidget {
         ],
         const SizedBox(height: 10),
         PrimaryButton(
-          label: 'Confirm Delivery',
+          label: ride.jobStatus == 'completed'
+              ? 'Finish'
+              : ride.jobStatus == 'delivered'
+              ? 'Delivery confirmed'
+              : 'Confirm delivery',
           icon: Icons.check_rounded,
-          onPressed:
-              ride.jobStatus == 'delivered' || ride.jobStatus == 'completed'
-              ? () => ref.read(rideProvider.notifier).complete()
-              : null,
+          isLoading: ride.isSubmitting,
+          onPressed: switch (ride.jobStatus) {
+            'arrived_destination' =>
+              () => ref.read(rideProvider.notifier).confirmDelivery(),
+            'completed' => () => ref.read(rideProvider.notifier).complete(),
+            _ => null,
+          },
         ),
       ],
+    );
+  }
+}
+
+/// Statuses in which the customer can still cancel from the app: the goods
+/// have not been loaded yet.
+const _cancellableStatuses = <String?>{
+  'accepted',
+  'heading_to_pickup',
+  'arrived',
+  'cargo_verified',
+};
+
+/// Shows what cancelling costs before the customer commits.
+Future<void> _confirmCancelMove(BuildContext context, WidgetRef ref) async {
+  final notifier = ref.read(rideProvider.notifier);
+  final messenger = ScaffoldMessenger.of(context);
+  CancellationPreview? preview;
+  try {
+    preview = await notifier.cancellationPreview();
+  } catch (_) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Could not check the cancellation fee. Try again.'),
+      ),
+    );
+    return;
+  }
+  if (preview == null || !context.mounted) return;
+  if (!preview.cancellable) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          preview.message ?? 'This move can no longer be cancelled in the app.',
+        ),
+      ),
+    );
+    return;
+  }
+  final fee = preview.fee.round();
+  final freeUntil = preview.freeUntil?.toLocal();
+  final body = fee > 0
+      ? 'Your driver is already assigned, so a cancellation fee of '
+            '${preview.currencyCode} ${_tzs.format(fee)} applies.'
+      : freeUntil != null
+      ? 'You can cancel for free until '
+            '${DateFormat('h:mm a').format(freeUntil)}.'
+      : 'You can cancel this move for free.';
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Cancel this move?'),
+      content: Text(body),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Keep move'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(fee > 0 ? 'Cancel and pay fee' : 'Cancel move'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  await notifier.cancelSearch();
+}
+
+/// Countdown of the driver's free waiting time at the pickup.
+class _PickupWaitBanner extends StatefulWidget {
+  const _PickupWaitBanner({required this.endsAt});
+
+  final DateTime endsAt;
+
+  @override
+  State<_PickupWaitBanner> createState() => _PickupWaitBannerState();
+}
+
+class _PickupWaitBannerState extends State<_PickupWaitBanner> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final left = widget.endsAt.difference(DateTime.now());
+    final over = left.isNegative;
+    final mm = left.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = left.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final color = over ? context.colors.error : context.colors.primary;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.timer_outlined, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              over
+                  ? 'Your driver has waited the full free time. Please meet '
+                        'them now, or they may cancel the move.'
+                  : 'Your driver is waiting at the pickup. Free waiting '
+                        'ends in $mm:$ss.',
+              style: TextStyles.caption.copyWith(
+                color: context.colors.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Who receives it?" on the booking sheet.
+class _RecipientCard extends ConsumerWidget {
+  const _RecipientCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ride = ref.watch(rideProvider);
+    final has = ride.hasRecipient;
+    return InkWell(
+      onTap: () => _editRecipient(context, ref),
+      borderRadius: BorderRadius.circular(18),
+      child: InfoCard(
+        selected: has,
+        child: Row(
+          children: [
+            Icon(
+              has ? Icons.person_pin_circle_rounded : Icons.person_outline,
+              color: context.colors.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Who receives it?',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    has
+                        ? '${ride.recipientName} · ${ride.recipientPhone}'
+                        : "You. Tap if someone else will receive it.",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyles.caption.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: context.colors.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _editRecipient(BuildContext context, WidgetRef ref) async {
+  final ride = ref.read(rideProvider);
+  final result = await showDialog<({String name, String phone})>(
+    context: context,
+    builder: (_) => _RecipientDialog(
+      initialName: ride.recipientName ?? '',
+      initialPhone: ride.recipientPhone ?? '',
+    ),
+  );
+  if (result == null) return;
+  ref
+      .read(rideProvider.notifier)
+      .setRecipient(name: result.name, phone: result.phone);
+}
+
+class _RecipientDialog extends StatefulWidget {
+  const _RecipientDialog({
+    required this.initialName,
+    required this.initialPhone,
+  });
+
+  final String initialName;
+  final String initialPhone;
+
+  @override
+  State<_RecipientDialog> createState() => _RecipientDialogState();
+}
+
+class _RecipientDialogState extends State<_RecipientDialog> {
+  late final _name = TextEditingController(text: widget.initialName);
+  late final _phone = TextEditingController(
+    text: widget.initialPhone.isEmpty
+        ? ''
+        : formatPhoneInternational(widget.initialPhone),
+  );
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  /// Checked against the country's plan; must be a mobile to get the SMS.
+  PhoneCheck get _phoneCheck => checkPhone(_phone.text);
+
+  bool get _valid => _name.text.trim().isNotEmpty && _phoneCheck.isValid;
+
+  @override
+  Widget build(BuildContext context) {
+    final valid = _valid;
+    return Dialog(
+      // Narrow side margins, like the parcel dialog.
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: SingleChildScrollView(
+          // Scrolls when the keyboard leaves little room for the fields.
+          padding: const EdgeInsets.fromLTRB(20, 14, 12, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: AppColors.cardShadow,
+                    ),
+                    child: const Icon(
+                      Icons.person_pin_circle_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Who receives it?', style: TextStyles.title),
+                        Text(
+                          'Gets a tracking link and the delivery code by SMS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _name,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Recipient name',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    PhoneNumberField(
+                      controller: _phone,
+                      label: 'Recipient mobile',
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 20),
+                    PrimaryButton(
+                      label: 'Save recipient',
+                      icon: Icons.check_rounded,
+                      onPressed: valid
+                          ? () => Navigator.of(context).pop((
+                              name: _name.text.trim(),
+                              phone: _phoneCheck.e164!,
+                            ))
+                          : null,
+                    ),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context).pop((name: '', phone: '')),
+                      child: const Text("I'm receiving it myself"),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1515,12 +2267,12 @@ class _DoneView extends ConsumerWidget {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: AppColors.success.withValues(alpha: 0.12),
+            color: context.colors.secondary.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.check_rounded,
-            color: AppColors.success,
+            color: context.colors.secondary,
             size: 38,
           ),
         ),
@@ -1532,7 +2284,9 @@ class _DoneView extends ConsumerWidget {
         Text(
           '${ride.pickup?.name ?? ride.pickupAddress ?? ''} to ${ride.destination?.name ?? ride.destinationAddress ?? ''}',
           textAlign: TextAlign.center,
-          style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: TextStyles.body.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 12),
         PrimaryButton(

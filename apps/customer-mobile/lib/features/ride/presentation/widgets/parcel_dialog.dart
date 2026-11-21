@@ -128,7 +128,9 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
     final value = valueText.isEmpty ? null : int.tryParse(valueText);
     if (value == null || value <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add an approximate value for the parcel.')),
+        const SnackBar(
+          content: Text('Add an approximate value for the parcel.'),
+        ),
       );
       return;
     }
@@ -159,7 +161,7 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 440, maxHeight: 620),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(26),
           boxShadow: AppColors.cardShadow,
         ),
@@ -185,16 +187,19 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Describe your parcel', style: TextStyles.title),
+                        const Text(
+                          'Describe your parcel',
+                          style: TextStyles.title,
+                        ),
                         Text(
                           'Photos · weight · value',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -319,9 +324,9 @@ class _ParcelDialogState extends ConsumerState<_ParcelDialog> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'Declared: TZS ${_tzs.format(int.tryParse(_value.text.trim().replaceAll(RegExp(r'[^0-9]'), '')) ?? ride.parcelValueTzs ?? 0)} · helps with handling & claims',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -375,9 +380,9 @@ class _AddPhotoTile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 150,
     decoration: BoxDecoration(
-      color: AppColors.background,
+      color: Theme.of(context).scaffoldBackgroundColor,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.divider),
+      border: Border.all(color: context.colors.outlineVariant),
     ),
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     child: loading
@@ -393,15 +398,15 @@ class _AddPhotoTile extends StatelessWidget {
                 child: InkWell(
                   onTap: onGallery,
                   borderRadius: BorderRadius.circular(10),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.photo_library_outlined,
-                        color: AppColors.primaryDark,
+                        color: context.colors.primary,
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'Gallery',
                         style: TextStyle(
                           fontSize: 10,
@@ -417,15 +422,15 @@ class _AddPhotoTile extends StatelessWidget {
                 child: InkWell(
                   onTap: onCamera,
                   borderRadius: BorderRadius.circular(10),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.photo_camera_outlined,
-                        color: AppColors.primaryDark,
+                        color: context.colors.primary,
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'Camera',
                         style: TextStyle(
                           fontSize: 10,
@@ -460,9 +465,9 @@ class _PhotoThumb extends StatelessWidget {
                   width: 84,
                   height: 84,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _fallback(),
+                  errorBuilder: (_, _, _) => _fallback(context),
                 )
-              : _fallback(),
+              : _fallback(context),
         ),
         Positioned(
           top: 4,
@@ -471,14 +476,14 @@ class _PhotoThumb extends StatelessWidget {
             onTap: onRemove,
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: AppColors.textPrimary,
+              decoration: BoxDecoration(
+                color: context.colors.onSurface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.close_rounded,
                 size: 14,
-                color: Colors.white,
+                color: context.colors.surface,
               ),
             ),
           ),
@@ -487,10 +492,10 @@ class _PhotoThumb extends StatelessWidget {
     );
   }
 
-  Widget _fallback() => Container(
+  Widget _fallback(BuildContext context) => Container(
     width: 84,
     height: 84,
-    color: AppColors.background,
-    child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
+    color: Theme.of(context).scaffoldBackgroundColor,
+    child: Icon(Icons.image_outlined, color: context.colors.onSurfaceVariant),
   );
 }

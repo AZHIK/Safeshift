@@ -42,7 +42,7 @@ class PhoneInputField extends StatelessWidget {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-      borderSide: const BorderSide(color: AppColors.divider),
+      borderSide: BorderSide(color: context.colors.outlineVariant),
     );
     return SizedBox(
       height: AppSizes.inputHeight,
@@ -51,18 +51,20 @@ class PhoneInputField extends StatelessWidget {
         autofocus: autofocus,
         keyboardType: TextInputType.phone,
         inputFormatters: <TextInputFormatter>[_PhoneGroupsFormatter()],
-        style: TextStyles.title.copyWith(color: AppColors.textPrimary),
+        style: TextStyles.title.copyWith(color: context.colors.onSurface),
         decoration: InputDecoration(
           hintText: '712 345 678',
-          hintStyle: TextStyles.title.copyWith(color: AppColors.textDisabled),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: AppSizes.md),
+          hintStyle: TextStyles.title.copyWith(
+            color: context.colors.onSurfaceVariant,
+          ),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: AppSizes.md),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 '+255',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                   fontFamily: TextStyles.fontFamily,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -75,14 +77,16 @@ class PhoneInputField extends StatelessWidget {
             maxWidth: 64,
           ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: context.colors.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 0,
             vertical: AppSizes.sm,
           ),
           border: border,
           enabledBorder: border,
-          focusedBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide: BorderSide(color: context.colors.primary, width: 1.6),
+          ),
         ),
         onChanged: (value) {
           onChanged?.call(value.replaceAll(RegExp(r'\D'), ''));
@@ -100,6 +104,13 @@ class _PhoneGroupsFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    // People type the national form (0712...) or paste +255 712...; the
+    // field holds only the 9 digits after +255.
+    if (digits.length > 9 && digits.startsWith('255')) {
+      digits = digits.substring(3);
+    } else if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
     if (digits.length > 9) {
       digits = digits.substring(0, 9);
     }

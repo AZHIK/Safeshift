@@ -7,10 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:safeshift_shared/safeshift_shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/network/supabase_client.dart';
-import '../../../core/theme/text_styles.dart';
 import '../../../core/utils/reference_number.dart';
 import '../../../core/widgets/feedback/app_empty_state.dart';
 import '../../../core/widgets/feedback/app_error_view.dart';
@@ -59,22 +57,28 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, this.color = AppColors.primary});
+  const _Pill({required this.label, this.color});
   final String label;
-  final Color color;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+  Widget build(BuildContext context) {
+    final tint = color ?? context.colors.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyles.caption.copyWith(
+          color: tint,
+          fontWeight: FontWeight.w700,
         ),
-        child: Text(
-          label,
-          style: TextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w700),
-        ),
-      );
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +118,7 @@ class BusinessHubScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Register your company to book recurring jobs, add team members, and receive invoices.',
-                      style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+                      style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant),
                     ),
                     const SizedBox(height: AppSizes.md),
                     FilledButton.icon(
@@ -152,14 +156,14 @@ class BusinessHubScreen extends ConsumerWidget {
                               ),
                               _Pill(
                                 label: verified ? 'Verified' : 'Pending review',
-                                color: verified ? AppColors.success : AppColors.warning,
+                                color: verified ? context.colors.secondary : context.colors.tertiary,
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${account['legal_name']} · ${account['registration_number'] ?? 'No registration number'}',
-                            style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+                            style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant),
                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
@@ -239,7 +243,7 @@ class _BusinessRegisterScreenState extends ConsumerState<BusinessRegisterScreen>
             'tax_id': _tax.text.trim().isEmpty ? null : _tax.text.trim(),
             'industry': _industry.text.trim().isEmpty ? null : _industry.text.trim(),
             'contact_email': _email.text.trim().isEmpty ? null : _email.text.trim(),
-            'contact_phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+            'contact_phone': normalizePhone(_phone.text, kind: PhoneKind.any),
           })
           .select('id')
           .single();
@@ -297,7 +301,14 @@ class _BusinessRegisterScreenState extends ConsumerState<BusinessRegisterScreen>
             TextFormField(
               controller: _phone,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Contact phone'),
+              decoration: const InputDecoration(
+                labelText: 'Contact phone',
+                hintText: '0712 345 678 or +254…',
+              ),
+              // Optional, but when given it must fit the country's plan.
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? null
+                  : checkPhone(value, kind: PhoneKind.any).error,
             ),
             const SizedBox(height: AppSizes.lg),
             FilledButton.icon(
@@ -311,7 +322,7 @@ class _BusinessRegisterScreenState extends ConsumerState<BusinessRegisterScreen>
             Text(
               'An admin reviews the registration number and TIN. Recurring jobs unlock after approval.',
               textAlign: TextAlign.center,
-              style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+              style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant),
             ),
           ],
         ),
@@ -367,14 +378,14 @@ class RecurringTemplatesScreen extends ConsumerWidget {
                         Expanded(child: Text(row['name'].toString(), style: TextStyles.title.copyWith(fontSize: 15))),
                         _Pill(
                           label: row['is_active'] == true ? 'Active' : 'Paused',
-                          color: row['is_active'] == true ? AppColors.success : AppColors.textSecondary,
+                          color: row['is_active'] == true ? context.colors.secondary : context.colors.onSurfaceVariant,
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${row['recurrence_rule']} · ${row['time_of_day']} ${row['timezone']}',
-                      style: TextStyles.caption.copyWith(color: AppColors.textSecondary),
+                      style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant),
                     ),
                     const SizedBox(height: AppSizes.sm),
                     Text('${jobs.length} generated occurrence(s)', style: TextStyles.body),
@@ -590,7 +601,7 @@ class _NotificationPreferencesScreenState extends ConsumerState<NotificationPref
           : ListView(
               padding: const EdgeInsets.all(AppSizes.lg),
               children: [
-                Text('Choose how SafeShift contacts you. Safety alerts should normally stay enabled.', style: TextStyles.body.copyWith(color: AppColors.textSecondary)),
+                Text('Choose how SafeShift contacts you. Safety alerts should normally stay enabled.', style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant)),
                 const SizedBox(height: AppSizes.md),
                 for (final category in _categories) ...[
                   _SectionCard(
@@ -692,8 +703,16 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
   Future<void> _changeContact({required bool email}) async {
     final controller = email ? _email : _phone;
-    final value = controller.text.trim();
+    var value = controller.text.trim();
     if (value.isEmpty) return;
+    if (!email) {
+      final check = checkPhone(value);
+      if (!check.isValid) {
+        AppSnackbar.showError(context, check.error ?? 'Enter a valid mobile number');
+        return;
+      }
+      value = check.e164!;
+    }
     try {
       await ref.read(supabaseProvider).auth.updateUser(
             email ? UserAttributes(email: value) : UserAttributes(phone: value),
@@ -743,11 +762,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       const SizedBox(height: AppSizes.sm),
                       OutlinedButton(onPressed: () => _changeContact(email: true), child: const Text('Update email')),
                       const SizedBox(height: AppSizes.md),
-                      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone')),
+                      PhoneNumberField(controller: _phone, label: 'Phone'),
                       const SizedBox(height: AppSizes.sm),
                       OutlinedButton(onPressed: () => _changeContact(email: false), child: const Text('Update phone')),
                       const SizedBox(height: AppSizes.sm),
-                      Text('Changing a phone or email triggers re-verification before it becomes active.', style: TextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                      Text('Changing a phone or email triggers re-verification before it becomes active.', style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -845,7 +864,7 @@ class PrivacyDataScreen extends ConsumerWidget {
                   children: [
                     const Text('Your data rights', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
-                    Text('Request a portable copy of your data or ask us to delete your account. Identity is verified before processing.', style: TextStyles.body.copyWith(color: AppColors.textSecondary)),
+                    Text('Request a portable copy of your data or ask us to delete your account. Identity is verified before processing.', style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant)),
                     const SizedBox(height: AppSizes.md),
                     FilledButton.icon(onPressed: () => _request(context, ref, 'export'), icon: const Icon(Icons.download_rounded), label: const Text('Request data export')),
                     const SizedBox(height: AppSizes.sm),
@@ -1093,12 +1112,12 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [Expanded(child: Text(_statusLabel(dispute['dispute_type']), style: TextStyles.title.copyWith(fontSize: 16))), _Pill(label: _statusLabel(dispute['status']), color: AppColors.warning)]),
+                          Row(children: [Expanded(child: Text(_statusLabel(dispute['dispute_type']), style: TextStyles.title.copyWith(fontSize: 16))), _Pill(label: _statusLabel(dispute['status']), color: context.colors.tertiary)]),
                           const SizedBox(height: AppSizes.sm),
                           Text(dispute['summary'].toString(), style: TextStyles.body),
                           if (dispute['requested_resolution'] != null) ...[
                             const SizedBox(height: AppSizes.sm),
-                            Text('Requested: ${dispute['requested_resolution']}', style: TextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                            Text('Requested: ${dispute['requested_resolution']}', style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant)),
                           ],
                         ],
                       ),
@@ -1118,7 +1137,7 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                     const Text('Conversation', style: TextStyles.title),
                     const SizedBox(height: AppSizes.sm),
                     if (messages.isEmpty)
-                      Text('No messages yet.', style: TextStyles.body.copyWith(color: AppColors.textSecondary))
+                      Text('No messages yet.', style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant))
                     else
                       ...messages.map((message) => Align(
                             alignment: message['sender_profile_id'] == _userId(ref) ? Alignment.centerRight : Alignment.centerLeft,
@@ -1127,9 +1146,9 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
                               padding: const EdgeInsets.all(AppSizes.sm),
                               constraints: const BoxConstraints(maxWidth: 300),
                               decoration: BoxDecoration(
-                                color: message['sender_profile_id'] == _userId(ref) ? AppColors.primaryLight : AppColors.surface,
+                                color: message['sender_profile_id'] == _userId(ref) ? context.colors.primaryContainer : context.colors.surface,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.divider),
+                                border: Border.all(color: context.colors.outlineVariant),
                               ),
                               child: Text(message['message'].toString(), style: TextStyles.body),
                             ),
@@ -1343,9 +1362,9 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
                         children: [
                           Text(ticket['subject'].toString(), style: TextStyles.title.copyWith(fontSize: 16)),
                           const SizedBox(height: 4),
-                          Text('${ticket['ticket_number']} · ${(ticket['support_categories'] as Map?)?['name'] ?? 'Support'}', style: TextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                          Text('${ticket['ticket_number']} · ${(ticket['support_categories'] as Map?)?['name'] ?? 'Support'}', style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant)),
                           const SizedBox(height: AppSizes.sm),
-                          _Pill(label: _statusLabel(ticket['status']), color: AppColors.warning),
+                          _Pill(label: _statusLabel(ticket['status']), color: context.colors.tertiary),
                         ],
                       ),
                     ),
@@ -1357,9 +1376,9 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
                             padding: const EdgeInsets.all(AppSizes.sm),
                             constraints: const BoxConstraints(maxWidth: 300),
                             decoration: BoxDecoration(
-                              color: message['sender_profile_id'] == _userId(ref) ? AppColors.primaryLight : AppColors.surface,
+                              color: message['sender_profile_id'] == _userId(ref) ? context.colors.primaryContainer : context.colors.surface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.divider),
+                              border: Border.all(color: context.colors.outlineVariant),
                             ),
                             child: Text(message['message'].toString(), style: TextStyles.body),
                           ),
@@ -1400,22 +1419,40 @@ class EmergencyContactsScreen extends ConsumerWidget {
     final relation = TextEditingController();
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add emergency contact'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-            const SizedBox(height: AppSizes.sm),
-            TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone')),
-            const SizedBox(height: AppSizes.sm),
-            TextField(controller: relation, decoration: const InputDecoration(labelText: 'Relationship')),
+      // SOS alerts go out by SMS, so the contact must be a valid mobile.
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: const Text('Add emergency contact'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                  onChanged: (_) => setLocal(() {}),
+                ),
+                const SizedBox(height: AppSizes.sm),
+                PhoneNumberField(
+                  controller: phone,
+                  label: 'Mobile number',
+                  onChanged: (_) => setLocal(() {}),
+                ),
+                const SizedBox(height: AppSizes.sm),
+                TextField(controller: relation, decoration: const InputDecoration(labelText: 'Relationship')),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: name.text.trim().isNotEmpty && checkPhone(phone.text).isValid
+                  ? () => Navigator.pop(context, true)
+                  : null,
+              child: const Text('Save'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-        ],
       ),
     );
     if (saved != true) return;
@@ -1423,7 +1460,7 @@ class EmergencyContactsScreen extends ConsumerWidget {
       await ref.read(supabaseProvider).from('emergency_contacts').insert({
         'profile_id': _userId(ref),
         'name': name.text.trim(),
-        'phone': phone.text.trim(),
+        'phone': normalizePhone(phone.text),
         'relationship': relation.text.trim().isEmpty ? null : relation.text.trim(),
         'notify_on_trip_start': true,
         'notify_on_sos': true,
@@ -1516,7 +1553,7 @@ Future<void> raiseSos(BuildContext context, WidgetRef ref, String jobId) async {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          style: FilledButton.styleFrom(backgroundColor: context.colors.error, foregroundColor: context.colors.onError),
           onPressed: () => Navigator.pop(context, true),
           child: const Text('Raise SOS'),
         ),
@@ -1585,7 +1622,7 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) => IconButton(
                   onPressed: () => setDialogState(() => score = index + 1),
-                  icon: Icon(index < score ? Icons.star_rounded : Icons.star_outline_rounded, color: const Color(0xFFFFB300)),
+                  icon: Icon(index < score ? Icons.star_rounded : Icons.star_outline_rounded, color: context.colors.tertiary),
                 )),
               ),
               TextField(controller: comment, maxLines: 3, decoration: const InputDecoration(labelText: 'Comment')),
@@ -1643,7 +1680,7 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
               final mine = row['rater_profile_id'] == _userId(ref);
               return Card(
                 child: ListTile(
-                  leading: Text(row['score'].toString(), style: TextStyles.headline.copyWith(color: const Color(0xFFFFB300))),
+                  leading: Text(row['score'].toString(), style: TextStyles.headline.copyWith(color: context.colors.tertiary)),
                   title: Text('${category?['name'] ?? 'Overall'} · ${mine ? 'You rated' : 'You received'}'),
                   subtitle: Text('${row['comment'] ?? 'No comment'}\n${_date(row['created_at'])}'),
                   isThreeLine: true,

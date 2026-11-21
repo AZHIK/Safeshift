@@ -21,7 +21,7 @@ abstract final class SafeShiftColors {
   static const Color transparent = Color(0x00000000);
 
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [primaryDark, primary],
+    colors: [Color(0xFF0956B7), Color(0xFF1468B8)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -32,12 +32,12 @@ abstract final class SafeShiftColors {
     end: Alignment.bottomRight,
   );
 
+  static const List<BoxShadow> glowShadow = [
+    BoxShadow(color: Color(0x662E9BFF), blurRadius: 24, offset: Offset(0, 8)),
+  ];
+
   static const List<BoxShadow> cardShadow = [
-    BoxShadow(
-      color: Color(0x144E5E73),
-      blurRadius: 16,
-      offset: Offset(0, 8),
-    ),
+    BoxShadow(color: Color(0x144E5E73), blurRadius: 16, offset: Offset(0, 8)),
   ];
 }
 
@@ -58,4 +58,9 @@ abstract final class SafeShiftRadii {
   static const double md = 12;
   static const double lg = 20;
   static const double pill = 999;
+}
+
+/// Color roles from the nearest Material theme, including during theme changes.
+extension SafeShiftThemeContext on BuildContext {
+  ColorScheme get colors => Theme.of(this).colorScheme;
 }

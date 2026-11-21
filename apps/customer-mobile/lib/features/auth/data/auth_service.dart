@@ -31,10 +31,7 @@ class AuthService {
     if (normalized.length != 13) {
       throw const ValidationFailure('Enter a valid 9-digit phone number');
     }
-    await _client.auth.signInWithOtp(
-      phone: normalized,
-      shouldCreateUser: true,
-    );
+    await _client.auth.signInWithOtp(phone: normalized, shouldCreateUser: true);
   }
 
   Future<void> sendEmailOtp(String email) async {
@@ -42,10 +39,7 @@ class AuthService {
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(normalized)) {
       throw const ValidationFailure('Enter a valid email address');
     }
-    await _client.auth.signInWithOtp(
-      email: normalized,
-      shouldCreateUser: true,
-    );
+    await _client.auth.signInWithOtp(email: normalized, shouldCreateUser: true);
   }
 
   Future<User> verifyOtp(String phone, String otp) async {
@@ -155,10 +149,9 @@ class AuthService {
     return User(
       id: row['id'] as String,
       phone: (row['phone'] as String?) ?? '',
-      fullName:
-          (row['full_name'] as String?)?.trim().isNotEmpty == true
-              ? row['full_name'] as String
-              : ((row['display_name'] as String?) ?? ''),
+      fullName: (row['full_name'] as String?)?.trim().isNotEmpty == true
+          ? row['full_name'] as String
+          : ((row['display_name'] as String?) ?? ''),
       role: role,
       email: (row['email'] as String?) ?? '',
     );
@@ -181,10 +174,7 @@ class AuthService {
     try {
       await _client.rpc(
         'ensure_my_profile',
-        params: <String, dynamic>{
-          'p_role': appRole,
-          'p_full_name': fullName,
-        },
+        params: <String, dynamic>{'p_role': appRole, 'p_full_name': fullName},
       );
     } on PostgrestException catch (error) {
       // The auth trigger normally creates the row. A missing RPC in an older

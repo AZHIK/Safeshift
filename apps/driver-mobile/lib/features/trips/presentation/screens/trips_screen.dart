@@ -138,14 +138,14 @@ class _TripTile extends StatelessWidget {
                   DateFormat('d MMM, h:mm a')
                       .format(trip.completedAt ?? DateTime.now()),
                   style: TextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   _tzs(trip.estimatedFareTzs),
                   style: TextStyles.title.copyWith(
-                    color: AppColors.primaryDark,
+                    color: context.colors.primary,
                   ),
                 ),
               ],

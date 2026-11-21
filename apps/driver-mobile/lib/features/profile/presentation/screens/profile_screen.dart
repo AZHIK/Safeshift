@@ -40,10 +40,10 @@ class ProfileScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
+              Icon(
                 Icons.cloud_off_rounded,
                 size: 56,
-                color: AppColors.textDisabled,
+                color: context.colors.onSurfaceVariant,
               ),
               const SizedBox(height: AppSizes.md),
               Text(
@@ -75,10 +75,10 @@ class ProfileScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
+              Icon(
                 Icons.person_outline_rounded,
                 size: 64,
-                color: AppColors.textDisabled,
+                color: context.colors.onSurfaceVariant,
               ),
               const SizedBox(height: AppSizes.md),
               const Text(
@@ -90,7 +90,9 @@ class ProfileScreen extends ConsumerWidget {
               Text(
                 'Complete your profile to start driving.',
                 textAlign: TextAlign.center,
-                style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+                style: TextStyles.body.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: AppSizes.md),
               FilledButton.icon(
@@ -113,11 +115,13 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: context.colors.primary.withValues(
+                    alpha: 0.12,
+                  ),
                   child: Text(
                     driver.initials,
                     style: TextStyles.headline.copyWith(
-                      color: AppColors.primaryDark,
+                      color: context.colors.primary,
                     ),
                   ),
                 ),
@@ -135,12 +139,12 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           if (driver.verified)
-                            const Tooltip(
+                            Tooltip(
                               message: 'Verified driver',
                               child: Icon(
                                 Icons.verified_rounded,
                                 size: 18,
-                                color: AppColors.primary,
+                                color: context.colors.primary,
                               ),
                             ),
                         ],
@@ -148,15 +152,15 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: Color(0xFFFFB300),
+                            color: context.colors.tertiary,
                           ),
                           Text(
                             ' ${driver.rating.toStringAsFixed(1)} · ${driver.completedTrips} trips',
                             style: TextStyles.caption.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -164,7 +168,7 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         driver.zone,
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -274,7 +278,7 @@ class ProfileScreen extends ConsumerWidget {
             label: const Text('Log Out'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
-              foregroundColor: AppColors.error,
+              foregroundColor: context.colors.error,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
               ),
@@ -297,7 +301,9 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
       child: Text(
         label,
-        style: TextStyles.title.copyWith(color: AppColors.textSecondary),
+        style: TextStyles.title.copyWith(
+          color: context.colors.onSurfaceVariant,
+        ),
       ),
     );
   }

@@ -6,8 +6,10 @@ enum SafeShiftJobStatus {
   accepted,
   headingToPickup,
   arrived,
+  cargoVerified,
   loading,
   inTransit,
+  arrivedDestination,
   delivered,
   completed,
   cancelled,
@@ -16,12 +18,16 @@ enum SafeShiftJobStatus {
   /// The database/API representation.
   String get wireValue => switch (this) {
         SafeShiftJobStatus.headingToPickup => 'heading_to_pickup',
+        SafeShiftJobStatus.cargoVerified => 'cargo_verified',
+        SafeShiftJobStatus.arrivedDestination => 'arrived_destination',
         SafeShiftJobStatus.inTransit => 'in_transit',
         _ => name,
       };
 
   static SafeShiftJobStatus fromWire(String value) => switch (value) {
         'heading_to_pickup' => SafeShiftJobStatus.headingToPickup,
+        'cargo_verified' => SafeShiftJobStatus.cargoVerified,
+        'arrived_destination' => SafeShiftJobStatus.arrivedDestination,
         'in_transit' => SafeShiftJobStatus.inTransit,
         _ => SafeShiftJobStatus.values.firstWhere(
             (status) => status.name == value,

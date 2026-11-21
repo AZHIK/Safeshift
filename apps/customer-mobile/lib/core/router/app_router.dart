@@ -16,6 +16,7 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/phase9/presentation/phase9_screens.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/tracking/presentation/screens/tracking_screen.dart';
+import '../constants/app_colors.dart';
 import 'route_guards.dart';
 
 /// Provides the app router. Redirects run after session recovery so a valid
@@ -170,16 +171,15 @@ class MainScaffold extends StatelessWidget {
     final currentIndex = _indexFor(location);
     return Scaffold(
       body: child,
-      // extendBody:true keeps the map + glass nav effect. The sheet
-      // compensates with extra bottom padding (see RideSheetBody)
-      // so the confirm CTA scrolls above the nav instead of under it.
+      // The map extends to the bottom edge. RideSheetBody reserves space
+      // so the confirm action can scroll above the navigation bar.
       extendBody: true,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          border: const Border(
+          color: context.colors.surface,
+          border: Border(
             top: BorderSide(
-              color: Color(0xFFE1EBF2),
+              color: context.colors.outlineVariant,
               width: 0.8,
             ),
           ),

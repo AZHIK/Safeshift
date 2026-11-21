@@ -155,8 +155,8 @@ class ProfileScreen extends ConsumerWidget {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Log Out'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
+                backgroundColor: context.colors.error,
+                foregroundColor: context.colors.onError,
                 minimumSize: const Size.fromHeight(AppSizes.buttonHeight),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -200,7 +200,7 @@ class _ProfileSection extends StatelessWidget {
           children: <Widget>[
             for (var i = 0; i < items.length; i++) ...<Widget>[
               ListTile(
-                leading: Icon(items[i].icon, color: AppColors.primaryDark),
+                leading: Icon(items[i].icon, color: context.colors.primary),
                 title: Text(
                   items[i].title,
                   style: const TextStyle(
@@ -209,14 +209,14 @@ class _ProfileSection extends StatelessWidget {
                   ),
                 ),
                 trailing: items[i].trailing == null
-                    ? const Icon(
+                    ? Icon(
                         Icons.chevron_right_rounded,
-                        color: AppColors.textSecondary,
+                        color: context.colors.onSurfaceVariant,
                       )
                     : Text(
                         items[i].trailing!,
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                 onTap: items[i].onTap,
@@ -228,7 +228,7 @@ class _ProfileSection extends StatelessWidget {
                   thickness: 1,
                   indent: 12,
                   endIndent: 12,
-                  color: AppColors.divider.withValues(alpha: 0.7),
+                  color: context.colors.outlineVariant.withValues(alpha: 0.7),
                 ),
             ],
           ],

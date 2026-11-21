@@ -14,27 +14,25 @@ const cargoPhotoBucket = 'job-evidence';
 ///
 /// The family key is the paths joined by newlines. A `FutureProvider.family`
 /// caches per key, so reopening the cargo sheet does not re-sign the URLs.
-final cargoPhotoUrlsProvider = FutureProvider.family<List<String>, String>((
-  ref,
-  key,
-) async {
-  if (key.isEmpty) return const <String>[];
-  final client = ref.read(supabaseProvider);
-  final urls = <String>[];
-  for (final path in key.split('\n')) {
-    if (path.isEmpty) continue;
-    try {
-      urls.add(
-        await client.storage
-            .from(cargoPhotoBucket)
-            .createSignedUrl(path, 3600),
-      );
-    } catch (_) {
-      // One unreadable photo must not hide the rest of the cargo details.
-    }
-  }
-  return List<String>.unmodifiable(urls);
-});
+final cargoPhotoUrlsProvider = FutureProvider.autoDispose
+    .family<List<String>, String>((ref, key) async {
+      if (key.isEmpty) return const <String>[];
+      final client = ref.read(supabaseProvider);
+      final urls = <String>[];
+      for (final path in key.split('\n')) {
+        if (path.isEmpty) continue;
+        try {
+          urls.add(
+            await client.storage
+                .from(cargoPhotoBucket)
+                .createSignedUrl(path, 3600),
+          );
+        } catch (_) {
+          // One unreadable photo must not hide the rest of the cargo details.
+        }
+      }
+      return List<String>.unmodifiable(urls);
+    });
 
 /// Stable provider key for a job's cargo photo paths.
 String cargoPhotoKey(List<String> paths) => paths.join('\n');

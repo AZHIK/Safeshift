@@ -9,6 +9,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/text_styles.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../providers/auth_provider.dart';
+import '../../../../core/utils/validators.dart';
 import '../widgets/phone_input_field.dart';
 
 // Authentication mode selection
@@ -19,10 +20,7 @@ enum LoginMode { phone, email }
 /// Phone is the default method. User can switch between modes using the
 /// mode toggle buttons at the top.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.loginMode = LoginMode.phone,
-  });
+  const LoginScreen({super.key, this.loginMode = LoginMode.phone});
 
   final LoginMode loginMode;
 
@@ -52,7 +50,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  bool get _isValid => _digits.length == 9;
+  /// Nine digits after +255 that match Tanzania's mobile numbering plan
+  /// (Vodacom, Airtel, Tigo/Yas, Halotel, TTCL, Zantel prefixes).
+  bool get _isValid =>
+      _digits.length == 9 && Validators.isValidPhone('+255$_digits');
 
   Future<void> _send() async {
     if (ref.read(authProvider).isLoading) {
@@ -79,14 +80,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.surface,
       body: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFEAF3FD), Colors.white],
+                  colors: [
+                    context.colors.primaryContainer,
+                    context.colors.surface,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.5],
@@ -130,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Radius.circular(24),
                                 ),
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: context.colors.outlineVariant,
                                   width: 2,
                                 ),
                                 boxShadow: AppColors.cardShadow,
@@ -153,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             "Moving people's property safely",
                             textAlign: TextAlign.center,
                             style: TextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
@@ -168,9 +172,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.divider),
+                              border: Border.all(
+                                color: context.colors.outlineVariant,
+                              ),
                               boxShadow: AppColors.cardShadow,
                             ),
                             child: Column(
@@ -191,19 +197,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             : Icons.info_outline_rounded,
                                         size: 15,
                                         color: _isValid
-                                            ? AppColors.success
-                                            : AppColors.textSecondary,
+                                            ? context.colors.secondary
+                                            : context.colors.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
                                           _isValid
                                               ? 'Valid Tanzanian number — ready to send'
-                                              : '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed',
+                                              : _digits.length < 9
+                                              ? '${9 - _digits.length} more digit${9 - _digits.length == 1 ? '' : 's'} needed'
+                                              : 'This is not a Tanzanian mobile number',
                                           style: TextStyles.caption.copyWith(
                                             color: _isValid
-                                                ? AppColors.success
-                                                : AppColors.textSecondary,
+                                                ? context.colors.secondary
+                                                : context
+                                                      .colors
+                                                      .onSurfaceVariant,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -228,7 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Text(
                                     'We\'ll send a 6-digit code to your email',
                                     style: TextStyles.caption.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: context.colors.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -237,69 +247,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 10),
                           ElevatedButton(
-                            onPressed:
-                                _isValid && !authState.isLoading ? _send : null,
+                            onPressed: _isValid && !authState.isLoading
+                                ? _send
+                                : null,
                             style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity,
-                                  AppSizes.buttonHeight),
-                              backgroundColor: AppColors.primary,
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSizes.buttonHeight,
+                              ),
+                              backgroundColor: context.colors.primary,
+                              foregroundColor: context.colors.onPrimary,
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                             ),
                             child: _currentMode == LoginMode.email
                                 ? const Text(
                                     'Send OTP to Email',
                                     style: TextStyle(
-                                      color: Colors.white,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   )
                                 : const Text(
-                                        'Send OTP',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                    'Send OTP',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                           ElevatedButton.icon(
                             onPressed: authState.isLoading
                                 ? null
                                 : () async {
-                                      final notifier = ref.read(authProvider.notifier);
-                                      await notifier.signInWithGoogle();
-                                      if (!context.mounted) return;
-                                      AppSnackbar.showInfo(
-                                        context,
-                                        'Opening Google sign‑in…',
-                                      );
-                                    },
-                             icon: const Icon(Icons.gesture, size: 20),
-                             label: const Text(
-                               'Continue with Google',
-                               style: TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.w600,
-                               ),
-                             ),
-                             style: ElevatedButton.styleFrom(
-                               minimumSize: const Size(double.infinity,
-                                   AppSizes.buttonHeight),
-                               backgroundColor: AppColors.primary,
-                               shape: RoundedRectangleBorder(
-                                 borderRadius:
-                                     BorderRadius.circular(20),
-                               ),
-                             ),
-                           ),
+                                    final notifier = ref.read(
+                                      authProvider.notifier,
+                                    );
+                                    await notifier.signInWithGoogle();
+                                    if (!context.mounted) return;
+                                    AppSnackbar.showInfo(
+                                      context,
+                                      'Opening Google sign‑in…',
+                                    );
+                                  },
+                            icon: const Icon(Icons.gesture, size: 20),
+                            label: const Text(
+                              'Continue with Google',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSizes.buttonHeight,
+                              ),
+                              backgroundColor: context.colors.primary,
+                              foregroundColor: context.colors.onPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
                             'Standard SMS rates may apply',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
-                              color: AppColors.textDisabled,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: AppSizes.md),
@@ -320,10 +332,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 class _ModeToggle extends StatelessWidget {
-  const _ModeToggle({
-    required this.currentMode,
-    required this.onModeChanged,
-  });
+  const _ModeToggle({required this.currentMode, required this.onModeChanged});
 
   final LoginMode currentMode;
   final void Function(LoginMode) onModeChanged;
@@ -336,9 +345,9 @@ class _ModeToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: context.colors.outlineVariant),
         boxShadow: AppColors.cardShadow,
       ),
       child: Row(
@@ -349,7 +358,11 @@ class _ModeToggle extends StatelessWidget {
             isActive: isPhone,
             onTap: () => onModeChanged(LoginMode.phone),
           ),
-          _ModeButton(label: 'Email', isActive: isEmail, onTap: () => onModeChanged(LoginMode.email)),
+          _ModeButton(
+            label: 'Email',
+            isActive: isEmail,
+            onTap: () => onModeChanged(LoginMode.email),
+          ),
         ],
       ),
     );
@@ -370,7 +383,9 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyles.caption.copyWith(
-      color: isActive ? AppColors.primary : AppColors.textSecondary,
+      color: isActive
+          ? context.colors.primary
+          : context.colors.onSurfaceVariant,
       fontWeight: FontWeight.w600,
     );
 
@@ -389,8 +404,12 @@ class _TermsText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyles.caption.copyWith(color: AppColors.textSecondary);
-    final linkStyle = TextStyles.caption.copyWith(color: AppColors.primary);
+    final style = TextStyles.caption.copyWith(
+      color: context.colors.onSurfaceVariant,
+    );
+    final linkStyle = TextStyles.caption.copyWith(
+      color: context.colors.primary,
+    );
     void showTermsNotice() {
       AppSnackbar.showInfo(
         context,
@@ -415,5 +434,4 @@ class _TermsText extends StatelessWidget {
       ],
     );
   }
-
 }

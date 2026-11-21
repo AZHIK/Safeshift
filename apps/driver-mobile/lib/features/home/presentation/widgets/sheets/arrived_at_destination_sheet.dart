@@ -7,7 +7,9 @@ import '../../../../../core/constants/app_sizes.dart';
 import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
+import '../../../domain/entities/driver_status.dart';
 import '../../../providers/home_provider.dart';
+import '../../../providers/job_recipient_provider.dart';
 import 'sheet_handle.dart';
 
 /// Arrived-at-destination confirmation sheet.
@@ -39,6 +41,9 @@ class _ArrivedAtDestinationSheetState
     final job = home.activeJob;
     if (job == null) return const SizedBox.shrink();
     final mock = ref.watch(mockEnabledProvider);
+    final recipient = mock
+        ? null
+        : ref.watch(jobRecipientProvider(job.id)).value;
 
     return ListView(
       shrinkWrap: true,
@@ -52,7 +57,9 @@ class _ArrivedAtDestinationSheetState
       children: [
         const SheetHandle(),
         Text(
-          'Arrived at destination',
+          home.driverStatus == DriverStatus.delivered
+              ? 'Delivery confirmed'
+              : 'Arrived at destination',
           style: TextStyles.headline.copyWith(fontSize: 18),
         ),
         const SizedBox(height: AppSizes.sm),
@@ -63,8 +70,15 @@ class _ArrivedAtDestinationSheetState
               Text(job.destination, style: TextStyles.title),
               const SizedBox(height: AppSizes.xs),
               Text(
-                mock
+                home.driverStatus == DriverStatus.delivered
+                    ? 'The customer has confirmed delivery. Complete the trip '
+                          'to finish the job.'
+                    : mock
                     ? 'Confirm handover with the customer, then complete the trip.'
+                    : recipient != null
+                    ? 'Hand the goods to ${recipient.name} '
+                          '(${recipient.phone}) and ask them for the 6-digit '
+                          'delivery code we sent them by SMS.'
                     : 'Ask the customer for the 6-digit delivery code shown in their app.',
                 style: TextStyles.body,
               ),
@@ -72,7 +86,7 @@ class _ArrivedAtDestinationSheetState
           ),
         ),
         const SizedBox(height: AppSizes.md),
-        if (!mock) ...[
+        if (!mock && home.driverStatus != DriverStatus.delivered) ...[
           TextField(
             controller: _code,
             keyboardType: TextInputType.number,
@@ -92,23 +106,31 @@ class _ArrivedAtDestinationSheetState
             const SizedBox(height: AppSizes.xs),
             Text(
               home.errorMessage!,
-              style: TextStyles.caption.copyWith(color: AppColors.error),
+              style: TextStyles.caption.copyWith(color: context.colors.error),
             ),
           ],
           const SizedBox(height: AppSizes.sm),
         ],
-        PrimaryButton(
-          label: mock ? 'Complete trip' : 'Verify code & complete',
-          icon: Icons.check_circle_rounded,
-          isLoading: home.isSubmitting,
-          onPressed: () {
-            if (mock) {
-              ref.read(homeProvider.notifier).advanceStage();
-            } else {
-              ref.read(homeProvider.notifier).verifyDeliveryOtp(_code.text);
-            }
-          },
-        ),
+        if (home.driverStatus == DriverStatus.delivered)
+          PrimaryButton(
+            label: 'Complete trip',
+            icon: Icons.check_circle_rounded,
+            isLoading: home.isSubmitting,
+            onPressed: () => ref.read(homeProvider.notifier).completeTrip(),
+          )
+        else
+          PrimaryButton(
+            label: mock ? 'Confirm delivery' : 'Verify code',
+            icon: Icons.check_circle_rounded,
+            isLoading: home.isSubmitting,
+            onPressed: () {
+              if (mock) {
+                ref.read(homeProvider.notifier).advanceStage();
+              } else {
+                ref.read(homeProvider.notifier).verifyDeliveryOtp(_code.text);
+              }
+            },
+          ),
       ],
     );
   }

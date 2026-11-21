@@ -237,26 +237,42 @@ class DriverRepository {
     return readyVehicleIds.first;
   }
 
+  /// Stores a position: one row in `driver_locations`.
+  ///
+  /// The `trg_driver_locations_sync_current` trigger copies it onto
+  /// `drivers.current_location`, so dispatch and the customer's fallback
+  /// poll see it without a second write. Called every ~30 s; the live
+  /// trail goes over Realtime Broadcast instead.
   Future<void> updateLocation({
     required double latitude,
     required double longitude,
     String? jobId,
+    double? heading,
+    double? speedKmh,
+    double? accuracyM,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
-    final point = 'SRID=4326;POINT($longitude $latitude)';
-    await _client
-        .from('drivers')
-        .update(<String, dynamic>{
-          'current_location': point,
-          'location_updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', userId);
-    await _client.from('driver_locations').insert(<String, dynamic>{
+    final row = <String, dynamic>{
       'driver_id': userId,
-      'job_id': jobId,
-      'location': point,
-    });
+      'location': 'SRID=4326;POINT($longitude $latitude)',
+      if (heading != null) 'heading_degrees': heading.round() % 360,
+      if (speedKmh != null && speedKmh >= 0)
+        'speed_kmh': double.parse(speedKmh.toStringAsFixed(2)),
+      if (accuracyM != null && accuracyM >= 0)
+        'accuracy_m': double.parse(accuracyM.toStringAsFixed(2)),
+    };
+    try {
+      await _client.from('driver_locations').insert(<String, dynamic>{
+        ...row,
+        'job_id': jobId,
+      });
+    } on PostgrestException {
+      if (jobId == null) rethrow;
+      // The job ended or moved to another driver moments ago; RLS refuses
+      // the job tag. Keep the driver dispatchable with an untagged fix.
+      await _client.from('driver_locations').insert(row);
+    }
   }
 
   Future<DriverJob?> nextOffer() async {
@@ -275,6 +291,52 @@ class DriverRepository {
     return _client.rpc<void>(
       'accept_job_offer',
       params: <String, dynamic>{'p_offer_id': offerId},
+    );
+  }
+
+  /// Hands the active job back before the cargo is verified. The server
+  /// re-dispatches it to another driver.
+  Future<void> releaseJob(String jobId, String reason) {
+    return _client.rpc<void>(
+      'job_driver_release',
+      params: <String, dynamic>{'p_job_id': jobId, 'p_reason': reason},
+    );
+  }
+
+  Future<void> reportCustomerNoShow(String jobId) {
+    return _client.rpc<void>(
+      'job_report_customer_no_show',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+  }
+
+  Future<void> reportCargoMismatch(String jobId, String reason) {
+    return _client.rpc<void>(
+      'job_report_cargo_mismatch',
+      params: <String, dynamic>{'p_job_id': jobId, 'p_reason': reason},
+    );
+  }
+
+  /// End of the free waiting window at pickup, or null when not waiting.
+  Future<DateTime?> pickupFreeWaitEndsAt(String jobId) async {
+    final row = await _client.rpc<Map<String, dynamic>>(
+      'job_pickup_wait',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    if (row['waiting'] != true) return null;
+    return DateTime.tryParse('${row['free_wait_ends_at'] ?? ''}');
+  }
+
+  /// Why a job is no longer on this driver's screen: `cancelled`,
+  /// `released`, `unassigned` or `assigned`, with a reason when known.
+  Future<({String outcome, String? reason})> jobOutcome(String jobId) async {
+    final row = await _client.rpc<Map<String, dynamic>>(
+      'driver_job_outcome',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    return (
+      outcome: (row['outcome'] as String?) ?? 'unassigned',
+      reason: row['reason'] as String?,
     );
   }
 
@@ -562,6 +624,10 @@ class DriverRepository {
           ? photos.whereType<String>().toList(growable: false)
           : const <String>[],
       offerTtlSeconds: (row['offer_ttl_seconds'] as num?)?.toInt(),
+      pickupLat: optionalNum(row['pickup_lat']),
+      pickupLng: optionalNum(row['pickup_lng']),
+      destinationLat: optionalNum(row['destination_lat']),
+      destinationLng: optionalNum(row['destination_lng']),
     );
   }
 

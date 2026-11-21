@@ -26,7 +26,7 @@ class HomeScreen extends StatelessWidget {
                               'MONDAY, 12 OCTOBER',
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.onSurfaceVariant,
                                     letterSpacing: 1.1,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -44,13 +44,15 @@ class HomeScreen extends StatelessWidget {
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.divider),
+                          border: Border.all(
+                            color: context.colors.outlineVariant,
+                          ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.notifications_none_rounded,
-                          color: AppColors.textPrimary,
+                          color: context.colors.onSurface,
                         ),
                       ),
                     ],
@@ -88,7 +90,7 @@ class HomeScreen extends StatelessWidget {
                           icon: Icons.local_shipping_outlined,
                           title: 'Book a move',
                           subtitle: 'Plan a pickup',
-                          tint: const Color(0xFFE6F4FF),
+                          tint: context.colors.primaryContainer,
                           onTap: () => context.go('/home'),
                         ),
                       ),
@@ -98,7 +100,7 @@ class HomeScreen extends StatelessWidget {
                           icon: Icons.location_on_outlined,
                           title: 'Track move',
                           subtitle: 'Live updates',
-                          tint: const Color(0xFFE8F7F3),
+                          tint: context.colors.secondaryContainer,
                           onTap: () => context.push('/tracking'),
                         ),
                       ),
@@ -122,9 +124,9 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFFE8F4FD),
+      color: context.colors.primaryContainer,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.primaryLight),
+      border: Border.all(color: context.colors.primaryContainer),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,13 +141,13 @@ class _HeroCard extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.colors.surface,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Text(
+                child: Text(
                   'MOVING MADE SIMPLE',
                   style: TextStyle(
-                    color: AppColors.primaryDark,
+                    color: context.colors.primary,
                     fontSize: 9,
                     letterSpacing: .7,
                     fontWeight: FontWeight.w600,
@@ -153,19 +155,22 @@ class _HeroCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 13),
-              const Text(
+              Text(
                 'Your next move,\nmade easy.',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: context.colors.onSurface,
                   fontSize: 19,
                   height: 28 / 22,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Reliable transport for the things that matter.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(
+                  color: context.colors.onSurfaceVariant,
+                  fontSize: 11,
+                ),
               ),
               const SizedBox(height: 14),
               FilledButton.icon(
@@ -174,8 +179,8 @@ class _HeroCard extends StatelessWidget {
                 label: const Text('Book a move'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 44),
-                  backgroundColor: AppColors.primaryDark,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.colors.primary,
+                  foregroundColor: context.colors.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -190,12 +195,12 @@ class _HeroCard extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.local_shipping_outlined,
-            color: AppColors.primaryDark,
+            color: context.colors.primary,
           ),
         ),
       ],
@@ -208,10 +213,10 @@ class _ActiveMove extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.colors.surface,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
-      side: const BorderSide(color: AppColors.divider),
+      side: BorderSide(color: context.colors.outlineVariant),
     ),
     child: InkWell(
       onTap: onTap,
@@ -226,51 +231,51 @@ class _ActiveMove extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF5FE),
+                    color: context.colors.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.inventory_2_outlined,
-                    color: AppColors.primaryDark,
+                    color: context.colors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Household delivery',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'SS-2048  ·  Today, 10:30 AM',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
+                  color: context.colors.onSurfaceVariant,
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text(
+                Text(
                   'Driver on the way',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
@@ -280,14 +285,14 @@ class _ActiveMove extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F7F3),
+                    color: context.colors.secondaryContainer,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
+                  child: Text(
                     'IN PROGRESS',
                     style: TextStyle(
                       fontSize: 8,
-                      color: Color(0xFF278B76),
+                      color: context.colors.onSecondaryContainer,
                       fontWeight: FontWeight.w700,
                       letterSpacing: .5,
                     ),
@@ -298,11 +303,11 @@ class _ActiveMove extends StatelessWidget {
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(5),
-              child: const LinearProgressIndicator(
+              child: LinearProgressIndicator(
                 value: .68,
                 minHeight: 5,
-                backgroundColor: Color(0xFFEDF2F6),
-                color: AppColors.primary,
+                backgroundColor: context.colors.surfaceContainerHighest,
+                color: context.colors.primary,
               ),
             ),
           ],
@@ -327,10 +332,10 @@ class _QuickAction extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Material(
-    color: Colors.white,
+    color: context.colors.surface,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
-      side: const BorderSide(color: AppColors.divider),
+      side: BorderSide(color: context.colors.outlineVariant),
     ),
     child: InkWell(
       onTap: onTap,
@@ -347,7 +352,7 @@ class _QuickAction extends StatelessWidget {
                 color: tint,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primaryDark),
+              child: Icon(icon, color: context.colors.primary),
             ),
             const SizedBox(height: 13),
             Text(
@@ -357,9 +362,9 @@ class _QuickAction extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
               ),
             ),
           ],

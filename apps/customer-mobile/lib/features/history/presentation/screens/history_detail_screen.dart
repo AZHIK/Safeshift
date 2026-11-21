@@ -148,13 +148,13 @@ class _RouteSummary extends StatelessWidget {
           const SizedBox(height: AppSizes.md),
           _RouteRow(
             icon: Icons.trip_origin_rounded,
-            color: AppColors.success,
+            color: context.colors.secondary,
             text: job.pickupAddress,
           ),
           const SizedBox(height: AppSizes.sm),
           _RouteRow(
             icon: Icons.location_on_rounded,
-            color: AppColors.error,
+            color: context.colors.error,
             text: job.destinationAddress,
           ),
           const Divider(height: AppSizes.lg),

@@ -8,7 +8,9 @@ import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../../phase9/presentation/phase9_screens.dart';
+import '../../../data/driver_route_service.dart';
 import '../../../providers/home_provider.dart';
+import '../../../providers/job_recipient_provider.dart';
 import 'sheet_handle.dart';
 
 /// In-transit sheet: destination + remaining distance + ETA.
@@ -17,8 +19,20 @@ class InTransitSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final job = ref.watch(homeProvider).activeJob;
+    final home = ref.watch(homeProvider);
+    final job = home.activeJob;
     if (job == null) return const SizedBox.shrink();
+    final recipient = home.isMockMode
+        ? null
+        : ref.watch(jobRecipientProvider(job.id)).value;
+    final route = ref.watch(liveRouteProvider);
+    final routeLabel = switch (route) {
+      null => 'Waiting for GPS…',
+      LiveRouteView(hasError: true) => 'Route to destination unavailable',
+      LiveRouteView(isLoading: true) => 'Calculating route to destination…',
+      _ =>
+        '${route.distanceKm.toStringAsFixed(1)} km remaining · ETA ${route.durationMin} min',
+    };
     return ListView(
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
@@ -38,10 +52,10 @@ class InTransitSheet extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.flag_rounded,
                     size: 18,
-                    color: AppColors.error,
+                    color: context.colors.error,
                   ),
                   const SizedBox(width: AppSizes.sm),
                   Expanded(
@@ -51,9 +65,30 @@ class InTransitSheet extends ConsumerWidget {
               ),
               const SizedBox(height: AppSizes.sm),
               Text(
-                '${job.distanceKm.toStringAsFixed(1)} km remaining · ETA 22 min',
-                style: TextStyles.body.copyWith(color: AppColors.textSecondary),
+                routeLabel,
+                style: TextStyles.body.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
               ),
+              if (recipient != null) ...[
+                const SizedBox(height: AppSizes.sm),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person_pin_circle_outlined,
+                      size: 18,
+                      color: context.colors.primary,
+                    ),
+                    const SizedBox(width: AppSizes.sm),
+                    Expanded(
+                      child: Text(
+                        'Deliver to ${recipient.name} · ${recipient.phone}',
+                        style: TextStyles.body,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -68,11 +103,8 @@ class InTransitSheet extends ConsumerWidget {
             ),
             TextButton.icon(
               onPressed: () => raiseSos(context, ref, job.id),
-              icon: const Icon(Icons.emergency_outlined, color: AppColors.error),
-              label: const Text(
-                'SOS',
-                style: TextStyle(color: AppColors.error),
-              ),
+              icon: Icon(Icons.emergency_outlined, color: context.colors.error),
+              label: Text('SOS', style: TextStyle(color: context.colors.error)),
             ),
           ],
         ),

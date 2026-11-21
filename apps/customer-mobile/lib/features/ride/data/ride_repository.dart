@@ -141,6 +141,52 @@ class CustomerJobSnapshot {
   bool get isScheduledLater =>
       scheduledAt != null &&
       scheduledAt!.isAfter(DateTime.now().add(const Duration(minutes: 45)));
+
+  /// The pickup time the customer actually chose, or null for an ASAP move.
+  ///
+  /// The server fills `scheduled_at` with the booking time when the customer
+  /// asked for "now", so a time within a couple of minutes of `created_at`
+  /// is not a real schedule.
+  DateTime? get customerPickupTime {
+    final at = scheduledAt;
+    if (at == null) return null;
+    final created = createdAt;
+    if (created != null &&
+        at.difference(created) < const Duration(minutes: 2)) {
+      return null;
+    }
+    return at;
+  }
+}
+
+/// How available a vehicle type is near the pickup point.
+enum VehicleAvailabilityStatus {
+  /// A free driver is close; booking now should match quickly.
+  available,
+
+  /// Drivers exist but are busy or further away; the search may take longer.
+  limited,
+
+  /// Nobody online nearby; only scheduling for later makes sense.
+  none,
+}
+
+class VehicleAvailability {
+  const VehicleAvailability(this.status, {this.etaMin});
+
+  static const unavailable = VehicleAvailability(
+    VehicleAvailabilityStatus.none,
+  );
+
+  final VehicleAvailabilityStatus status;
+
+  /// Rounded minutes to the nearest free driver, when one is known.
+  final int? etaMin;
+
+  bool get isNone => status == VehicleAvailabilityStatus.none;
+
+  /// Sort key: available first, then limited, then none.
+  int get rank => status.index;
 }
 
 class DispatchResult {
@@ -158,6 +204,28 @@ class DispatchResult {
 
   /// How many drivers survived each dispatch filter, for diagnostics.
   final Map<String, dynamic>? diagnostics;
+}
+
+/// What cancelling the move right now would cost, from the server's
+/// cancellation policy. Read-only.
+class CancellationPreview {
+  const CancellationPreview({
+    required this.cancellable,
+    required this.fee,
+    required this.currencyCode,
+    this.freeUntil,
+    this.message,
+  });
+
+  final bool cancellable;
+  final double fee;
+  final String currencyCode;
+
+  /// When the fee starts applying, if cancelling is still free.
+  final DateTime? freeUntil;
+
+  /// Why the move cannot be cancelled in the app, when [cancellable] is false.
+  final String? message;
 }
 
 class RideRepository {
@@ -298,6 +366,33 @@ class RideRepository {
     return uploaded;
   }
 
+  /// Copies parcel photos already stored for another job of this customer
+  /// into [jobId]'s folder and attaches them to the new job.
+  ///
+  /// Used when a resumed search switches vehicle class: the local files are
+  /// gone, but the photos are still in storage under the old job. Drivers can
+  /// only read photos inside the folder of the job they were offered, so the
+  /// objects must be copied rather than referenced.
+  Future<List<String>> copyParcelPhotos({
+    required String jobId,
+    required List<String> sourcePaths,
+  }) async {
+    if (sourcePaths.isEmpty) return const <String>[];
+    final bucket = _client.storage.from('job-evidence');
+    final copied = <String>[];
+    for (final source in sourcePaths) {
+      final name = source.split('/').last;
+      final target = _storagePath(jobId, name);
+      await bucket.copy(source, target);
+      copied.add(target);
+    }
+    await _client.rpc<void>(
+      'job_attach_parcel_photos',
+      params: <String, dynamic>{'p_job_id': jobId, 'p_photo_paths': copied},
+    );
+    return copied;
+  }
+
   /// The most recent job that has not reached a terminal state.
   ///
   /// Used on app start so a customer who closed the app while searching or in
@@ -314,15 +409,13 @@ class RideRepository {
     return null;
   }
 
+  /// Runs a dispatch round. The server picks the search radius from the
+  /// attempt count, rate-limits rounds and retires the move after six
+  /// attempts, so the app never sends a radius of its own.
   Future<DispatchResult> dispatch(String jobId) async {
     final response = await _client.rpc<Map<String, dynamic>>(
-      'match_dispatch',
-      params: <String, dynamic>{
-        'p_job_id': jobId,
-        'p_radius_km': 15,
-        'p_limit': 5,
-        'p_timeout_seconds': 45,
-      },
+      'job_request_dispatch',
+      params: <String, dynamic>{'p_job_id': jobId},
     );
     return DispatchResult(
       count: (response['count'] as num?)?.toInt() ?? 0,
@@ -350,6 +443,26 @@ class RideRepository {
         .toList(growable: false);
   }
 
+  /// Sets (or clears, with nulls) the person receiving the goods.
+  Future<void> setRecipient(String jobId, {String? name, String? phone}) {
+    return _client.rpc<void>(
+      'job_set_recipient',
+      params: <String, dynamic>{
+        'p_job_id': jobId,
+        'p_name': name,
+        'p_phone': phone,
+      },
+    );
+  }
+
+  Future<({String? name, String? phone})> getRecipient(String jobId) async {
+    final row = await _client.rpc<Map<String, dynamic>>(
+      'job_recipient',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    return (name: row['name'] as String?, phone: row['phone'] as String?);
+  }
+
   Future<String> issueDeliveryOtp(String jobId) {
     return _client.rpc<String>(
       'job_issue_delivery_otp',
@@ -357,13 +470,100 @@ class RideRepository {
     );
   }
 
-  Future<void> cancelJob(String jobId, String customerId) {
+  /// Customer-side confirmation that the goods arrived.
+  Future<void> confirmDelivery(String jobId) {
+    return _client.rpc<void>(
+      'job_confirm_delivery',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+  }
+
+  /// Free, online, nearby drivers per vehicle type for [jobId]'s pickup,
+  /// keyed by `vehicle_types.id`. Uses the same filters as dispatch except
+  /// the vehicle class, so the customer can switch to a class that has
+  /// drivers.
+  Future<Map<String, int>> availableVehicleTypes(
+    String jobId, {
+    double radiusKm = 15,
+  }) async {
+    final rows = await _client.rpc<List<dynamic>>(
+      'job_available_vehicle_types',
+      params: <String, dynamic>{'p_job_id': jobId, 'p_radius_km': radiusKm},
+    );
+    final counts = <String, int>{};
+    for (final row in rows) {
+      final map = (row as Map).cast<String, dynamic>();
+      final id = map['vehicle_type_id'] as String?;
+      final count = (map['driver_count'] as num?)?.toInt() ?? 0;
+      if (id != null && count > 0) counts[id] = count;
+    }
+    return counts;
+  }
+
+  /// Availability per vehicle type id near a pickup point. Types missing from
+  /// the map have nobody online within the widest dispatch radius.
+  Future<Map<String, VehicleAvailability>> vehicleAvailabilityNear({
+    required double lat,
+    required double lng,
+  }) async {
+    final rows = await _client.rpc<List<dynamic>>(
+      'vehicle_availability_near',
+      params: <String, dynamic>{'p_lat': lat, 'p_lng': lng},
+    );
+    final result = <String, VehicleAvailability>{};
+    for (final row in rows) {
+      final map = (row as Map).cast<String, dynamic>();
+      final id = map['vehicle_type_id'] as String?;
+      if (id == null) continue;
+      final status = switch (map['status']) {
+        'available' => VehicleAvailabilityStatus.available,
+        'limited' => VehicleAvailabilityStatus.limited,
+        _ => VehicleAvailabilityStatus.none,
+      };
+      result[id] = VehicleAvailability(
+        status,
+        etaMin: (map['eta_min'] as num?)?.toInt(),
+      );
+    }
+    return result;
+  }
+
+  Future<CancellationPreview> cancellationPreview(String jobId) async {
+    final row = await _client.rpc<Map<String, dynamic>>(
+      'job_cancellation_preview',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    return CancellationPreview(
+      cancellable: row['cancellable'] == true,
+      fee: (row['fee'] as num?)?.toDouble() ?? 0,
+      currencyCode: (row['currency_code'] as String?) ?? 'TZS',
+      freeUntil: DateTime.tryParse('${row['free_until'] ?? ''}'),
+      message: row['message'] as String?,
+    );
+  }
+
+  /// End of the driver's free waiting window at pickup, or null when the
+  /// driver is not waiting.
+  Future<DateTime?> pickupFreeWaitEndsAt(String jobId) async {
+    final row = await _client.rpc<Map<String, dynamic>>(
+      'job_pickup_wait',
+      params: <String, dynamic>{'p_job_id': jobId},
+    );
+    if (row['waiting'] != true) return null;
+    return DateTime.tryParse('${row['free_wait_ends_at'] ?? ''}');
+  }
+
+  Future<void> cancelJob(
+    String jobId,
+    String customerId, {
+    String reason = 'Customer cancelled while searching',
+  }) {
     return _client.rpc<void>(
       'job_cancel',
       params: <String, dynamic>{
         'p_job_id': jobId,
         'p_cancelled_by': customerId,
-        'p_reason': 'Customer cancelled while searching',
+        'p_reason': reason,
       },
     );
   }
@@ -481,12 +681,8 @@ class RideRepository {
       driverPhone: row['driver_phone'] as String?,
       driverRating: money(row['driver_rating']),
       driverVerified: row['driver_verified'] as bool? ?? false,
-      driverLat: money(row['driver_lat']) == 0
-          ? null
-          : money(row['driver_lat']),
-      driverLng: money(row['driver_lng']) == 0
-          ? null
-          : money(row['driver_lng']),
+      driverLat: coordinate(row['driver_lat']),
+      driverLng: coordinate(row['driver_lng']),
       driverLocationUpdatedAt: DateTime.tryParse(
         '${row['driver_location_updated_at'] ?? ''}',
       ),

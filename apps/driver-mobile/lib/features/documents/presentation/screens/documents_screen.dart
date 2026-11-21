@@ -94,9 +94,9 @@ class DocumentsScreen extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final doc = docs[i];
                     final color = switch (doc.status) {
-                      'verified' => AppColors.success,
-                      'pending' => AppColors.warning,
-                      _ => AppColors.error,
+                      'verified' => context.colors.secondary,
+                      'pending' => context.colors.tertiary,
+                      _ => context.colors.error,
                     };
                     final expiry = doc.expiresAt == null
                         ? 'No expiry'
@@ -122,7 +122,7 @@ class DocumentsScreen extends ConsumerWidget {
                                   Text(
                                     doc.rejectionReason!,
                                     style: TextStyles.caption.copyWith(
-                                      color: AppColors.error,
+                                      color: context.colors.error,
                                     ),
                                   ),
                               ],

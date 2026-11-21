@@ -83,7 +83,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                               'Looking for verified vehicles within 5 km',
                               textAlign: TextAlign.center,
                               style: TextStyles.body.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.colors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -95,14 +95,14 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                               width: 72,
                               height: 72,
                               decoration: BoxDecoration(
-                                color: AppColors.success.withValues(
+                                color: context.colors.secondary.withValues(
                                   alpha: 0.12,
                                 ),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.check_rounded,
-                                color: AppColors.success,
+                                color: context.colors.secondary,
                                 size: 38,
                               ),
                             ),
@@ -116,7 +116,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                             Text(
                               'Arriving in 7 min',
                               style: TextStyles.title.copyWith(
-                                color: AppColors.primaryDark,
+                                color: context.colors.primary,
                               ),
                             ),
                             const SizedBox(height: AppSizes.xs),
@@ -124,7 +124,7 @@ class _MatchingScreenState extends ConsumerState<MatchingScreen> {
                               'Your driver is on the way to your pickup location.',
                               textAlign: TextAlign.center,
                               style: TextStyles.body.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.colors.onSurfaceVariant,
                               ),
                             ),
                           ],

@@ -16,6 +16,13 @@ class HomeState {
     this.isSubmitting = false,
     this.isLoading = false,
     this.isMockMode = false,
+    this.driverLat,
+    this.driverLng,
+    this.driverHeading,
+    this.driverSpeedKmh,
+    this.pickupFreeWaitEndsAt,
+    this.notice,
+    this.noticeSeq = 0,
   });
 
   final DriverStatus driverStatus;
@@ -31,6 +38,24 @@ class HomeState {
   final bool isLoading;
   final bool isMockMode;
 
+  /// Latest GPS position, mirrored from the location stream for the map.
+  final double? driverLat;
+  final double? driverLng;
+
+  /// Last known direction of travel (0–359); kept while stationary.
+  final double? driverHeading;
+
+  /// Latest ground speed, for the navigation camera zoom.
+  final double? driverSpeedKmh;
+
+  /// End of the free waiting time at the pickup; set while `arrived`.
+  final DateTime? pickupFreeWaitEndsAt;
+
+  /// One-off message for the driver (shown as a snackbar). [noticeSeq]
+  /// changes every time, so the same text can be shown twice.
+  final String? notice;
+  final int noticeSeq;
+
   HomeState copyWith({
     DriverStatus? driverStatus,
     int? todayEarnings,
@@ -44,9 +69,16 @@ class HomeState {
     bool? isSubmitting,
     bool? isLoading,
     bool? isMockMode,
+    double? driverLat,
+    double? driverLng,
+    double? driverHeading,
+    double? driverSpeedKmh,
     bool clearIncoming = false,
     bool clearActive = false,
     bool clearError = false,
+    DateTime? pickupFreeWaitEndsAt,
+    bool clearPickupWait = false,
+    String? notice,
   }) {
     return HomeState(
       driverStatus: driverStatus ?? this.driverStatus,
@@ -61,6 +93,15 @@ class HomeState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isLoading: isLoading ?? this.isLoading,
       isMockMode: isMockMode ?? this.isMockMode,
+      driverLat: driverLat ?? this.driverLat,
+      driverLng: driverLng ?? this.driverLng,
+      driverHeading: driverHeading ?? this.driverHeading,
+      driverSpeedKmh: driverSpeedKmh ?? this.driverSpeedKmh,
+      pickupFreeWaitEndsAt: clearPickupWait || clearActive
+          ? null
+          : (pickupFreeWaitEndsAt ?? this.pickupFreeWaitEndsAt),
+      notice: notice ?? this.notice,
+      noticeSeq: notice != null ? noticeSeq + 1 : noticeSeq,
     );
   }
 }

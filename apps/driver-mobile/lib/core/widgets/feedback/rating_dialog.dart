@@ -37,8 +37,8 @@ class RatingDialog extends StatelessWidget {
                     setStars(() {});
                   },
                   color: rating > index
-                      ? const Color(0xFFFFB300)
-                      : AppColors.divider,
+                      ? context.colors.tertiary
+                      : context.colors.outlineVariant,
                   icon: const Icon(Icons.star_rounded),
                   iconSize: 36,
                 ),
@@ -57,10 +57,7 @@ class RatingDialog extends StatelessWidget {
             Navigator.pop(context);
             onRatingSubmitted(rating);
           },
-          child: Text(
-            'Submit',
-            style: TextStyles.button.copyWith(color: Colors.white),
-          ),
+          child: const Text('Submit', style: TextStyles.button),
         ),
       ],
     );

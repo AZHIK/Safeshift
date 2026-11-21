@@ -37,7 +37,7 @@ class SearchingSheet extends ConsumerWidget {
             Text(
               'Searching for jobs nearby…',
               style: TextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -75,8 +75,8 @@ class _PulsingDotState extends State<_PulsingDot>
       child: Container(
         width: 12,
         height: 12,
-        decoration: const BoxDecoration(
-          color: AppColors.onlineGreen,
+        decoration: BoxDecoration(
+          color: context.colors.secondary,
           shape: BoxShape.circle,
         ),
       ),

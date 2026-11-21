@@ -70,7 +70,7 @@ class EarningsScreen extends ConsumerWidget {
                             ? "This week's earnings"
                             : "This month's earnings",
                         style: TextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -82,7 +82,7 @@ class EarningsScreen extends ConsumerWidget {
                       Text(
                         '$trips trips',
                         style: TextStyles.body.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ],

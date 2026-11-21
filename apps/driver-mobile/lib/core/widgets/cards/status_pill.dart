@@ -11,15 +11,15 @@ class StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase().replaceAll(' ', '_');
     final (label, color) = switch (normalized) {
-      'completed' || 'delivered' => ('Completed', AppColors.success),
-      'cancelled' || 'canceled' => ('Cancelled', AppColors.error),
+      'completed' || 'delivered' => ('Completed', context.colors.secondary),
+      'cancelled' || 'canceled' => ('Cancelled', context.colors.error),
       'in_progress' ||
       'in progress' ||
       'loading' ||
-      'in_transit' => ('In progress', AppColors.warning),
+      'in_transit' => ('In progress', context.colors.tertiary),
       _ => (
         '${status[0].toUpperCase()}${status.substring(1)}',
-        AppColors.primaryDark,
+        context.colors.primary,
       ),
     };
     return Container(

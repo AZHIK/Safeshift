@@ -81,14 +81,14 @@ class _DeliveryConfirmationScreenState
                       child: Container(
                         width: 88,
                         height: 88,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE6F4EC),
+                        decoration: BoxDecoration(
+                          color: context.colors.secondaryContainer,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.check_rounded,
                           size: 48,
-                          color: AppColors.success,
+                          color: context.colors.secondary,
                         ),
                       ),
                     ),
@@ -116,14 +116,14 @@ class _DeliveryConfirmationScreenState
                     child: Container(
                       width: 88,
                       height: 88,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE6F4EC),
+                      decoration: BoxDecoration(
+                        color: context.colors.secondaryContainer,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.check_rounded,
                         size: 48,
-                        color: AppColors.success,
+                        color: context.colors.secondary,
                       ),
                     ),
                   ),
@@ -138,7 +138,7 @@ class _DeliveryConfirmationScreenState
                     'Please confirm to complete the job',
                     textAlign: TextAlign.center,
                     style: TextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: AppSizes.xl),
@@ -151,7 +151,7 @@ class _DeliveryConfirmationScreenState
                         Text(
                           'Enter the 6-digit code shown by the driver',
                           style: TextStyles.body.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: AppSizes.lg),

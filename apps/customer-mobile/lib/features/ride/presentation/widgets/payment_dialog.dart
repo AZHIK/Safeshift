@@ -26,7 +26,7 @@ class _PaymentDialog extends ConsumerWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(26),
           boxShadow: AppColors.cardShadow,
         ),
@@ -45,22 +45,19 @@ class _PaymentDialog extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: AppColors.cardShadow,
                   ),
-                  child: const Icon(
-                    Icons.wallet_rounded,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.wallet_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Payment method', style: TextStyles.title),
+                      const Text('Payment method', style: TextStyles.title),
                       Text(
                         'Mock UI only — no charge made',
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: context.colors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -78,9 +75,7 @@ class _PaymentDialog extends ConsumerWidget {
                 method: m,
                 selected: m.id == selected.id,
                 onTap: () {
-                  ref
-                      .read(rideProvider.notifier)
-                      .selectPaymentMethod(m);
+                  ref.read(rideProvider.notifier).selectPaymentMethod(m);
                   Navigator.pop(context);
                 },
               ),
@@ -99,18 +94,13 @@ class _PaymentDialog extends ConsumerWidget {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.divider,
-                  ),
+                  border: Border.all(color: context.colors.outlineVariant),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
-                      Icons.add_card_rounded,
-                      color: AppColors.primaryDark,
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
+                    Icon(Icons.add_card_rounded, color: context.colors.primary),
+                    const SizedBox(width: 12),
+                    const Expanded(
                       child: Text(
                         'Add card (mock)',
                         style: TextStyle(fontWeight: FontWeight.w700),
@@ -118,7 +108,7 @@ class _PaymentDialog extends ConsumerWidget {
                     ),
                     Icon(
                       Icons.chevron_right_rounded,
-                      color: AppColors.textSecondary,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -143,50 +133,52 @@ class _MethodTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
-            width: selected ? 1.6 : 1,
+  Widget build(BuildContext context) {
+    final tint = method.iconColor(Theme.of(context).brightness);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? context.colors.primary.withValues(alpha: 0.08)
+                : context.colors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected
+                  ? context.colors.primary
+                  : context.colors.outlineVariant,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(method.icon, color: tint),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  method.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle_rounded, color: context.colors.primary),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: method.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(method.icon, color: method.color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                method.name,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            if (selected)
-              const Icon(
-                Icons.check_circle_rounded,
-                color: AppColors.primaryDark,
-              ),
-          ],
-        ),
       ),
-    ),
-  );
+    );
+  }
 }

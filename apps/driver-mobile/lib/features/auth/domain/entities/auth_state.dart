@@ -70,8 +70,9 @@ class AuthState {
       phoneNumber: clearPhone ? null : (phoneNumber ?? this.phoneNumber),
       currentUser: clearUser ? null : (currentUser ?? this.currentUser),
       isLoading: isLoading ?? this.isLoading,
-      failureMessage:
-          clearFailure ? null : (failureMessage ?? this.failureMessage),
+      failureMessage: clearFailure
+          ? null
+          : (failureMessage ?? this.failureMessage),
       driverRegistered: driverRegistered ?? this.driverRegistered,
       driverVerificationStatus: clearVerificationStatus
           ? null

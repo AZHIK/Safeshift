@@ -21,10 +21,10 @@ class AppErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 56,
-              color: AppColors.textDisabled,
+              color: context.colors.onSurfaceVariant,
             ),
             const SizedBox(height: AppSizes.md),
             Text(

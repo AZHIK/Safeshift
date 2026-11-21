@@ -9,8 +9,10 @@ import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../../providers/home_provider.dart';
+import '../../../data/driver_route_service.dart';
 import 'load_details.dart';
 import 'sheet_handle.dart';
+import 'trip_problem_sheet.dart';
 
 Future<void> _sendChatPhoto(
   BuildContext context,
@@ -48,8 +50,17 @@ class HeadingToPickupSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final job = ref.watch(homeProvider).activeJob;
+    final home = ref.watch(homeProvider);
+    final job = home.activeJob;
     if (job == null) return const SizedBox.shrink();
+    final route = ref.watch(liveRouteProvider);
+    final routeLabel = switch (route) {
+      null => 'Waiting for GPS…',
+      LiveRouteView(hasError: true) => 'Route to pickup unavailable',
+      LiveRouteView(isLoading: true) => 'Calculating route to pickup…',
+      _ =>
+        'ETA ${route.durationMin} min · ${route.distanceKm.toStringAsFixed(1)} km',
+    };
     return ListView(
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
@@ -73,13 +84,15 @@ class HeadingToPickupSheet extends ConsumerWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                    backgroundColor: context.colors.primary.withValues(
+                      alpha: 0.12,
+                    ),
                     child: Text(
                       job.customerName.isNotEmpty
                           ? job.customerName[0].toUpperCase()
                           : '?',
                       style: TextStyles.title.copyWith(
-                        color: AppColors.primaryDark,
+                        color: context.colors.primary,
                       ),
                     ),
                   ),
@@ -90,9 +103,9 @@ class HeadingToPickupSheet extends ConsumerWidget {
                       children: [
                         Text(job.customerName, style: TextStyles.title),
                         Text(
-                          'ETA 8 min · ${job.pickupDistanceKm.toStringAsFixed(1)} km',
+                          routeLabel,
                           style: TextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -117,10 +130,10 @@ class HeadingToPickupSheet extends ConsumerWidget {
               const Divider(height: AppSizes.lg),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.location_on_rounded,
                     size: 18,
-                    color: AppColors.onlineGreen,
+                    color: context.colors.secondary,
                   ),
                   const SizedBox(width: AppSizes.sm),
                   Expanded(child: Text(job.pickup, style: TextStyles.body)),
@@ -137,10 +150,7 @@ class HeadingToPickupSheet extends ConsumerWidget {
           onPressed: () => ref.read(homeProvider.notifier).advanceStage(),
         ),
         TextButton(
-          onPressed: () => AppSnackbar.showInfo(
-            context,
-            'Support chat is not available yet',
-          ),
+          onPressed: () => showTripProblemSheet(context),
           child: const Text('Problem / Support'),
         ),
       ],
