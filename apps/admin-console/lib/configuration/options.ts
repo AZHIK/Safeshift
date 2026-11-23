@@ -24,6 +24,10 @@ async function rows(
 }
 
 const loaders: Record<string, OptionLoader> = {
+  role_definitions: async (client) =>
+    (await rows(client, 'admin_role_definitions', 'role_name,label', 'label')).map(row => ({
+      value: String(row.role_name), label: String(row.label),
+    })),
   countries: async (client) =>
     (await rows(client, 'countries', 'id, name, iso_code', 'name')).map((row) => ({
       value: String(row.id),

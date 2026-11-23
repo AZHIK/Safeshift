@@ -1,5 +1,7 @@
 'use server';
 
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 import type { AuditQuery } from '@/components/configuration/audit-history-button';
@@ -219,4 +221,16 @@ export async function searchAdminProfiles(query: string) {
 
   if (!result.ok) return [];
   return result.value;
+}
+
+export async function createRoleDefinition(form: FormData) {
+  const client = await createClient();
+  const path = '/settings/configuration/admin-roles';
+  const {error} = await client.rpc('admin_create_role_definition', {
+    p_name: String(form.get('name') ?? '').trim(), p_label: String(form.get('label') ?? '').trim(),
+  });
+  if (error) redirect(path + '?error=' + encodeURIComponent(error.code === '23505' ? 'This role name already exists.' : 'Could not create this role.'));
+  revalidatePath(path);
+  revalidatePath('/settings/configuration/permissions-catalog');
+  redirect(path + '?ok=Role created. Assign its permissions in the permissions catalog.');
 }

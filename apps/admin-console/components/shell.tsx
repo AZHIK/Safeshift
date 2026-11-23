@@ -2,7 +2,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { signOutAction } from '@/app/actions/auth';
-import { canSee, type AdminSession } from '@/lib/auth';
+import { canSee } from '@/lib/areas';
+import type { AdminSession } from '@/lib/auth';
 import { CONFIGURATION_GROUPS, CONFIGURATION_PERMISSIONS } from '@/lib/configuration/resources';
 
 const groups: {
@@ -110,7 +111,7 @@ export function Shell({
         </div>
         <nav>
           {groups.map((group) => {
-            const items = group.items.filter((item) => canSee(session.role, item.area));
+            const items = group.items.filter((item) => canSee(held, item.area, session.role));
             if (items.length === 0) return null;
             return (
               <div className="nav-group" key={group.label}>

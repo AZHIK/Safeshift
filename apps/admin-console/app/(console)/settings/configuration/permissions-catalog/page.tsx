@@ -2,7 +2,7 @@ import { PermissionCatalogClient } from '@/components/configuration/permission-c
 import { PageHeader } from '@/components/page-header';
 import { requireConfigurationPermission } from '@/lib/configuration/guard';
 import { loadOptionsFor } from '@/lib/configuration/options';
-import { ADMIN_ROLE_NAMES, permissionsCatalog } from '@/lib/configuration/resources';
+import { permissionsCatalog } from '@/lib/configuration/resources';
 import { createClient } from '@/lib/supabase/server';
 
 import {
@@ -54,7 +54,7 @@ export default async function PermissionsCatalogPage() {
         pageSize={25}
         permissions={options.permissions ?? []}
         rolePermissions={rolePermissions}
-        roles={ADMIN_ROLE_NAMES}
+        roles={options.role_definitions ?? []}
         rows={initial.rows ?? []}
         total={initial.total ?? 0}
       />

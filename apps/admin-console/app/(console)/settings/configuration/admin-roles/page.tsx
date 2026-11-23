@@ -1,3 +1,5 @@
+import { Notice } from '@/components/notice';
+import Link from 'next/link';
 import { ConfigurationClient } from '@/components/configuration/configuration-client';
 import { PageHeader } from '@/components/page-header';
 import { requireConfigurationPermission } from '@/lib/configuration/guard';
@@ -8,6 +10,7 @@ import { toView } from '@/lib/configuration/view';
 import { createClient } from '@/lib/supabase/server';
 
 import {
+  createRoleDefinition,
   createAdminRole,
   deactivateAdminRole,
   deleteAdminRole,
@@ -20,7 +23,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminRolesPage() {
+export default async function AdminRolesPage({ searchParams }: { searchParams: Promise<Record<string,string | undefined>> }) {
   await requireConfigurationPermission('manage_admins');
 
   const supabase = await createClient();
@@ -33,6 +36,15 @@ export default async function AdminRolesPage() {
   return (
     <>
       <PageHeader title={adminRoles.pluralTitle} description={adminRoles.description} />
+      <Notice searchParams={await searchParams} />
+      <details className="card card-pad"><summary>Create a custom role</summary>
+        <form className="form" action={createRoleDefinition}>
+          <label className="field">Role key<input className="input" name="name" required pattern="[a-z][a-z0-9_]{1,63}" placeholder="city_support_lead" /></label>
+          <label className="field">Display name<input className="input" name="label" maxLength={100} required /></label>
+          <button className="btn btn-primary">Create role</button>
+        </form>
+        <Link href="/settings/configuration/permissions-catalog">Manage role permissions</Link>
+      </details>
       <ConfigurationClient
         actions={{
           list: listAdminRoles,

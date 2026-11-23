@@ -9,16 +9,6 @@
 
 import type { ConfigResource } from '../types';
 
-export const ADMIN_ROLE_NAMES = [
-  { value: 'super_admin', label: 'Super admin' },
-  { value: 'operations_admin', label: 'Operations admin' },
-  { value: 'verification_admin', label: 'Verification admin' },
-  { value: 'support_agent', label: 'Support agent' },
-  { value: 'finance_admin', label: 'Finance admin' },
-  { value: 'analyst', label: 'Analyst' },
-  { value: 'fleet_owner', label: 'Fleet owner' },
-];
-
 export const adminRolesResource: ConfigResource = {
   table: 'admin_roles',
   singular: 'admin role',
@@ -63,7 +53,7 @@ export const adminRolesResource: ConfigResource = {
       label: 'Role',
       type: 'select',
       required: true,
-      options: ADMIN_ROLE_NAMES,
+      optionsKey: 'role_definitions',
     },
     {
       name: 'country_id',
@@ -146,7 +136,7 @@ export const permissionsCatalogResource: ConfigResource = {
       label: 'Role',
       type: 'select',
       required: true,
-      options: ADMIN_ROLE_NAMES,
+      optionsKey: 'role_definitions',
     },
     {
       name: 'permission_key',
