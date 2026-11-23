@@ -129,7 +129,17 @@ abstract final class AppTheme {
         selectedColor: scheme.primaryContainer,
         backgroundColor: scheme.surface,
         side: BorderSide(color: scheme.outlineVariant),
-        labelStyle: TextStyles.caption.copyWith(fontWeight: FontWeight.w700),
+        // The colour must be explicit: a theme labelStyle replaces Flutter's
+        // default chip text colour, and without one labels rendered white on
+        // the white light-mode chip.
+        labelStyle: TextStyles.caption.copyWith(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+        secondaryLabelStyle: TextStyles.caption.copyWith(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       bottomSheetTheme: BottomSheetThemeData(
