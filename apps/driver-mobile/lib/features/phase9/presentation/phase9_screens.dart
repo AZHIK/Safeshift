@@ -682,8 +682,9 @@ class _DriverOnboardingScreenState
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () async {
                       final value = await _pickDate(_insuranceExpiry);
-                      if (value != null)
+                      if (value != null) {
                         setState(() => _insuranceExpiry = value);
+                      }
                     },
                   ),
                   _documentTile(
@@ -829,13 +830,15 @@ class _NotificationPreferencesScreenState
       for (final row in rows) {
         _values['${row['category']}|${row['channel']}'] =
             row['is_enabled'] == true;
-        if (row['quiet_hours_start'] != null)
+        if (row['quiet_hours_start'] != null) {
           _quietStart.text = row['quiet_hours_start'].toString().substring(
             0,
             5,
           );
-        if (row['quiet_hours_end'] != null)
+        }
+        if (row['quiet_hours_end'] != null) {
           _quietEnd.text = row['quiet_hours_end'].toString().substring(0, 5);
+        }
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -867,8 +870,9 @@ class _NotificationPreferencesScreenState
           .read(supabaseProvider)
           .from('notification_preferences')
           .upsert(rows, onConflict: 'profile_id,category,channel');
-      if (mounted)
+      if (mounted) {
         AppSnackbar.showSuccess(context, 'Notification preferences saved.');
+      }
     } catch (error) {
       if (mounted) AppSnackbar.showError(context, error.toString());
     } finally {
@@ -1048,13 +1052,14 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           .updateUser(
             email ? UserAttributes(email: value) : UserAttributes(phone: value),
           );
-      if (mounted)
+      if (mounted) {
         AppSnackbar.showInfo(
           context,
           email
               ? 'Check your inbox to confirm the new email.'
               : 'Check your SMS for the verification code.',
         );
+      }
     } catch (error) {
       if (mounted) AppSnackbar.showError(context, error.toString());
     }
@@ -1159,13 +1164,14 @@ class PrivacyDataScreen extends ConsumerWidget {
             ? 'Driver requested account deletion from mobile app.'
             : 'Driver requested a copy of their data.',
       });
-      if (context.mounted)
+      if (context.mounted) {
         AppSnackbar.showSuccess(
           context,
           type == 'delete'
               ? 'Deletion request submitted.'
               : 'Export request submitted.',
         );
+      }
     } catch (error) {
       if (context.mounted) AppSnackbar.showError(context, error.toString());
     }
@@ -1274,17 +1280,19 @@ class DisputesListScreen extends ConsumerWidget {
             .eq('raised_by', _userId(ref))
             .order('created_at', ascending: false),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return AppErrorView(error: snapshot.error!);
           final rows = snapshot.data ?? const <Map<String, dynamic>>[];
-          if (rows.isEmpty)
+          if (rows.isEmpty) {
             return const AppEmptyState(
               icon: Icons.gavel_outlined,
               title: 'No disputes',
               message:
                   'Report fare, cargo, damage, delay, or safety concerns here.',
             );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
@@ -1539,8 +1547,9 @@ class _DisputeDetailScreenState extends ConsumerState<DisputeDetailScreen> {
             .eq('id', widget.disputeId)
             .single(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return AppErrorView(error: snapshot.error!);
           final dispute = snapshot.data!;
           final messages = (dispute['dispute_messages'] as List?) ?? const [];
@@ -1707,16 +1716,18 @@ class SupportHomeScreen extends ConsumerWidget {
             .eq('opened_by', _userId(ref))
             .order('created_at', ascending: false),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return AppErrorView(error: snapshot.error!);
           final rows = snapshot.data ?? const <Map<String, dynamic>>[];
-          if (rows.isEmpty)
+          if (rows.isEmpty) {
             return const AppEmptyState(
               icon: Icons.support_agent_rounded,
               title: 'No support tickets',
               message: 'Open a ticket for verification, payment, app, or trip issues.',
             );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
@@ -1911,8 +1922,9 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
             .eq('id', widget.ticketId)
             .single(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return AppErrorView(error: snapshot.error!);
           final ticket = snapshot.data!;
           final messages =
@@ -2073,8 +2085,9 @@ class EmergencyContactsScreen extends ConsumerWidget {
         'notify_on_trip_start': true,
         'notify_on_sos': true,
       });
-      if (context.mounted)
+      if (context.mounted) {
         AppSnackbar.showSuccess(context, 'Emergency contact added.');
+      }
     } catch (error) {
       if (context.mounted) AppSnackbar.showError(context, error.toString());
     }
@@ -2096,16 +2109,18 @@ class EmergencyContactsScreen extends ConsumerWidget {
             .eq('profile_id', _userId(ref))
             .order('is_primary', ascending: false),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (snapshot.hasError) return AppErrorView(error: snapshot.error!);
           final rows = snapshot.data ?? const <Map<String, dynamic>>[];
-          if (rows.isEmpty)
+          if (rows.isEmpty) {
             return const AppEmptyState(
               icon: Icons.emergency_outlined,
               title: 'No emergency contacts',
               message: 'Add someone SafeShift can notify when you start a trip or raise an SOS.',
             );
+          }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSizes.lg),
             itemCount: rows.length,
@@ -2128,8 +2143,9 @@ class EmergencyContactsScreen extends ConsumerWidget {
                           .from('emergency_contacts')
                           .delete()
                           .eq('id', row['id']);
-                      if (context.mounted)
+                      if (context.mounted) {
                         context.pushReplacement('/safety/contacts');
+                      }
                     },
                   ),
                 ),
@@ -2156,16 +2172,18 @@ Future<void> shareTrip(
         body: {'job_id': jobId},
       );
       final data = response.data;
-      if (data is Map && data['share_url'] != null)
+      if (data is Map && data['share_url'] != null) {
         url = data['share_url'].toString();
+      }
     } catch (_) {
       final data = await client.rpc(
         'create_trip_share_token',
         params: {'p_job_id': jobId},
       );
       final row = data is List && data.isNotEmpty ? data.first : data;
-      if (row is Map && row['token'] != null)
+      if (row is Map && row['token'] != null) {
         url = 'http://localhost:3001/trip/${row['token']}';
+      }
     }
     if (url == null) throw StateError('Could not create a tracking link.');
     await Clipboard.setData(ClipboardData(text: url));
@@ -2237,11 +2255,12 @@ Future<void> raiseSos(BuildContext context, WidgetRef ref, String jobId) async {
     } catch (_) {
       // The alert remains visible to on-call staff if the function is offline.
     }
-    if (context.mounted)
+    if (context.mounted) {
       AppSnackbar.showSuccess(
         context,
         'SOS raised. Safety team and emergency contacts notified.',
       );
+    }
   } catch (error) {
     if (context.mounted) AppSnackbar.showError(context, error.toString());
   }
