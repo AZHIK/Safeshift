@@ -5,6 +5,7 @@
  * console sidebar and in the Configuration section's own sub-navigation.
  */
 
+import { policyResources } from './policies';
 import type { ConfigResource } from '../types';
 import {
   cargoCategoriesResource,
@@ -77,6 +78,7 @@ export const addresses = addressesResource;
 
 /** Every configuration resource, keyed by the slug of its page. */
 export const CONFIGURATION_RESOURCES: Record<string, ConfigResource> = {
+  ...policyResources,
   'vehicle-types': vehicleTypes,
   'vehicle-makes': vehicleMakes,
   'vehicle-models': vehicleModels,
@@ -136,6 +138,7 @@ function item(slug: string, label: string, resource: ConfigResource): ConfigNavI
  * page and a model cannot be edited on the makes page.
  */
 export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
+  ...['Commercial','Governance'].map(label => ({label, items:Object.entries(policyResources).filter(([,r])=>r.group===label).map(([slug,r])=>item(slug,r.pluralTitle,r))})),
   {
     label: 'Geography',
     items: [
@@ -217,6 +220,7 @@ export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
  * 'manage_configuration' or any one of these.
  */
 export const CONFIGURATION_PERMISSIONS = [
+  'manage_surge', 'manage_commission', 'manage_taxes', 'adjust_pricing', 'manage_retention',
   'manage_configuration',
   'manage_vehicle_catalog',
   'manage_cargo_catalog',
@@ -265,6 +269,7 @@ export const CONFIGURATION_SLUGS = Object.keys(CONFIGURATION_RESOURCES);
 
 /** The page slug of every configuration table. */
 export const CONFIGURATION_SLUG_BY_TABLE: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(policyResources).map(([slug,r])=>[r.table,slug])),
   vehicle_types: 'vehicle-types',
   vehicle_makes: 'vehicle-makes',
   vehicle_models: 'vehicle-models',

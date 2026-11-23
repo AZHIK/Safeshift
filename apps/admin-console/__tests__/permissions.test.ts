@@ -24,6 +24,7 @@ vi.mock('@/lib/configuration/guard', () => ({
 
 /** The permission each configuration page is expected to require. */
 const EXPECTED: Record<string, string> = {
+  'tax-rates':'manage_taxes', 'commission-rules':'manage_commission', surge:'manage_surge', 'zone-overrides':'adjust_pricing', retention:'manage_retention',
   countries: 'manage_countries',
   'country-configurations': 'manage_countries',
   regions: 'manage_geography',
@@ -54,9 +55,8 @@ const EXPECTED: Record<string, string> = {
 };
 
 describe('configuration permissions', () => {
-  it('has exactly the twenty-seven configuration tables', () => {
-    expect(Object.keys(CONFIGURATION_RESOURCES)).toHaveLength(27);
-    expect(Object.keys(EXPECTED)).toHaveLength(27);
+  it('registers every declared configuration resource', () => {
+    expect(Object.keys(CONFIGURATION_RESOURCES).sort()).toEqual(Object.keys(EXPECTED).sort());
   });
 
   it('requires the right permission on every page', () => {

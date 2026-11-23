@@ -265,13 +265,16 @@ export function ConfigurationFormDialog({
               value={value === null || value === undefined ? '' : String(value)}
             />
           );
+        case 'datetime':
         case 'date':
           return (
             <input
               className="input"
               id={field.name}
               onChange={(event) => setValue(field.name, event.target.value)}
-              type="date"
+              required={field.required}
+              type={field.type === 'datetime' ? 'datetime-local' : 'date'}
+              step={field.type === 'datetime' ? 'any' : undefined}
               value={(value as string) ?? ''}
             />
           );

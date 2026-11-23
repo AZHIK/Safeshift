@@ -32,6 +32,7 @@ export type ConfigFieldType =
   | 'multi-select'
   | 'checkbox'
   | 'json'
+  | 'datetime'
   | 'date'
   | 'tags'
   | 'profile'

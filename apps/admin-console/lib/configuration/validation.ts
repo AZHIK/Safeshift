@@ -43,6 +43,8 @@ export function coerceValue(field: ConfigField, value: unknown): unknown {
         return value;
       }
     }
+    case 'datetime':
+      return typeof value === 'string' && value ? new Date(value.endsWith('Z') ? value : value + 'Z').toISOString() : null;
     case 'text':
     case 'textarea':
     case 'select':
@@ -64,6 +66,8 @@ export function rowToValues(resource: FieldSet, row: Record<string, unknown>): C
       values[field.name] = Array.isArray(raw) ? raw.map((item) => String(item)) : [];
     } else if (field.type === 'checkbox') {
       values[field.name] = raw === true;
+    } else if (field.type === 'datetime' && typeof raw === 'string') {
+      values[field.name] = new Date(raw).toISOString().slice(0,-1);
     } else if (field.type === 'date' && typeof raw === 'string') {
       values[field.name] = raw.slice(0, 10);
     } else {
@@ -108,6 +112,7 @@ export function validateField(
 
   if (empty) return null;
 
+  if (field.type === 'datetime' && !Number.isFinite(Date.parse(String(value).replace(/Z$/, '') + 'Z'))) return 'Enter a valid UTC date and time.';
   if (field.type === 'number') {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return `${field.label} must be a number.`;
