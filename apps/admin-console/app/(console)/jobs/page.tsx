@@ -30,7 +30,7 @@ export default async function JobsPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['jobs']}
         title="Jobs"
         description="Marketplace jobs across all stages. Use status filters to focus operations."
         actions={

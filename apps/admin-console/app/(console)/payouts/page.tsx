@@ -74,7 +74,7 @@ export default async function PayoutsPage({
 
   return (
     <>
-      <PageHeader title="Payouts" description="Driver settlements. Build a batch for a period, review it, then pay." />
+      <PageHeader records={['payouts', 'transfers']} title="Payouts" description="Driver settlements. Build a batch for a period, review it, then pay." />
       <Notice searchParams={params} />
       {batchError ? <div className="notice notice-error">{batchError.message}</div> : null}
 

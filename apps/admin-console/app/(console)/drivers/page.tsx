@@ -54,7 +54,7 @@ export default async function DriversPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['drivers']}
         title="Drivers"
         description="Verification, availability, risk tier, and lifetime performance."
       />

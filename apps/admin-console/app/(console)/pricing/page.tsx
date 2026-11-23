@@ -95,7 +95,7 @@ export default async function PricingPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['pricing', 'tariffs']}
         title="Pricing & tariffs"
         description="Plans price every booking; there is no fallback price. Rates change through drafts, which you can preview, schedule and roll back."
         actions={

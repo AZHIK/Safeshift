@@ -33,7 +33,7 @@ export default async function SupportPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['support']}
         title="Support tickets"
         description="Account, payment, app, trip, and verification support. Disputes are handled separately."
         actions={

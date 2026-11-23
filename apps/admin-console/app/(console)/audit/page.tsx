@@ -25,7 +25,7 @@ export default async function AuditPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['audit']}
         title="Audit log"
         description="Immutable admin action trail. Verification decisions, pricing changes, refunds, and account interventions are recorded here."
       />

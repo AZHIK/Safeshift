@@ -71,7 +71,7 @@ export default async function PromosPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['promos']}
         title="Promos"
         description="Discount codes customers enter at booking. A promo applies only while live, within its limits and rules."
         actions={

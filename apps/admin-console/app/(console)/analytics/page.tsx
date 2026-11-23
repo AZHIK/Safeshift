@@ -33,7 +33,7 @@ export default async function AnalyticsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['analytics']}
         title="Analytics"
         description="Daily marketplace metrics for the last 30 recorded days. Zone-level and driver-level drilldowns use the same source tables."
       />

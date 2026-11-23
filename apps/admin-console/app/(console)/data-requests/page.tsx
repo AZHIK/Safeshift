@@ -27,7 +27,7 @@ export default async function DataRequestsPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['data-requests']}
         title="Data requests"
         description="Privacy export, deletion, rectification, and processing-restriction requests. Identity verification is required before delivery."
       />

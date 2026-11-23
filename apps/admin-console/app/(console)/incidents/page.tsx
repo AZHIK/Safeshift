@@ -37,7 +37,7 @@ export default async function IncidentsPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['incidents', 'alerts']}
         title="Incidents & SOS"
         description="On-call safety desk for SOS alerts, emergency contacts, and formally reported incidents."
       />

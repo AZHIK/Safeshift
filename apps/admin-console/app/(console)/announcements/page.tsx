@@ -19,7 +19,7 @@ export default async function Announcements({searchParams}:{searchParams:Promise
   await requireConfigurationPermission('send_notification');
   const client=await createClient();
   const [countries,cities,history]=await Promise.all([client.from('countries').select('id,name').order('name'),client.from('cities').select('id,name,countries(name)').order('name'),client.from('announcements').select('title,audience,recipient_count,created_at').order('created_at',{ascending:false}).limit(50)]);
-  return <><PageHeader title="Announcements" description="Send a message to customer and driver inboxes in an operating country or city."/><Notice searchParams={await searchParams}/>
+  return <><PageHeader records={['announcements']} title="Announcements" description="Send a message to customer and driver inboxes in an operating country or city."/><Notice searchParams={await searchParams}/>
     <form action={publish} className="card card-pad form"><input type="hidden" name="id" value={randomUUID()}/>
       <label className="field">Country<select required className="input" name="country" defaultValue=""><option value="" disabled>Choose country</option>{countries.data?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label className="field">City<select className="input" name="city"><option value="">All cities in country</option>{cities.data?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>

@@ -24,7 +24,7 @@ export default async function UsersPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['users']}
         title="Users"
         description="Search customers, drivers, business contacts, and staff. Leave the search blank for the most recent accounts."
       />

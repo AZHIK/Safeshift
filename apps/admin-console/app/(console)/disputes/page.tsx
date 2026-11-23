@@ -37,7 +37,7 @@ export default async function DisputesPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['disputes']}
         title="Disputes"
         description="Damage, loss, delay, fare, no-show, and safety cases visible to both parties and staff."
       />

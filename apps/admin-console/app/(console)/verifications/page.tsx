@@ -88,7 +88,7 @@ export default async function VerificationsPage({
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['verifications']}
         title="Verification queue"
         description="Review driver identity, vehicle documents, and business registrations. Decisions are audited and update the subject immediately."
         actions={

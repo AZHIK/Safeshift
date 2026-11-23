@@ -21,7 +21,7 @@ export default async function Governance({searchParams}:{searchParams:Promise<Re
   const [countries,requests]=await Promise.all([db.from('countries').select('id,name').order('name'),db.from('government_requests').select('id,country_id,authority,reference,legal_basis,period_start,period_end,status,review_note,last_export_at').order('created_at',{ascending:false}).limit(50)]);
   const scope=<><label className="field">Country<select className="input" name="country" required defaultValue=""><option value="">Choose country</option>{countries.data?.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></label>
     <label className="field">From<input type="date" className="input" name="start" required/></label><label className="field">Through<input type="date" className="input" name="end" required/></label></>;
-  return <><PageHeader title="Regulatory reporting" description="Country reports cover completed trips, participating drivers and vehicles, safety incidents and recorded commission by currency."/><Notice searchParams={await searchParams}/>
+  return <><PageHeader records={['governance']} title="Regulatory reporting" description="Country reports cover completed trips, participating drivers and vehicles, safety incidents and recorded commission by currency."/><Notice searchParams={await searchParams}/>
     <div className="section-stack">
       {permissions.has('export_regulator_reports') && <form action="/governance/export" method="post" className="card card-pad form"><h2>Operating report</h2>{scope}<button className="btn">Download CSV</button></form>}
       {permissions.has('manage_data_requests') && <form action={save} className="card card-pad form"><h2>Government request intake</h2>{scope}

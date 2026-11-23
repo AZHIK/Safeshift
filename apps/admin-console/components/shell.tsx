@@ -49,6 +49,7 @@ const groups: {
     label: 'Governance',
     items: [
       { href: '/data-requests', label: 'Data requests', area: 'data-requests', glyph: '⌘' },
+      { href: '/records/consent', label: 'Consent ledger', area: 'consent', glyph: '▤' },
       { href: '/governance', label: 'Regulatory reporting', area: 'governance', glyph: '▤' },
       { href: '/announcements', label: 'Announcements', area: 'announcements', glyph: '◉' },
       { href: '/audit', label: 'Audit log', area: 'audit', glyph: '▦' },

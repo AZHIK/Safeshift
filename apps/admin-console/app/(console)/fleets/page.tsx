@@ -75,7 +75,7 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader
+      <PageHeader records={['fleets']}
         title={session.role === 'fleet_owner' ? 'My fleet' : 'Fleets'}
         description="Fleet owners manage their own vehicles and drivers. Operations staff can see all fleets, verification state, and billing events."
       />

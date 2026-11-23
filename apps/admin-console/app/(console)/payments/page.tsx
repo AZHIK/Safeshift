@@ -87,7 +87,7 @@ export default async function PaymentsPage({
 
   return (
     <>
-      <PageHeader title="Payments" description="Charges and refunds. Open a charge to refund it." />
+      <PageHeader records={['payments']} title="Payments" description="Charges and refunds. Open a charge to refund it." />
       <Notice searchParams={params} />
       {error ? <div className="notice notice-error">{error.message}</div> : null}
 
