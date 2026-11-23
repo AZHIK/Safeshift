@@ -39,10 +39,10 @@ export const policyResources: Record<string,ConfigResource> = {
     fields:[{...city,required:true},zone,vehicle,number('multiplier','Multiplier',1,5),reason,date('starts_at','Starts',true),date('ends_at','Ends',true)],
   },
   'zone-overrides': {
-    table:'zone_pricing_overrides',singular:'zone override',singularTitle:'Zone override',pluralTitle:'Zone price overrides',description:'Time-limited price adjustments for a service zone and optional plan.',
-    permission:'adjust_pricing',group:'Commercial',hardDelete:true,selectSpec:'*,service_zones(name),pricing_plans(name)',searchColumns:['reason'],
-    columns:[{key:'service_zones_name',label:'Service zone'},{key:'pricing_plans_name',label:'Plan'},{key:'multiplier',label:'Multiplier'},{key:'effective_from',label:'Starts',kind:'date'}],
-    fields:[{...zone,required:true},select('pricing_plan_id','Plan','pricing_plans'),{...number('multiplier','Multiplier',0.01,5),step:0.01},reason,...effective],
+    table:'zone_pricing_overrides',singular:'zone override',singularTitle:'Zone override',pluralTitle:'Zone price overrides',description:'Time-limited price adjustments for a service zone and optional plan version.',
+    permission:'adjust_pricing',group:'Commercial',hardDelete:true,selectSpec:'*,service_zones(name),pricing_plan_versions(version_number)',searchColumns:['reason'],
+    columns:[{key:'service_zones_name',label:'Service zone'},{key:'pricing_plan_id',label:'Plan version'},{key:'multiplier',label:'Multiplier'},{key:'effective_from',label:'Starts',kind:'date'}],
+    fields:[{...zone,required:true},select('pricing_plan_id','Plan version','pricing_versions'),{...number('multiplier','Multiplier',0.01,5),step:0.01},reason,...effective],
   },
   'retention': {
     table:'retention_policies',singular:'retention policy',singularTitle:'Retention policy',pluralTitle:'Data retention',description:'Configure scheduled deletion for supported data sets. Historical run counts show the last execution.',

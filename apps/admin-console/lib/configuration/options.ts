@@ -25,7 +25,9 @@ async function rows(
 
 const loaders: Record<string, OptionLoader> = {
   fleets: async client => (await rows(client, 'fleets','id,name','name')).map(row=>({value:String(row.id),label:String(row.name)})),
-  pricing_plans: async client => (await rows(client, 'pricing_plans','id,name','name')).map(row=>({value:String(row.id),label:String(row.name)})),
+  pricing_versions: async client => (await rows(client, 'pricing_plan_versions','id,version_number,pricing_plans(name)','version_number')).map(row=>({
+    value:String(row.id), label:`${(row.pricing_plans as {name:string}).name} · v${row.version_number}`,
+  })),
   role_definitions: async (client) =>
     (await rows(client, 'admin_role_definitions', 'role_name,label', 'label')).map(row => ({
       value: String(row.role_name), label: String(row.label),
