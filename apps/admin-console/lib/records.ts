@@ -28,6 +28,7 @@ export const records:Record<string,RecordList> = {
   consent:list('consent_records','consent','Consent ledger','id profile_id consent_type consent_version granted granted_at revoked_at created_at'),
   governance:list('government_requests','governance','Government requests','id country_id authority reference status period_start period_end created_at'),
   announcements:list('announcements','announcements','Announcement history','id country_id city_id audience title recipient_count created_at'),
+  registry:list('provider_requests','registry','Registry checks','id document_id kind status provider_reference created_at'),
   invoices:list('invoices','invoices','Invoices','id business_account_id invoice_number status subtotal tax_amount total currency_code issued_at created_at','created_at','/invoices/'),
 };
 
@@ -47,6 +48,7 @@ export function recordFilters(list:RecordList, query:URLSearchParams) {
 export async function readRecords(db:SupabaseClient,list:RecordList,filters:ReturnType<typeof recordFilters>,session:AdminSession,offset:number,size:number) {
   let query=db.from(list.table).select(list.columns.join(','),{count:'exact'});
   if(list.table==='fleets' && session.role==='fleet_owner') query=query.eq('owner_profile_id',session.userId);
+  if(list.table==='provider_requests') query=query.not('document_id','is',null);
   if(filters.q) query=query.eq(filters.field,filters.q);
   if(filters.start) query=query.gte(list.date, filters.start);
   if(filters.end) query=query.lt(list.date,new Date(Date.parse(filters.end)+86400000).toISOString().slice(0,10));

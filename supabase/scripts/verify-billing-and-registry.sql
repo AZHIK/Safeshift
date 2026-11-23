@@ -1,0 +1,30 @@
+begin;
+do $$
+declare staff uuid; j public.jobs; country uuid; account uuid; inv uuid; request uuid; doc uuid; n integer; start_at timestamptz; end_at timestamptz;
+begin
+ select profile_id into strict staff from public.admin_roles where role_name='super_admin' and is_active and revoked_at is null limit 1;
+ perform set_config('request.jwt.claims',json_build_object('sub',staff,'role','authenticated','aal','aal2')::text,true);
+ select * into strict j from public.jobs where status='completed' and completed_at is not null and final_amount>0 order by completed_at desc limit 1;
+ select country_id into strict country from public.cities where id=j.city_id;
+ insert into public.business_accounts(country_id,city_id,legal_name) values(country,j.city_id,'Invoice regression fixture') returning id into account;
+ insert into public.business_members(business_account_id,profile_id,role,accepted_at) values(account,j.customer_id,'booker',j.completed_at-interval '1 day') on conflict(business_account_id,profile_id) do update set accepted_at=excluded.accepted_at;
+ start_at:=j.completed_at-interval '1 second';end_at:=j.completed_at+interval '1 second';
+ begin perform public.generate_invoice(account,start_at,end_at);raise exception 'Incorrectly billed a personal job';exception when raise_exception then if sqlerrm<>'No unbilled business jobs in this period' then raise;end if;end;
+ perform public.admin_allocate_business_job(account,j.id,'Confirmed by business');
+ inv:=public.generate_invoice(account,start_at,end_at);
+ if inv is distinct from public.generate_invoice(account,start_at,end_at) or (select total from public.invoices where id=inv) is distinct from j.final_amount then raise exception 'Invoice mismatch or duplicate';end if;
+ if (select sum(amount) from public.invoice_line_items where invoice_id=inv) is distinct from (select subtotal from public.invoices where id=inv) then raise exception 'Line items do not reconcile';end if;
+ perform public.admin_issue_invoice(inv);perform public.admin_issue_invoice(inv);
+ select count(*) into n from public.inbox_messages where profile_id=j.customer_id and body like (select invoice_number from public.invoices where id=inv)||'%';
+ if n<>1 then raise exception 'Invoice should be delivered exactly once';end if;
+ request:=public.admin_request_provider('fiscal_receipt',inv);
+ if request is distinct from public.admin_request_provider('fiscal_receipt',inv) or (select status from public.provider_requests where id=request)<>'awaiting_integration' then raise exception 'Fiscal receipt placeholder returned incorrect status';end if;
+ perform public.admin_cancel_provider_request(request);request:=public.admin_request_provider('fiscal_receipt',inv);
+ perform public.record_provider_result(request,'confirmed','TEST-ROLLBACK-REF');perform public.record_provider_result(request,'confirmed','TEST-ROLLBACK-REF');
+ if has_function_privilege('authenticated','public.record_provider_result(uuid,text,text)','EXECUTE') then raise exception 'Provider results are writable by staff';end if;
+ select dd.id into strict doc from public.driver_documents dd join public.drivers d on d.id=dd.driver_id where dd.is_current and dd.superseded_by is null and d.home_city_id is not null limit 1;
+ request:=public.admin_request_provider('national_id',doc);
+ perform set_config('request.jwt.claims',json_build_object('sub',j.customer_id,'role','authenticated','aal','aal1')::text,true);
+ begin perform public.admin_cancel_provider_request(request);raise exception 'Unauthorized cancellation';exception when insufficient_privilege then null;end;
+end $$;
+rollback;

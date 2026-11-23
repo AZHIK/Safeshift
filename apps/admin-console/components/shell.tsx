@@ -30,6 +30,7 @@ const groups: {
   {
     label: 'Trust & Safety',
     items: [
+      { href: '/registry', label: 'Registry checks', area: 'registry', glyph: '✓' },
       { href: '/verifications', label: 'Verification queue', area: 'verifications', glyph: '✓' },
       { href: '/incidents', label: 'Incidents & SOS', area: 'incidents', glyph: '!' },
       { href: '/disputes', label: 'Disputes', area: 'disputes', glyph: '⚖' },
@@ -39,6 +40,7 @@ const groups: {
   {
     label: 'Finance & Growth',
     items: [
+      { href: '/invoices', label: 'Business invoices', area: 'invoices', glyph: '▤' },
       { href: '/payments', label: 'Payments', area: 'payments', glyph: '₵' },
       { href: '/payouts', label: 'Payouts', area: 'payouts', glyph: '↗' },
       { href: '/pricing', label: 'Pricing & tariffs', area: 'pricing', glyph: '≡' },

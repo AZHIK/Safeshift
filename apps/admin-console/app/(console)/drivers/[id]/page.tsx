@@ -171,7 +171,7 @@ function DetailItem({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-function DocumentCard({ document }: { document: DocumentWithPreview }) {
+function DocumentCard({ document, registry=false }: { document: DocumentWithPreview; registry?:boolean }) {
   const isImage = isImageDocument(document);
   return (
     <div className="driver-doc">
@@ -188,6 +188,7 @@ function DocumentCard({ document }: { document: DocumentWithPreview }) {
         )}
       </div>
       <div className="driver-doc-body">
+        {registry && document.is_current && <Link href={'/registry?document='+document.id}>Request registry check</Link>}
         <strong>{document.document_name ?? titleize(document.document_code)}</strong>
         {document.document_number ? (
           <span className="small muted">No. {document.document_number}</span>
@@ -400,7 +401,7 @@ export default async function DriverDetailPage({
             ) : (
               <div className="driver-doc-grid">
                 {driverDocuments.map((document) => (
-                  <DocumentCard key={document.id} document={document} />
+                  <DocumentCard key={document.id} document={document} registry />
                 ))}
               </div>
             )}
