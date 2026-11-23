@@ -1,4 +1,5 @@
 const areaPermissions: Record<string, readonly string[]> = {
+  governance: ['export_regulator_reports','review_government_requests','manage_data_requests'],
   announcements: ['send_notification'],
   analytics: ['view_analytics'], audit: ['view_audit'],
   jobs: ['view_all_jobs', 'assign_drivers'],
