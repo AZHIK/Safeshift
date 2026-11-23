@@ -892,6 +892,10 @@ class _NotificationPreferencesScreenState
           : ListView(
               padding: const EdgeInsets.all(AppSizes.lg),
               children: [
+                AccountInbox(
+                  client: ref.watch(supabaseProvider),
+                  onOpenTicket: (id) => context.push('/support/$id'),
+                ),
                 Text(
                   'Choose how SafeShift contacts you. Job and safety alerts are strongly recommended.',
                   style: TextStyles.body.copyWith(

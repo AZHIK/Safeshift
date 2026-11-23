@@ -144,12 +144,9 @@ export async function replyTicketAction(formData: FormData) {
   if (error) {
     redirect(`/support/${ticketId}?error=${encodeURIComponent(error.message)}`);
   }
-  await supabase
-    .from('support_tickets')
-    .update({ status: 'waiting_customer', updated_at: new Date().toISOString() })
-    .eq('id', ticketId);
+  revalidatePath('/support');
   revalidatePath(`/support/${ticketId}`);
-  redirect(`/support/${ticketId}?ok=Reply sent`);
+  redirect(`/support/${ticketId}?ok=${formData.get('internal') === 'on' ? 'Internal note saved' : 'Reply sent'}`);
 }
 
 export async function updateDisputeAction(formData: FormData) {

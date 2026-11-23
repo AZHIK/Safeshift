@@ -18,3 +18,4 @@ export 'src/phone/phone_validation.dart';
 export 'src/rating/job_rating.dart';
 export 'src/rating/rating_panel.dart';
 export 'src/models/job_status.dart';
+export 'src/notifications/account_inbox.dart';

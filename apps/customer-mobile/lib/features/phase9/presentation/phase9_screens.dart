@@ -830,6 +830,10 @@ class _NotificationPreferencesScreenState
           : ListView(
               padding: const EdgeInsets.all(AppSizes.lg),
               children: [
+                AccountInbox(
+                  client: ref.watch(supabaseProvider),
+                  onOpenTicket: (id) => context.push('/support/$id'),
+                ),
                 Text(
                   'Choose how SafeShift contacts you. Safety alerts should normally stay enabled.',
                   style: TextStyles.body.copyWith(

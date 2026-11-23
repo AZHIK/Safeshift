@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:safeshift_shared/safeshift_shared.dart' show InboxListener;
+
+import 'core/network/supabase_client.dart';
+import 'features/auth/providers/auth_provider.dart';
 import 'core/deep_links/deep_link_service.dart';
 import 'core/notifications/push_service.dart';
 import 'core/router/app_router.dart';
@@ -52,6 +56,12 @@ class _SafeShiftAppState extends ConsumerState<SafeShiftApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final profileId = ref.watch(
+      authProvider.select(
+        (state) => state.isAuthenticated ? state.currentUser?.id : null,
+      ),
+    );
+    final inboxClient = profileId == null ? null : ref.watch(supabaseProvider);
     ref.listen(routerProvider, (_, next) {
       ref.read(deepLinkServiceProvider).start(next);
     });
@@ -63,7 +73,15 @@ class _SafeShiftAppState extends ConsumerState<SafeShiftApp> {
       themeMode: ThemeMode.system,
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: Theme.of(context).appBarTheme.systemOverlayStyle!,
-        child: child!,
+        child: inboxClient == null || profileId == null
+            ? child!
+            : InboxListener(
+                key: ValueKey(profileId),
+                client: inboxClient,
+                profileId: profileId,
+                onOpen: () => router.push('/settings/notifications'),
+                child: child!,
+              ),
       ),
       routerConfig: router,
     );
