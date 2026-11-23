@@ -28,6 +28,8 @@ export const records:Record<string,RecordList> = {
   consent:list('consent_records','consent','Consent ledger','id profile_id consent_type consent_version granted granted_at revoked_at created_at'),
   governance:list('government_requests','governance','Government requests','id country_id authority reference status period_start period_end created_at'),
   announcements:list('announcements','announcements','Announcement history','id country_id city_id audience title recipient_count created_at'),
+  'blocked-users':list('blocked_users','moderation','User blocks','id blocker_profile_id blocked_profile_id scope job_id created_at'),
+  'rating-reports':list('rating_reports','ratings','Rating reports','id rating_id reported_by reason status reviewed_at created_at'),
   registry:list('provider_requests','registry','Registry checks','id document_id kind status provider_reference created_at'),
   invoices:list('invoices','invoices','Invoices','id business_account_id invoice_number status subtotal tax_amount total currency_code issued_at created_at','created_at','/invoices/'),
 };

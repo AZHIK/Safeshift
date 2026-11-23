@@ -1,4 +1,5 @@
 const areaPermissions: Record<string, readonly string[]> = {
+  moderation:['manage_customers'],ratings:['manage_ratings'],
   registry: ['verify_driver'],
   invoices: ['view_invoices','manage_invoices'], consent: ['view_consent'],
   governance: ['export_regulator_reports','review_government_requests','manage_data_requests'],
@@ -7,7 +8,7 @@ const areaPermissions: Record<string, readonly string[]> = {
   jobs: ['view_all_jobs', 'assign_drivers'],
   users: ['view_all_users', 'manage_customers', 'suspend_user'],
   drivers: ['view_all_drivers', 'suspend_driver', 'verify_driver'],
-  fleets: ['view_all_fleets', 'manage_fleets', 'view_fleet'],
+  fleets: ['view_all_fleets', 'manage_fleets', 'view_fleet','manage_commission'],
   catalog: ['manage_vehicle_catalog', 'manage_cargo_catalog'],
   verifications: ['view_verifications', 'verify_driver', 'verify_vehicle'],
   incidents: ['view_incidents', 'manage_incidents'],

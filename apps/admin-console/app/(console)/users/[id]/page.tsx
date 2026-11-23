@@ -1,3 +1,4 @@
+import {ProfileOperations} from './profile-operations';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -116,6 +117,7 @@ export default async function UserDetailPage({
       <div className="split">
         <StatusHistory rows={(history ?? []) as HistoryRow[]} />
         <div className="section-stack">
+          <ProfileOperations id={p.id} fullName={p.full_name} displayName={p.display_name}/>
           <AccountStatusPanel
             profileId={p.id}
             name={name}

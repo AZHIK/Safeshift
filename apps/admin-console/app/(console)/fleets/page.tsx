@@ -1,3 +1,4 @@
+import { FleetOnboarding,FleetReview } from './operations';
 import { setFleetActiveAction } from '@/app/(console)/users/actions';
 import { ConfirmSubmit } from '@/components/confirm-submit';
 import { Notice } from '@/components/notice';
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export default async function FleetsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireArea('fleets');
   const supabase = await createClient();
-  const manage = await hasPermission('manage_fleets');
+  const [manage,mayBill] = await Promise.all([hasPermission('manage_fleets'),hasPermission('manage_commission')]);
   let fleetQuery = supabase
     .from('fleets')
     .select(
@@ -80,6 +81,7 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
         description="Fleet owners manage their own vehicles and drivers. Operations staff can see all fleets, verification state, and billing events."
       />
       <Notice searchParams={await searchParams} />
+      {manage && <FleetOnboarding/>}
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       {(fleets ?? []).length === 0 ? (
         <div className="card table-empty">No fleets found.</div>
@@ -110,6 +112,7 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
                     <StatusBadge value={fleet.is_active ? 'active' : 'disabled'} />
                   </div>
                 </div>
+                {fleet.is_active && <FleetReview id={fleet.id} mayVerify={manage && !fleet.verified_at} mayBill={mayBill} rate={fleet.commission_rate_override}/>}
                 <div className="grid grid-3" style={{ marginTop: 12 }}>
                   <div
                     className="trip-cell"

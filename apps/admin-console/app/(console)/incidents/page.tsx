@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { acknowledgeAlertAction, resolveIncidentAction } from '@/app/actions/admin';
 import { DataTable } from '@/components/data-table';
 import { Notice } from '@/components/notice';
@@ -113,7 +114,7 @@ export default async function IncidentsPage({
             ]}
             rows={(incidents ?? []).map((incident) => [
               <span className="mono" key="i">
-                {shortId(incident.id)}
+                <Link href={'/incidents/'+incident.id}>{shortId(incident.id)}</Link>
               </span>,
               <span className="mono small" key="j">
                 {shortId(incident.job_id)}
