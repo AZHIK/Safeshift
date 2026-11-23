@@ -14,6 +14,7 @@ import {
   requireRecordTable,
 } from '@/lib/data-records';
 import { requireArea } from '@/lib/guard';
+import { type ReferenceChoices, searchReferenceOptions } from '@/lib/record-labels';
 import { createClient } from '@/lib/supabase/server';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -165,4 +166,11 @@ export async function accountStatusAction(formData: FormData) {
   if (error) redirect(withFlash(back, 'failed', error.message));
   revalidatePath('/', 'layout');
   redirect(withFlash(back, 'done', ok));
+}
+
+/** Choices for a reference dropdown, matching a search. */
+export async function searchReferenceAction(table: string, column: string, q: string): Promise<ReferenceChoices> {
+  if (!isTableName(table) || !/^[a-z_][a-z0-9_]{0,62}$/.test(column)) return { options: [], more: false };
+  await requireRecordTable(table);
+  return searchReferenceOptions(table, column, q.trim().slice(0, 100) || null);
 }

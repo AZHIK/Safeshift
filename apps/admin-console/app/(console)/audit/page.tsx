@@ -4,6 +4,7 @@ import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { loadProfileSummaries } from '@/lib/profile-summaries';
 import { entityHref } from '@/lib/entity-links';
+import { loadAuditedNames } from '@/lib/record-labels';
 import { createClient } from '@/lib/supabase/server';
 import { RecordActions } from '@/components/record-actions';
 
@@ -20,10 +21,13 @@ export default async function AuditPage() {
     .order('created_at', { ascending: false })
     .limit(200);
 
-  const profiles = await loadProfileSummaries(
-    supabase,
-    (data ?? []).map((entry) => entry.admin_profile_id),
-  );
+  const [profiles, entityName] = await Promise.all([
+    loadProfileSummaries(
+      supabase,
+      (data ?? []).map((entry) => entry.admin_profile_id),
+    ),
+    loadAuditedNames(data ?? []),
+  ]);
 
   return (
     <>
@@ -58,8 +62,12 @@ export default async function AuditPage() {
                 ) : null}
               </div>,
               <span className="small" key="e">
-                {entry.entity_type ?? '—'}
-                <div className="mono muted">{shortId(entry.entity_id)}</div>
+                {entityName(entry.entity_type, entry.entity_id) ?? titleize(entry.entity_type ?? '—')}
+                <div className={entityName(entry.entity_type, entry.entity_id) ? 'muted' : 'mono muted'}>
+                  {entityName(entry.entity_type, entry.entity_id)
+                    ? titleize(entry.entity_type ?? '')
+                    : shortId(entry.entity_id)}
+                </div>
               </span>,
               <span className="mono small" key="p">
                 {entry.permission_used ?? '—'}

@@ -1,15 +1,24 @@
-import { formValue, inputKind, type RecordColumn } from '@/lib/data-records';
+import { searchReferenceAction } from '@/app/(console)/data/actions';
+import { ReferenceSelect } from '@/components/reference-select';
+import { fieldLabel, formValue, inputKind, type RecordColumn } from '@/lib/data-records';
 import { titleize } from '@/lib/format';
+import type { ReferenceChoices } from '@/lib/record-labels';
+
 
 /** One field per column, typed from the database. */
 export function RecordFields({
   columns,
   values = {},
   mode,
+  table,
+  references = {},
 }: {
   columns: RecordColumn[];
   values?: Record<string, unknown>;
   mode: 'create' | 'edit';
+  table: string;
+  /** Dropdown choices for reference columns (loadReferenceChoices). */
+  references?: Record<string, ReferenceChoices>;
 }) {
   return (
     <>
@@ -21,9 +30,9 @@ export function RecordFields({
         const locked = mode === 'edit' && column.is_primary_key;
         const kind = inputKind(column);
         const required = !column.is_nullable && !column.has_default && mode === 'create';
+        const choices = column.references_table ? references[column.column_name] : undefined;
         const hint = [
-          column.data_type,
-          column.references_table ? `refers to ${column.references_table.replace('public.', '')}` : null,
+          choices ? `choose from ${titleize(column.references_table!.replace(/^(public|auth)\./, ''))}` : column.data_type,
           mode === 'create' && column.has_default ? 'leave blank for the default' : null,
           !column.is_nullable ? 'required' : null,
         ]
@@ -32,6 +41,13 @@ export function RecordFields({
         let input;
         if (locked) {
           input = <input className="input mono" id={id} value={value} readOnly disabled />;
+        } else if (choices) {
+          input = (
+            <ReferenceSelect id={id} name={name} table={table} column={column.column_name} choices={choices}
+              defaultValue={value} required={required}
+              blankLabel={mode === 'edit' && !column.is_nullable ? 'Unchanged' : column.is_nullable ? 'None' : 'Choose…'}
+              search={searchReferenceAction} />
+          );
         } else if (kind === 'boolean') {
           input = (
             <select className="input" id={id} name={name} defaultValue={value} required={required}>
@@ -66,7 +82,7 @@ export function RecordFields({
         return (
           <div className="field" key={column.column_name}>
             <label htmlFor={id}>
-              {titleize(column.column_name)}
+              {choices ? fieldLabel(column.column_name) : titleize(column.column_name)}
               {column.is_primary_key ? ' (key)' : ''}
             </label>
             {input}

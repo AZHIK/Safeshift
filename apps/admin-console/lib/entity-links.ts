@@ -24,3 +24,17 @@ export function entityHref(type: unknown, id: unknown): string | null {
   if (SCREENS[t]) return SCREENS[t] + i;
   return TABLE_RE.test(t) ? `/data/${t}/${encodeKey({ id: i })}` : null;
 }
+
+const ENTITY_TABLE: Record<string, string> = {
+  profile: 'profiles', user: 'profiles', driver: 'drivers', job: 'jobs', payment: 'payments',
+  incident: 'incidents', invoice: 'invoices', promo_code: 'promo_codes', pricing_plan: 'pricing_plans',
+  payout_batch: 'payout_batches', payout: 'payouts', vehicle: 'vehicles', fleet: 'fleets',
+  dispute: 'disputes', support_ticket: 'support_tickets', business_account: 'business_accounts',
+};
+
+/** The table an audited entity type lives in, or null. */
+export function entityTable(type: unknown): string | null {
+  const t = String(type ?? '').toLowerCase();
+  if (ENTITY_TABLE[t]) return ENTITY_TABLE[t];
+  return TABLE_RE.test(t) ? t : null;
+}

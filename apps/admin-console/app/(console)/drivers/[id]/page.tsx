@@ -601,7 +601,9 @@ export default async function DriverDetailPage({
                     </div>
                     <div className="small">
                       {entry.actor_name ?? 'SafeShift'} · {titleize(entry.action)}
-                      {entry.vehicle_id ? ` · ${shortId(entry.vehicle_id)}` : ''}
+                      {entry.vehicle_id
+                        ? ` · ${vehicles.find((v) => v.id === entry.vehicle_id)?.registration_number ?? shortId(entry.vehicle_id)}`
+                        : ''}
                     </div>
                     {entry.notes ? <div className="small muted">{entry.notes}</div> : null}
                   </div>

@@ -11,6 +11,7 @@ import { RealtimeDashboard } from '@/components/realtime-dashboard';
 import { StatusBadge } from '@/components/status-badge';
 import { getAdminSession } from '@/lib/auth';
 import { formatDate, formatMoney, shortId, titleize } from '@/lib/format';
+import { loadAuditedNames } from '@/lib/record-labels';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +91,7 @@ export default async function DashboardPage({
     entity_id?: string | null;
     created_at?: string;
   }>;
+  const entityName = await loadAuditedNames(activityRows);
 
   return (
     <>
@@ -138,8 +140,15 @@ export default async function DashboardPage({
             rows={activityRows.map((row) => [
               row.actor_name ?? 'System',
               <span key="a">{titleize(row.action)}</span>,
-              <span className="mono" key="e">
-                {row.entity_type ?? '—'} {shortId(row.entity_id)}
+              <span key="e">
+                {entityName(row.entity_type, row.entity_id) ?? (
+                  <span className="mono">
+                    {row.entity_type ?? '—'} {shortId(row.entity_id)}
+                  </span>
+                )}
+                {entityName(row.entity_type, row.entity_id) ? (
+                  <div className="small muted">{titleize(row.entity_type ?? '')}</div>
+                ) : null}
               </span>,
               <span className="small muted" key="d">
                 {formatDate(row.created_at)}

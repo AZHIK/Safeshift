@@ -1271,3 +1271,9 @@ td.col-actions {
   margin: 2px 0 0;
   overflow-wrap: anywhere;
 }
+
+.reference-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

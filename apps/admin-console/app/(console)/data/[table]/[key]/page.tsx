@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation';
 import { CellValue } from '@/components/cell-value';
 import { PageHeader } from '@/components/page-header';
 import { RecordActions } from '@/components/record-actions';
-import { decodeKey, encodeKey, isTableName, type RecordColumn, requireRecordTable } from '@/lib/data-records';
+import { decodeKey, isTableName, type RecordColumn, requireRecordTable } from '@/lib/data-records';
+import { ReferenceValue } from '@/components/reference-value';
+import { loadRecordNames, loadReferenceLabels } from '@/lib/record-labels';
 import { titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
 
@@ -23,12 +25,16 @@ export default async function RecordPage({ params }: { params: Promise<{ table: 
   if (row.error?.code === 'P0002' || cols.error?.code === '42P01') notFound();
   const columns = (cols.data ?? []) as RecordColumn[];
   const record = (row.data ?? {}) as Record<string, unknown>;
+  const [labels, names] = await Promise.all([
+    loadReferenceLabels(table, columns, [record]),
+    key.id ? loadRecordNames(table, [key.id]) : Promise.resolve({} as Record<string, string>),
+  ]);
 
   return (
     <>
       <PageHeader
-        title={`${titleize(table)} record`}
-        description={Object.values(key).join(' · ')}
+        title={(key.id && names[key.id]) || `${titleize(table)} record`}
+        description={`${titleize(table)} · ${Object.values(key).join(' · ')}`}
         actions={
           <>
             <Link className="btn" href={`/data/${table}`}>Back to {titleize(table)}</Link>
@@ -41,13 +47,12 @@ export default async function RecordPage({ params }: { params: Promise<{ table: 
         <dl className="record-fields">
           {columns.map((c) => {
             const value = record[c.column_name];
-            const ref = c.references_table?.replace('public.', '');
             return (
               <div key={c.column_name} className="record-field">
                 <dt className="small muted">{titleize(c.column_name)}</dt>
                 <dd>
-                  {ref && typeof value === 'string' && value ? (
-                    <Link className="mono small" href={`/data/${ref}/${encodeKey({ id: value })}`}>{value}</Link>
+                  {c.references_table && value !== null && value !== undefined && value !== '' ? (
+                    <ReferenceValue column={c} value={value} labels={labels} showId />
                   ) : value !== null && typeof value === 'object' ? (
                     <pre className="mono small" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(value, null, 2)}</pre>
                   ) : typeof value === 'string' && /^[0-9a-f]{8}-/i.test(value) ? (

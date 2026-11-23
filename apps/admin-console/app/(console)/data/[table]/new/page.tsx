@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { RecordFields } from '@/components/record-form';
 import { isTableName, type RecordColumn, requireRecordTable } from '@/lib/data-records';
+import { loadReferenceChoices } from '@/lib/record-labels';
 import { titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
 
@@ -24,6 +25,8 @@ export default async function NewRecordPage({ params }: { params: Promise<{ tabl
   const block = ((tables.data ?? []) as { table_name: string; write_block: string | null }[]).find(
     (t) => t.table_name === table,
   )?.write_block;
+  const columns = (cols.data ?? []) as RecordColumn[];
+  const references = block ? {} : await loadReferenceChoices(table, columns);
 
   return (
     <>
@@ -34,7 +37,7 @@ export default async function NewRecordPage({ params }: { params: Promise<{ tabl
       ) : (
         <form action={createRecordAction} className="card card-pad form">
           <input type="hidden" name="table" value={table} />
-          <RecordFields columns={(cols.data ?? []) as RecordColumn[]} mode="create" />
+          <RecordFields columns={columns} mode="create" table={table} references={references} />
           <div className="inline" style={{ gap: 8 }}>
             <button className="btn btn-primary" type="submit">Create record</button>
             <Link className="btn" href={`/data/${table}`}>Cancel</Link>

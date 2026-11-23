@@ -53,13 +53,13 @@ describe.skipIf(!config)('record management against Supabase', () => {
     createdId = (created.data as { id: string }).id;
 
     const edited = await admin.rpc('admin_record_update', {
-      p_table: 'currencies', p_key: { id: createdId }, p_values: { name: 'Integration Renamed' },
+      p_table: 'currencies', p_key: { id: createdId }, p_values: { name: `Integration Renamed ${code}` },
     });
     expect(edited.error).toBeNull();
-    expect((edited.data as { name: string }).name).toBe('Integration Renamed');
+    expect((edited.data as { name: string }).name).toBe(`Integration Renamed ${code}`);
 
     const found = await admin.rpc('admin_record_list', {
-      p_table: 'currencies', p_search: 'Integration Renamed', p_order: null, p_desc: true, p_limit: 10, p_offset: 0,
+      p_table: 'currencies', p_search: `Integration Renamed ${code}`, p_order: null, p_desc: true, p_limit: 10, p_offset: 0,
     });
     expect((found.data as { total: number }).total).toBe(1);
 

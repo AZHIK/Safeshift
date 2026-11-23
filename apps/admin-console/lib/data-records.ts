@@ -61,6 +61,12 @@ export function recordHref(table: string, key: RecordKey | string, suffix = ''):
   return `/data/${table}/${encodeKey(k)}${suffix}`;
 }
 
+/** "country_id" → "Country", "owner_profile_id" → "Owner profile". */
+export function fieldLabel(column: string): string {
+  const base = column.replace(/_id$/, '').replace(/_/g, ' ');
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
 export function inputKind(column: RecordColumn): InputKind {
   const t = column.data_type.toLowerCase();
   if (t === 'boolean') return 'boolean';

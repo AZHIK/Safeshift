@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { formatDate, formatMoney, shortId } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
 import { PROMO_STATUS, describeDiscount, formFromPromo, promoStatus } from '@/lib/promos/promo';
+import { loadEntityNames } from '@/lib/record-labels';
 import { createClient } from '@/lib/supabase/server';
 
 import { deletePromoAction, setPromoActiveAction } from '../actions';
@@ -75,6 +76,7 @@ export default async function PromoDetailPage({
   const status = promoStatus(promo, used);
   const currency = String(promo.currency_code ?? '').trim() || 'TZS';
   const rows = (history ?? []) as Redemption[];
+  const names = await loadEntityNames({ jobs: rows.map((r) => r.job_id) });
   const total = Number(rows[0]?.total_count ?? 0);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -164,9 +166,9 @@ export default async function PromoDetailPage({
                 r.customer_name,
                 formatMoney(r.discount_amount, r.currency_code),
                 r.job_id ? (
-                  <span key="j" className="mono small">
-                    {shortId(r.job_id)}
-                  </span>
+                  <a key="j" className="small" href={`/jobs/${r.job_id}`}>
+                    {names.jobs[r.job_id] ?? shortId(r.job_id)}
+                  </a>
                 ) : (
                   '—'
                 ),

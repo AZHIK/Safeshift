@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { updateDisputeAction } from '@/app/actions/admin';
 import { DataTable } from '@/components/data-table';
 import { Notice } from '@/components/notice';
@@ -5,6 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
+import { loadEntityNames } from '@/lib/record-labels';
 import { createClient } from '@/lib/supabase/server';
 import { RecordActions } from '@/components/record-actions';
 
@@ -35,6 +37,10 @@ export default async function DisputesPage({
     )
     .order('created_at', { ascending: false })
     .limit(100);
+  const names = await loadEntityNames({
+    jobs: (data ?? []).map((d) => d.job_id),
+    profiles: (data ?? []).map((d) => d.raised_by),
+  });
 
   return (
     <>
@@ -61,12 +67,20 @@ export default async function DisputesPage({
               <span className="mono">{shortId(dispute.id)}</span>
               <div className="small muted">{formatDate(dispute.created_at)}</div>
             </div>,
-            <span className="mono small" key="j">
-              {shortId(dispute.job_id)}
-            </span>,
+            dispute.job_id ? (
+              <Link className="small" key="j" href={`/jobs/${dispute.job_id}`}>
+                {names.jobs[dispute.job_id] ?? shortId(dispute.job_id)}
+              </Link>
+            ) : (
+              <span key="j" className="muted">—</span>
+            ),
             <div className="small" key="r">
-              {titleize(dispute.raised_by_role)}
-              <div className="mono muted">{shortId(dispute.raised_by)}</div>
+              {dispute.raised_by ? (
+                <Link href={`/users/${dispute.raised_by}`}>{names.profiles[dispute.raised_by] ?? shortId(dispute.raised_by)}</Link>
+              ) : (
+                '—'
+              )}
+              <div className="muted">{titleize(dispute.raised_by_role)}</div>
             </div>,
             <div key="t">
               {titleize(dispute.dispute_type)}

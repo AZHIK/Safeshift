@@ -5,7 +5,9 @@ import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { RecordActions } from '@/components/record-actions';
 import { CellValue } from '@/components/cell-value';
-import { isTableName, keyOf, type RecordColumn, requireRecordTable } from '@/lib/data-records';
+import { ReferenceValue } from '@/components/reference-value';
+import { loadReferenceLabels } from '@/lib/record-labels';
+import { fieldLabel, isTableName, keyOf, type RecordColumn, requireRecordTable } from '@/lib/data-records';
 import { titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
 
@@ -58,6 +60,7 @@ export default async function TableRecordsPage({
     .filter((c) => !/json|\[\]/.test(c.data_type))
     .sort((a, b) => Number(a.is_primary_key) - Number(b.is_primary_key))
     .slice(0, SHOWN);
+  const labels = await loadReferenceLabels(table, shown, rows);
 
   function href(next: Record<string, string | number | null>) {
     const p = new URLSearchParams();
@@ -106,8 +109,16 @@ export default async function TableRecordsPage({
       {error ? <div className="notice notice-error">{error}</div> : null}
       <div className="card">
         <DataTable
-          columns={shown.map((c) => titleize(c.column_name))}
-          rows={rows.map((row) => shown.map((c) => <CellValue key={c.column_name} value={row[c.column_name]} />))}
+          columns={shown.map((c) => (c.references_table ? fieldLabel(c.column_name) : titleize(c.column_name)))}
+          rows={rows.map((row) =>
+            shown.map((c) =>
+              c.references_table && row[c.column_name] !== null && row[c.column_name] !== undefined ? (
+                <ReferenceValue key={c.column_name} column={c} value={row[c.column_name]} labels={labels} />
+              ) : (
+                <CellValue key={c.column_name} value={row[c.column_name]} />
+              ),
+            ),
+          )}
           actions={rows.map((row, i) => (
             <RecordActions key={i} table={table} recordKey={keyOf(row, pk)} />
           ))}
