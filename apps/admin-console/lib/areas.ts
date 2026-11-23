@@ -1,4 +1,5 @@
 const areaPermissions: Record<string, readonly string[]> = {
+  announcements: ['send_notification'],
   analytics: ['view_analytics'], audit: ['view_audit'],
   jobs: ['view_all_jobs', 'assign_drivers'],
   users: ['view_all_users', 'manage_customers', 'suspend_user'],

@@ -104,22 +104,13 @@ export async function updateTicketAction(formData: FormData) {
   const ticketId = String(formData.get('ticket_id') ?? '');
   const status = String(formData.get('status') ?? '');
   const priority = String(formData.get('priority') ?? '');
-  const assignToMe = formData.get('assign_to_me') === 'on';
   if (!ticketId) return;
-  const supabase = await client();
-  const { data: auth } = await supabase.auth.getUser();
-  const update: Record<string, unknown> = {};
-  if (status) {
-    update.status = status;
-    if (status === 'resolved') update.resolved_at = new Date().toISOString();
-    if (status === 'closed') {
-      update.resolved_at = new Date().toISOString();
-      update.closed_at = new Date().toISOString();
-    }
-  }
-  if (priority) update.priority = priority;
-  if (assignToMe && auth.user) update.assigned_to = auth.user.id;
-  const { error } = await supabase.from('support_tickets').update(update).eq('id', ticketId);
+  const clientDb = await client();
+  const due = String(formData.get('sla_due_at') || '').trim();
+  const {error} = await clientDb.rpc('admin_triage_ticket', {
+    p_ticket_id:ticketId,p_status:status,p_priority:priority,
+    p_assigned:formData.get('assigned_to') || null, p_due:due ? due + 'Z' : null,
+  });
   if (error) {
     redirect(`/support/${ticketId}?error=${encodeURIComponent(error.message)}`);
   }

@@ -25,6 +25,7 @@ vi.mock('@/lib/configuration/guard', () => ({
 /** The permission each configuration page is expected to require. */
 const EXPECTED: Record<string, string> = {
   'tax-rates':'manage_taxes', 'commission-rules':'manage_commission', surge:'manage_surge', 'zone-overrides':'adjust_pricing', retention:'manage_retention',
+  'saved-replies':'manage_support',
   countries: 'manage_countries',
   'country-configurations': 'manage_countries',
   regions: 'manage_geography',
@@ -156,7 +157,7 @@ describe('configuration permissions', () => {
       group.items.filter((item) => supportAgent.includes(item.permission)).map((item) => item.slug),
     );
 
-    expect(visible).toEqual(['support-categories']);
+    expect(visible).toEqual(['saved-replies','support-categories']);
   });
 
   it('shows an analyst nothing at all', () => {

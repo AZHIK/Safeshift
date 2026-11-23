@@ -13,6 +13,13 @@ const vehicle = select('vehicle_type_id','Vehicle type','vehicle_types');
 const reason: ConfigField = {name:'reason',label:'Reason',type:'text'};
 
 export const policyResources: Record<string,ConfigResource> = {
+  'saved-replies': {
+    table:'support_saved_replies', singular:'saved reply', singularTitle:'Saved reply', pluralTitle:'Saved replies',
+    description:'Reusable replies that support agents can edit before sending.', permission:'manage_support',group:'Support & Safety',
+    softDelete:true,selectSpec:'*',searchColumns:['name','body'],defaultSort:{column:'name',ascending:true},
+    columns:[{key:'name',label:'Name'},{key:'body',label:'Reply'},{key:'is_active',label:'Active',kind:'boolean'}],
+    fields:[{name:'name',label:'Name',type:'text',required:true},{name:'body',label:'Reply',type:'textarea',required:true},active],
+  },
   'tax-rates': {
     table:'tax_rates', singular:'tax rate',singularTitle:'Tax rate',pluralTitle:'Tax rates',description:'Country tax rates and their effective dates. Enter 0.18 for 18%.',
     permission:'manage_taxes',group:'Commercial',countryScoped:true,softDelete:true,

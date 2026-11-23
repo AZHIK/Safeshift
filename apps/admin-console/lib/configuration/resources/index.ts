@@ -187,6 +187,7 @@ export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
     label: 'Support & Safety',
     items: [
       item('prohibited-items', 'Prohibited Items', prohibitedItems),
+      item('saved-replies','Saved replies',policyResources['saved-replies']),
       item('support-categories', 'Support Categories', supportCategories),
     ],
   },

@@ -12,20 +12,23 @@ export const dynamic = 'force-dynamic';
 export default async function SupportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; queue?:string }>;
 }) {
-  await requireArea('support');
+  const session = await requireArea('support');
   const params = await searchParams;
   const status = params.status ?? '';
   const supabase = await createClient();
   let query = supabase
     .from('support_tickets')
     .select(
-      'id, ticket_number, subject, status, priority, created_at, updated_at, opened_by, assigned_to, support_categories(name), support_ticket_messages(id)',
+      'id, ticket_number, subject, status, priority, sla_due_at, created_at, updated_at, opened_by, assigned_to, support_categories(name), support_ticket_messages(id)',
     )
     .order('created_at', { ascending: false })
     .limit(100);
   if (status) query = query.eq('status', status);
+  if (params.queue === 'mine') query = query.eq('assigned_to',session.userId);
+  if (params.queue === 'unassigned') query = query.is('assigned_to',null);
+  if (params.queue === 'overdue') query = query.lt('sla_due_at',new Date().toISOString()).in('status',['open','in_progress']);
   const { data, error } = await query;
 
   return (
@@ -35,6 +38,9 @@ export default async function SupportPage({
         description="Account, payment, app, trip, and verification support. Disputes are handled separately."
         actions={
           <>
+            <Link className="btn" href="/support?queue=mine">My tickets</Link>
+            <Link className="btn" href="/support?queue=unassigned">Unassigned</Link>
+            <Link className="btn" href="/support?queue=overdue">Overdue</Link>
             <Link className="btn" href="/support?status=open">
               Open
             </Link>
@@ -60,7 +66,7 @@ export default async function SupportPage({
             'Status',
             'Priority',
             'Messages',
-            'Updated',
+            'Response due', 'Updated',
             '',
           ]}
           rows={(data ?? []).map((ticket) => {
@@ -75,6 +81,7 @@ export default async function SupportPage({
               <StatusBadge key="s" value={ticket.status} />,
               <StatusBadge key="p" value={ticket.priority} />,
               ticket.support_ticket_messages?.length ?? 0,
+              ticket.sla_due_at ? formatDate(ticket.sla_due_at) : '—',
               <span className="small muted" key="u">
                 {formatDate(ticket.updated_at)}
               </span>,

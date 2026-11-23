@@ -49,6 +49,7 @@ const groups: {
     label: 'Governance',
     items: [
       { href: '/data-requests', label: 'Data requests', area: 'data-requests', glyph: '⌘' },
+      { href: '/announcements', label: 'Announcements', area: 'announcements', glyph: '◉' },
       { href: '/audit', label: 'Audit log', area: 'audit', glyph: '▦' },
       { href: '/settings', label: 'Settings', area: 'settings', glyph: '⚙' },
     ],

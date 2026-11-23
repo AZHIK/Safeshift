@@ -1,3 +1,4 @@
+import { ReplyText } from './reply-text';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -29,6 +30,10 @@ export default async function SupportDetailPage({
     .maybeSingle();
   if (!ticket && !error) notFound();
 
+  const [agents, replies] = await Promise.all([
+    supabase.rpc('admin_ticket_agents',{p_ticket_id:id}),
+    supabase.from('support_saved_replies').select('id,name,body').eq('is_active',true).order('name'),
+  ]);
   const messages = [...(ticket?.support_ticket_messages ?? [])].sort(
     (a, b) => Number(a.id) - Number(b.id),
   );
@@ -109,12 +114,7 @@ export default async function SupportDetailPage({
               <h2 className="card-title">Reply</h2>
               <form action={replyTicketAction} className="form" style={{ marginTop: 10 }}>
                 <input type="hidden" name="ticket_id" value={ticket.id} />
-                <textarea
-                  className="input"
-                  name="message"
-                  placeholder="Write a reply to the customer…"
-                  required
-                />
+                <ReplyText choices={replies.data ?? []} />
                 <label className="inline small">
                   <input type="checkbox" name="internal" /> Internal note
                 </label>
@@ -150,8 +150,15 @@ export default async function SupportDetailPage({
                   ))}
                 </select>
               </div>
-              <label className="inline small">
-                <input type="checkbox" name="assign_to_me" /> Assign to me
+              <label className="field">Assigned agent
+                <select name="assigned_to" className="input" defaultValue={ticket.assigned_to ?? ''}>
+                  <option value="">Unassigned</option>
+                  {ticket.assigned_to && !(agents.data ?? []).some((a:{id:string})=>a.id===ticket.assigned_to) && <option value={ticket.assigned_to}>Current assignee</option>}
+                  {(agents.data ?? []).map((agent:{id:string;name:string})=><option value={agent.id} key={agent.id}>{agent.name}</option>)}
+                </select>
+              </label>
+              <label className="field">Response due (UTC)
+                <input name="sla_due_at" className="input" type="datetime-local" defaultValue={ticket.sla_due_at ? new Date(ticket.sla_due_at).toISOString().slice(0,16) : ''}/>
               </label>
               <button className="btn btn-primary" type="submit">
                 Save changes
