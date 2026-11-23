@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { RowMenu, type MenuItem } from '@/components/row-menu';
 import { formatDate } from '@/lib/format';
 
 export type AuditEntry = {
@@ -56,6 +57,24 @@ export function toCsv(entries: AuditEntry[]): string {
   }
 
   return lines.join('\n');
+}
+
+function copy(text: string) {
+  void navigator.clipboard?.writeText(text).catch(() => undefined);
+}
+
+/** The ⋮ menu for one audit entry. Entries are append-only, so these only read. */
+export function auditEntryItems(entry: AuditEntry): MenuItem[] {
+  const items: MenuItem[] = [];
+  if (entry.actor_id) items.push({ kind: 'link', label: 'View actor', href: `/users/${entry.actor_id}` });
+  items.push(
+    { kind: 'link', label: 'Open audit log', href: '/audit' },
+    { kind: 'button', label: 'Copy old value', onSelect: () => copy(formatAuditValue(entry.old_value)) },
+    { kind: 'button', label: 'Copy new value', onSelect: () => copy(formatAuditValue(entry.new_value)) },
+    { kind: 'button', label: 'Copy entry ID', onSelect: () => copy(entry.entry_id) },
+    { kind: 'disabled', label: 'Edit or delete', note: 'Audit entries are permanent and cannot be changed.' },
+  );
+  return items;
 }
 
 /**
@@ -220,6 +239,9 @@ export function AuditHistoryDrawer({
                     <th>Action</th>
                     <th>Old value</th>
                     <th>New value</th>
+                    <th className="col-actions">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -238,6 +260,9 @@ export function AuditHistoryDrawer({
                       </td>
                       <td>
                         <pre className="audit-value">{formatAuditValue(entry.new_value)}</pre>
+                      </td>
+                      <td className="col-actions">
+                        <RowMenu label={`Actions for ${entry.action}`} items={auditEntryItems(entry)} />
                       </td>
                     </tr>
                   ))}
