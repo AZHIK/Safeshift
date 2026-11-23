@@ -313,6 +313,9 @@ export default async function DriverDetailPage({
           <>
             <StatusBadge value={driver.verification_status ?? 'pending'} />
             <StatusBadge value={driver.is_available ? 'active' : 'paused'} />
+            <Link className="btn" href={`/users/${profile.id}`}>
+              Account &amp; suspension
+            </Link>
             <Link className="btn" href="/drivers">
               Back to drivers
             </Link>

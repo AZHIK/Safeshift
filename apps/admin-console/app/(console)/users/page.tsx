@@ -54,7 +54,9 @@ export default async function UsersPage({
           columns={['Name', 'Role', 'Contact', 'Status', 'Joined', 'ID']}
           rows={rows.map((row) => [
             <div key="n">
-              <strong>{String(row.full_name ?? row.display_name ?? 'Unnamed')}</strong>
+              <Link href={`/users/${String(row.profile_id)}`}>
+                <strong>{String(row.full_name ?? row.display_name ?? 'Unnamed')}</strong>
+              </Link>
               {row.display_name ? (
                 <div className="small muted">{String(row.display_name)}</div>
               ) : null}
