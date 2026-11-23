@@ -1,3 +1,7 @@
+import { setFleetActiveAction } from '@/app/(console)/users/actions';
+import { ConfirmSubmit } from '@/components/confirm-submit';
+import { Notice } from '@/components/notice';
+import { hasPermission } from '@/lib/configuration/guard';
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
@@ -8,13 +12,14 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function FleetsPage() {
+export default async function FleetsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireArea('fleets');
   const supabase = await createClient();
+  const manage = await hasPermission('manage_fleets');
   let fleetQuery = supabase
     .from('fleets')
     .select(
-      'id, name, trading_name, registration_number, contact_email, contact_phone, owner_profile_id, is_active, verified_at, commission_rate_override, created_at',
+      'id, name, trading_name, registration_number, contact_email, contact_phone, owner_profile_id, is_active, deactivation_reason, verified_at, commission_rate_override, created_at',
     )
     .order('created_at', { ascending: false })
     .limit(100);
@@ -74,6 +79,7 @@ export default async function FleetsPage() {
         title={session.role === 'fleet_owner' ? 'My fleet' : 'Fleets'}
         description="Fleet owners manage their own vehicles and drivers. Operations staff can see all fleets, verification state, and billing events."
       />
+      <Notice searchParams={await searchParams} />
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       {(fleets ?? []).length === 0 ? (
         <div className="card table-empty">No fleets found.</div>
@@ -146,6 +152,20 @@ export default async function FleetsPage() {
                   </div>
                 </div>
               </div>
+              {manage && (
+                <form className="card-pad form" action={setFleetActiveAction}>
+                  <input type="hidden" name="fleet_id" value={fleet.id} />
+                  <input type="hidden" name="active" value={String(!fleet.is_active)} />
+                  {fleet.deactivation_reason && <p>Suspension reason · {fleet.deactivation_reason}</p>}
+                  <label className="field">
+                    {fleet.is_active ? 'Reason for suspension' : 'Reactivation note (optional)'}
+                    <input className="input" name="reason" required={fleet.is_active} minLength={fleet.is_active ? 3 : undefined} maxLength={500} />
+                  </label>
+                  <ConfirmSubmit message={`${fleet.is_active ? 'Suspend' : 'Reactivate'} ${fleet.name}?`} className={fleet.is_active ? 'btn btn-danger' : 'btn btn-primary'}>
+                    {fleet.is_active ? 'Suspend fleet' : 'Reactivate fleet'}
+                  </ConfirmSubmit>
+                </form>
+              )}
               <div className="grid grid-2">
                 <div>
                   <div className="card-pad" style={{ paddingBottom: 0 }}>

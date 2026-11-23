@@ -80,7 +80,9 @@ export async function setFleetActiveAction(formData: FormData) {
   const id = field(formData, 'fleet_id');
   const back = backPath(formData, '/fleets');
   if (!UUID_RE.test(id)) go(back, 'error', 'Missing or invalid fleet.');
-  const active = field(formData, 'active') === 'true';
+  const state = field(formData, 'active');
+  if (state !== 'true' && state !== 'false') go(back, 'error', 'Choose a valid fleet status.');
+  const active = state === 'true';
   const reason = field(formData, 'reason');
   if (!active && reason.length < 3) go(back, 'error', 'Give a reason for suspending this fleet.');
   await call(back, 'admin_set_fleet_active', { p_fleet_id: id, p_active: active, p_reason: reason || null },
