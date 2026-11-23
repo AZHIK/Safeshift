@@ -257,22 +257,6 @@ export async function toggleFeatureFlagAction(formData: FormData) {
   redirect('/settings?ok=Feature flag updated');
 }
 
-export async function togglePromoAction(formData: FormData) {
-  const promoId = String(formData.get('promo_id') ?? '');
-  const enabled = formData.get('enabled') === 'true';
-  if (!promoId) return;
-  const supabase = await client();
-  const { error } = await supabase
-    .from('promo_codes')
-    .update({ is_active: enabled })
-    .eq('id', promoId);
-  if (error) {
-    redirect(`/promos?error=${encodeURIComponent(error.message)}`);
-  }
-  revalidatePath('/promos');
-  redirect('/promos?ok=Promo updated');
-}
-
 // ----------------------------------------------------------------------------
 // Catalogue: vehicle categories and cargo types
 //
