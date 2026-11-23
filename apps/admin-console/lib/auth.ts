@@ -1,3 +1,4 @@
+import { secondFactorVerified } from './second-factor';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 
@@ -26,8 +27,7 @@ export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
       .maybeSingle(),
   ]);
   if (error || !role) return null;
-  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (assurance?.currentLevel !== 'aal2') redirect('/mfa');
+  if (!(await secondFactorVerified(supabase))) redirect('/mfa');
 
   return {
     userId: user.id,
