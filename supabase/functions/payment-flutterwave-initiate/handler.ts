@@ -46,7 +46,7 @@ export async function handle(
 
   const { data: job, error: jobError } = await service
     .from('jobs')
-    .select('id, customer_id, status, payment_status, quote_id')
+    .select('id, customer_id, status, payment_status, quote_id, final_amount')
     .eq('id', body.job_id)
     .maybeSingle();
 
@@ -68,11 +68,12 @@ export async function handle(
   if (quoteError) throw quoteError;
   if (!quote) throw new NotFoundError('Quote not found');
 
+  const amount = Number(job.final_amount ?? quote.total);
   const client = deps.userClient ? deps.userClient(auth.token) : userClient(auth.token);
   const { data: paymentId, error: initiateError } = await client.rpc('job_payment_initiate', {
     p_job_id: body.job_id,
     p_provider_code: 'flutterwave',
-    p_amount: quote.total,
+    p_amount: amount,
     p_idempotency_key: idempotencyKey,
     p_metadata: {},
     p_payment_method_id: body.payment_method_id ?? null,
@@ -84,7 +85,7 @@ export async function handle(
     const provider = deps.provider ?? (await flutterwaveClient(ctx.requestId));
     const tokenOrPhone = body.card_token ? `card:${body.card_token}` : body.phone!;
     const result = await provider.initiatePayment(
-      Number(quote.total),
+      amount,
       quote.currency_code,
       tokenOrPhone,
       `safeshift:${paymentId}`,

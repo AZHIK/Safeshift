@@ -51,9 +51,9 @@ export default async function JobsPage({
               'accepted',
               'heading_to_pickup',
               'arrived',
-              'loading',
+              'cargo_verified', 'loading',
               'in_transit',
-              'delivered',
+              'arrived_destination', 'delivered', 'disputed',
               'completed',
               'cancelled',
             ].map((value) => (
@@ -72,9 +72,9 @@ export default async function JobsPage({
         <DataTable
           columns={['Job', 'Status', 'Customer', 'Driver', 'Fare', 'Created', 'Completed']}
           rows={(data ?? []).map((job) => [
-            <span className="mono" key="j">
+            <Link className="mono" key="j" href={`/jobs/${job.id}`}>
               {shortId(job.id)}
-            </span>,
+            </Link>,
             <StatusBadge key="s" value={job.status} />,
             <span className="mono small" key="c">
               {shortId(job.customer_id)}
