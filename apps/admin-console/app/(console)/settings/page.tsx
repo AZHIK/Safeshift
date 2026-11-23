@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { toggleFeatureFlagAction } from '@/app/actions/admin';
 import { DataTable } from '@/components/data-table';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
@@ -48,17 +47,9 @@ export default async function SettingsPage({
   }
 
   const [
-    { data: flags, error: flagError },
     { data: roles, error: roleError },
     { data: categories },
   ] = await Promise.all([
-    supabase
-      .from('feature_flags')
-      .select(
-        'id, flag_key, is_enabled, rollout_percentage, description, country_id, city_id, profile_id, updated_at',
-      )
-      .order('flag_key')
-      .limit(100),
     supabase
       .from('admin_roles')
       .select('id, profile_id, role_name, country_id, city_id, is_active, granted_at, expires_at')
@@ -80,52 +71,11 @@ export default async function SettingsPage({
     <>
       <PageHeader
         title="Settings"
-        description="Feature rollouts, staff roles, and support taxonomy. Admin accounts are provisioned in Supabase; there is no self-registration."
+        description="Staff roles and support categories. Admin accounts are provisioned in Supabase; there is no self-registration."
       />
       <Notice searchParams={params} />
-      {flagError ? <div className="notice notice-error">{flagError.message}</div> : null}
       {roleError ? <div className="notice notice-error">{roleError.message}</div> : null}
       <div className="section-stack">
-        <div className="card">
-          <div className="card-pad" style={{ paddingBottom: 0 }}>
-            <h2 className="card-title">Feature flags</h2>
-            <p className="card-sub">
-              Global and scoped rollouts. Toggles are audited through RLS-protected admin
-              permissions.
-            </p>
-          </div>
-          <DataTable
-            columns={['Flag', 'Scope', 'Rollout', 'Status', 'Updated', 'Action']}
-            rows={(flags ?? []).map((flag) => [
-              <div key="f">
-                <strong className="mono">{flag.flag_key}</strong>
-                <div className="small muted">{flag.description ?? ''}</div>
-              </div>,
-              <span className="small" key="s">
-                {flag.profile_id
-                  ? `Profile ${shortId(flag.profile_id)}`
-                  : flag.city_id
-                    ? `City ${shortId(flag.city_id)}`
-                    : flag.country_id
-                      ? `Country ${shortId(flag.country_id)}`
-                      : 'Global'}
-              </span>,
-              `${flag.rollout_percentage ?? 0}%`,
-              <StatusBadge key="b" value={flag.is_enabled ? 'enabled' : 'disabled'} />,
-              <span className="small muted" key="u">
-                {formatDate(flag.updated_at)}
-              </span>,
-              <form action={toggleFeatureFlagAction} key="a">
-                <input type="hidden" name="flag_id" value={flag.id} />
-                <input type="hidden" name="enabled" value={flag.is_enabled ? 'false' : 'true'} />
-                <button className="btn btn-sm" type="submit">
-                  {flag.is_enabled ? 'Disable' : 'Enable'}
-                </button>
-              </form>,
-            ])}
-            empty="No feature flags configured."
-          />
-        </div>
         <div className="card">
           <div className="card-pad" style={{ paddingBottom: 0 }}>
             <h2 className="card-title">Staff & fleet-owner roles</h2>

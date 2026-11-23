@@ -238,22 +238,6 @@ export async function updateDataRequestAction(formData: FormData) {
   redirect('/data-requests?ok=Request updated');
 }
 
-export async function toggleFeatureFlagAction(formData: FormData) {
-  const flagId = String(formData.get('flag_id') ?? '');
-  const enabled = formData.get('enabled') === 'true';
-  if (!flagId) return;
-  const supabase = await client();
-  const { error } = await supabase
-    .from('feature_flags')
-    .update({ is_enabled: enabled })
-    .eq('id', flagId);
-  if (error) {
-    redirect(`/settings?error=${encodeURIComponent(error.message)}`);
-  }
-  revalidatePath('/settings');
-  redirect('/settings?ok=Feature flag updated');
-}
-
 // ----------------------------------------------------------------------------
 // Catalogue: vehicle categories and cargo types
 //

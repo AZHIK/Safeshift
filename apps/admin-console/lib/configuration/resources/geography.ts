@@ -88,11 +88,6 @@ export const countriesResource: ConfigResource = {
     { key: 'is_active', label: 'Status', kind: 'boolean', sortable: true },
   ],
   searchColumns: ['name', 'iso_code', 'regulatory_framework'],
-  // Sends the operator to the settings of this country.
-  rowAction: {
-    label: 'Settings',
-    href: '/settings/configuration/country-configurations?country={id}',
-  },
   references: [
     { key: 'cities', label: 'active cities', blocking: true },
     { key: 'regions', label: 'active regions', blocking: true },

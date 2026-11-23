@@ -178,7 +178,8 @@ describe('configuration permissions', () => {
       }),
     );
 
-    expect(visible.sort()).toEqual(Object.keys(EXPECTED).sort());
+    const offline = ['feature-flags', 'country-configurations', 'localization-strings'];
+    expect(visible.sort()).toEqual(Object.keys(EXPECTED).filter((slug) => !offline.includes(slug)).sort());
   });
 
   it('uses the permission check before every write', async () => {

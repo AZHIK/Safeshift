@@ -140,7 +140,6 @@ export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
     label: 'Geography',
     items: [
       item('countries', 'Countries', countries),
-      item('country-configurations', 'Country Configurations', countryConfigurations),
       item('regions', 'Regions', regions),
       item('cities', 'Cities', cities),
       item('service-zones', 'Service Zones', serviceZones),
@@ -192,13 +191,11 @@ export const CONFIGURATION_GROUPS: ConfigNavGroup[] = [
     label: 'Communication',
     items: [
       item('notification-templates', 'Notification Templates', notificationTemplates),
-      item('localization-strings', 'Localization Strings', localizationStrings),
     ],
   },
   {
     label: 'Platform',
     items: [
-      item('feature-flags', 'Feature Flags', featureFlags),
       item('cancellation-policies', 'Cancellation Policies', cancellationPolicies),
       item('dispatch-rules', 'Dispatch Rules', dispatchRules),
       item('rating-categories', 'Rating Categories', ratingCategories),
