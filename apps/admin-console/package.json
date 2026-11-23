@@ -12,7 +12,7 @@
     "clean": "rm -rf .next",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run __tests__/integration"
+    "test:integration": "vitest run __tests__/integration --no-file-parallelism"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
