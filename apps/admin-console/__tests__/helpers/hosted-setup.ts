@@ -25,7 +25,12 @@ export default async function setup(project: TestProject) {
   if (login.error) throw login.error;
   const gate = await client.rpc('has_permission', { permission_key: 'manage_admins' });
   if (gate.error || gate.data !== false) throw new Error('Administrative permissions must require MFA.');
-  const enroll = await client.auth.mfa.enroll({ factorType: 'totp' });
+  // An interrupted earlier run can leave an unfinished factor behind; clear it.
+  const existing = await client.auth.mfa.listFactors();
+  for (const factor of existing.data?.all ?? []) {
+    if (factor.status !== 'verified') await client.auth.mfa.unenroll({ factorId: factor.id });
+  }
+  const enroll = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: `integration-${Date.now()}` });
   if (enroll.error) throw enroll.error;
   const factorId = enroll.data.id;
   async function cleanup() {

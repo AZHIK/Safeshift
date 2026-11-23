@@ -1,4 +1,3 @@
-import Link from 'next/link';
 
 import {
   createCargoTypeAction,
@@ -12,6 +11,7 @@ import { CargoTypeFields, VehicleTypeFields } from '@/components/catalog-form';
 import { DataTable } from '@/components/data-table';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
+import { RecordActions } from '@/components/record-actions';
 import { StatusBadge } from '@/components/status-badge';
 import { loadCargoCategories, loadCountries, loadVehicleTypeCodes } from '@/lib/catalog';
 import { requireArea } from '@/lib/guard';
@@ -74,24 +74,6 @@ export default async function CatalogPage({
         {type.display_order}
       </span>,
       <StatusBadge key="b" value={type.is_active ? 'active' : 'disabled'} />,
-      <div key="a" className="inline" style={{ gap: 6 }}>
-        <Link className="btn btn-sm" href={`/catalog/vehicle-types/${type.id}`}>
-          Edit
-        </Link>
-        <form action={toggleVehicleTypeAction}>
-          <input type="hidden" name="id" value={type.id} />
-          <input type="hidden" name="active" value={type.is_active ? 'false' : 'true'} />
-          <button className="btn btn-sm" type="submit">
-            {type.is_active ? 'Deactivate' : 'Activate'}
-          </button>
-        </form>
-        <form action={deleteVehicleTypeAction}>
-          <input type="hidden" name="id" value={type.id} />
-          <button className="btn btn-sm" type="submit">
-            Delete
-          </button>
-        </form>
-      </div>,
     ];
   });
 
@@ -116,24 +98,6 @@ export default async function CatalogPage({
         {type.display_order}
       </span>,
       <StatusBadge key="b" value={type.is_active ? 'active' : 'disabled'} />,
-      <div key="a" className="inline" style={{ gap: 6 }}>
-        <Link className="btn btn-sm" href={`/catalog/cargo-types/${type.id}`}>
-          Edit
-        </Link>
-        <form action={toggleCargoTypeAction}>
-          <input type="hidden" name="id" value={type.id} />
-          <input type="hidden" name="active" value={type.is_active ? 'false' : 'true'} />
-          <button className="btn btn-sm" type="submit">
-            {type.is_active ? 'Deactivate' : 'Activate'}
-          </button>
-        </form>
-        <form action={deleteCargoTypeAction}>
-          <input type="hidden" name="id" value={type.id} />
-          <button className="btn btn-sm" type="submit">
-            Delete
-          </button>
-        </form>
-      </div>,
     ];
   });
 
@@ -157,8 +121,34 @@ export default async function CatalogPage({
             </p>
           </div>
           <DataTable
-            columns={['Category', 'Scope', 'Capacity', 'Icon', 'Order', 'Status', '']}
+            columns={['Category', 'Scope', 'Capacity', 'Icon', 'Order', 'Status']}
             rows={vehicleRows}
+            actions={(vehicleTypes ?? []).map((type) => (
+              <RecordActions
+                key={type.id}
+                table="vehicle_types"
+                id={type.id}
+                generic="view"
+                label={`Actions for ${type.name}`}
+                items={[
+                  { kind: 'link', label: 'Edit', href: `/catalog/vehicle-types/${type.id}` },
+                  {
+                    kind: 'form',
+                    label: type.is_active ? 'Deactivate' : 'Activate',
+                    action: toggleVehicleTypeAction,
+                    fields: { id: type.id, active: type.is_active ? 'false' : 'true' },
+                  },
+                  {
+                    kind: 'form',
+                    label: 'Delete',
+                    action: deleteVehicleTypeAction,
+                    fields: { id: type.id },
+                    confirm: `Delete ${type.name}? If trips or prices still use it, deactivate it instead.`,
+                    danger: true,
+                  },
+                ]}
+              />
+            ))}
             empty="No vehicle categories yet. Add one below — until then the apps show no vehicles."
           />
           <div className="card-pad">
@@ -192,8 +182,34 @@ export default async function CatalogPage({
             </p>
           </div>
           <DataTable
-            columns={['Cargo type', 'Scope', 'Category', 'Icon', 'Order', 'Status', '']}
+            columns={['Cargo type', 'Scope', 'Category', 'Icon', 'Order', 'Status']}
             rows={cargoRows}
+            actions={(cargoTypes ?? []).map((type) => (
+              <RecordActions
+                key={type.id}
+                table="cargo_types"
+                id={type.id}
+                generic="view"
+                label={`Actions for ${type.name}`}
+                items={[
+                  { kind: 'link', label: 'Edit', href: `/catalog/cargo-types/${type.id}` },
+                  {
+                    kind: 'form',
+                    label: type.is_active ? 'Deactivate' : 'Activate',
+                    action: toggleCargoTypeAction,
+                    fields: { id: type.id, active: type.is_active ? 'false' : 'true' },
+                  },
+                  {
+                    kind: 'form',
+                    label: 'Delete',
+                    action: deleteCargoTypeAction,
+                    fields: { id: type.id },
+                    confirm: `Delete ${type.name}? If trips or prices still use it, deactivate it instead.`,
+                    danger: true,
+                  },
+                ]}
+              />
+            ))}
             empty="No cargo types yet. Add one below — until then the apps show no cargo options."
           />
           <div className="card-pad">

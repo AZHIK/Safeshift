@@ -8,8 +8,11 @@ import { formatDate, formatMoney } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
 import { versionStatus, type VersionTiming } from '@/lib/pricing/draft';
 import { createClient } from '@/lib/supabase/server';
+import { getRecordAccess } from '@/lib/data-records';
 
+import { deletePricingPlanAction, updatePricingPlanAction } from './actions';
 import { NewPlanForm } from './new-plan-form';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +27,7 @@ type PlanRow = {
   id: string;
   code: string;
   name: string;
+  description: string | null;
   is_active: boolean;
   countries: Named;
   cities: Named;
@@ -53,11 +57,12 @@ export default async function PricingPage({
   // cannot change the filter itself.
   const query = typeof params.q === 'string' ? params.q.replace(/[,()*%\\]/g, ' ').trim() : '';
   const supabase = await createClient();
+  const canEditTariffs = (await getRecordAccess()).allowed('regulated_tariffs');
 
   let planQuery = supabase
     .from('pricing_plans')
     .select(
-      'id, code, name, is_active, countries(name), cities(name), vehicle_types(name), pricing_plan_versions(id, version_number, currency_code, effective_from, effective_to, published_at, pricing_plan_base_rates(base_fare, per_km_rate, per_min_rate))',
+      'id, code, name, description, is_active, countries(name), cities(name), vehicle_types(name), pricing_plan_versions(id, version_number, currency_code, effective_from, effective_to, published_at, pricing_plan_base_rates(base_fare, per_km_rate, per_min_rate))',
     )
     .order('name');
   if (query) planQuery = planQuery.or(`name.ilike.%${query}%,code.ilike.%${query}%`);
@@ -133,6 +138,33 @@ export default async function PricingPage({
         <DataTable
           columns={['Plan', 'Scope', 'Active version', 'Base · per km · per min', 'Pending', 'Status']}
           empty={query ? 'No plans match your search.' : 'No pricing plans yet. Bookings cannot be priced.'}
+          actions={rows.map(({ plan, draft }) => (
+            <RecordActions
+              key={plan.id}
+              table="pricing_plans"
+              id={plan.id}
+              viewHref={`/pricing/${plan.id}`}
+              label={`Actions for ${plan.name}`}
+              items={[
+                { kind: 'link', label: draft ? 'Edit draft prices' : 'Edit prices', href: draft ? `/pricing/${plan.id}/versions/${draft.id}` : `/pricing/${plan.id}` },
+                {
+                  kind: 'form',
+                  label: plan.is_active ? 'Deactivate plan' : 'Activate plan',
+                  action: updatePricingPlanAction,
+                  fields: { plan_id: plan.id, name: plan.name, description: plan.description ?? '', is_active: String(!plan.is_active) },
+                  ...(plan.is_active ? { confirm: 'Bookings this plan covers can no longer be priced until another plan applies.', danger: true } : {}),
+                },
+                {
+                  kind: 'form',
+                  label: 'Delete plan',
+                  action: deletePricingPlanAction,
+                  fields: { plan_id: plan.id },
+                  confirm: 'Plans that have priced quotes are kept for the record; deactivate those instead.',
+                  danger: true,
+                },
+              ]}
+            />
+          ))}
           rows={rows.map(({ plan, active, draft, scheduled, rates }) => [
             <div key="plan">
               <Link href={`/pricing/${plan.id}`}>
@@ -181,10 +213,21 @@ export default async function PricingPage({
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-pad" style={{ paddingBottom: 0 }}>
           <h2 className="card-title">Regulated tariffs</h2>
-          <p className="card-sub">Legal fare bands (e.g. LATRA). A plan version linked to a tariff is capped by it.</p>
+          <div className="inline" style={{ justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+            <p className="card-sub">Legal fare bands (e.g. LATRA). A plan version linked to a tariff is capped by it.</p>
+            {canEditTariffs ? (
+              <Link className="btn btn-primary btn-sm" href="/data/regulated_tariffs/new">
+                Add tariff
+              </Link>
+            ) : null}
+          </div>
         </div>
         <DataTable
           columns={['Tariff', 'Regulator', 'Structure', 'Vehicle type', 'Effective', 'Status']}
+          actions={((tariffs ?? []) as unknown as TariffRow[]).map((tariff) => (
+            <RecordActions key={tariff.id} table="regulated_tariffs" id={tariff.id} label={`Actions for ${tariff.name}`} />
+          ))}
+          empty="No regulated tariffs yet. Add one when a regulator publishes fare bands."
           rows={((tariffs ?? []) as unknown as TariffRow[]).map((tariff) => [
             <div key="n">
               <strong>{tariff.name}</strong>

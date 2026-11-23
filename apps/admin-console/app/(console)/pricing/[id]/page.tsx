@@ -11,6 +11,7 @@ import { VERSION_STATUS_LABEL, versionStatus, type VersionStatus } from '@/lib/p
 import { createClient } from '@/lib/supabase/server';
 
 import { createDraftAction, deletePricingPlanAction, updatePricingPlanAction } from '../actions';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,8 +119,28 @@ export default async function PricingPlanPage({
             </p>
           </div>
           <DataTable
-            columns={['Version', 'Status', 'In force', 'Base · per km · per min', 'Notes', '']}
+            columns={['Version', 'Status', 'In force', 'Base · per km · per min', 'Notes']}
             empty="This plan has no versions."
+            actions={versions.map((v) => (
+              <RecordActions
+                key={v.id}
+                table="pricing_plan_versions"
+                id={v.id}
+                generic="view"
+                label={`Actions for v${v.version_number}`}
+                items={[
+                  { kind: 'link', label: v.status === 'draft' ? 'Edit prices' : 'View prices', href: `/pricing/${plan.id}/versions/${v.id}` },
+                  ...(!draft && v.status !== 'draft'
+                    ? [{
+                        kind: 'form' as const,
+                        label: v.status === 'superseded' ? 'Restore as draft' : 'Change prices (new draft)',
+                        action: createDraftAction,
+                        fields: { plan_id: plan.id, source_version_id: v.id },
+                      }]
+                    : []),
+                ]}
+              />
+            ))}
             rows={versions.map((v) => {
               const rates = v.pricing_plan_base_rates?.[0];
               return [
@@ -148,20 +169,6 @@ export default async function PricingPlanPage({
                 <span key="notes" className="small truncate">
                   {v.notes ?? ''}
                 </span>,
-                <div key="a" className="table-actions">
-                  <Link className="btn btn-sm" href={`/pricing/${plan.id}/versions/${v.id}`}>
-                    {v.status === 'draft' ? 'Edit' : 'View'}
-                  </Link>
-                  {!draft && v.status === 'superseded' ? (
-                    <form action={createDraftAction}>
-                      <input type="hidden" name="plan_id" value={plan.id} />
-                      <input type="hidden" name="source_version_id" value={v.id} />
-                      <button className="btn btn-sm" type="submit" title="Open a draft with these rates">
-                        Restore as draft
-                      </button>
-                    </form>
-                  ) : null}
-                </div>,
               ];
             })}
           />

@@ -7,7 +7,9 @@ import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
+import { recordHref } from '@/lib/data-records';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,27 +64,6 @@ export default async function VerificationsPage({
       <span className="small muted" key="d">
         {formatDate(request.submitted_at)}
       </span>,
-      <div key="a" style={{ minWidth: 250 }}>
-        <form action={approveVerificationAction} className="form" style={{ gap: 5 }}>
-          <input type="hidden" name="request_id" value={request.id} />
-          <input className="input" name="notes" placeholder="Approval note (optional)" />
-          <button className="btn btn-primary btn-sm" type="submit">
-            Approve
-          </button>
-        </form>
-        <form action={rejectVerificationAction} className="form" style={{ gap: 5, marginTop: 6 }}>
-          <input type="hidden" name="request_id" value={request.id} />
-          <input
-            className="input"
-            name="reason"
-            placeholder="Rejection reason (required)"
-            required
-          />
-          <button className="btn btn-danger btn-sm" type="submit">
-            Reject
-          </button>
-        </form>
-      </div>,
     ];
   });
 
@@ -109,8 +90,38 @@ export default async function VerificationsPage({
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       <div className="card">
         <DataTable
-          columns={['Request', 'Subject', 'Status', 'Priority', 'Submitted', 'Decision']}
+          columns={['Request', 'Subject', 'Status', 'Priority', 'Submitted']}
           rows={rows}
+          actions={(data ?? []).map((request) => (
+            <RecordActions
+              key={request.id}
+              table="verification_requests"
+              id={request.id}
+              items={[
+                ...(['pending', 'in_review'].includes(request.status)
+                  ? [
+                      {
+                        kind: 'form' as const,
+                        label: 'Approve',
+                        action: approveVerificationAction,
+                        fields: { request_id: request.id },
+                        confirm: 'Approve this verification? The driver, vehicle or business becomes verified.',
+                      },
+                      {
+                        kind: 'form' as const,
+                        label: 'Reject',
+                        action: rejectVerificationAction,
+                        fields: { request_id: request.id },
+                        reason: 'Rejection reason (shown to the applicant)',
+                        danger: true,
+                      },
+                    ]
+                  : []),
+                ...(request.driver_id ? [{ kind: 'link' as const, label: 'Open driver', href: `/drivers/${request.driver_id}` }] : []),
+                ...(request.vehicle_id ? [{ kind: 'link' as const, label: 'Open vehicle', href: recordHref('vehicles', request.vehicle_id) }] : []),
+              ]}
+            />
+          ))}
           empty="No verification requests in this view."
         />
       </div>

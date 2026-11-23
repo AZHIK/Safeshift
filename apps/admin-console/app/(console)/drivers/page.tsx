@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
+import { accountItems, RecordActions } from '@/components/record-actions';
 import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId } from '@/lib/format';
@@ -30,7 +31,9 @@ export default async function DriversPage() {
     const profile = profiles.get(driver.id);
     return [
       <div key="n">
-        <strong>{profile?.full_name ?? shortId(driver.id)}</strong>
+        <Link href={`/drivers/${driver.id}`}>
+          <strong>{profile?.full_name ?? shortId(driver.id)}</strong>
+        </Link>
         <div className="small muted">{profile?.phone ?? profile?.email ?? '—'}</div>
       </div>,
       <StatusBadge key="v" value={driver.verification_status} />,
@@ -46,11 +49,22 @@ export default async function DriversPage() {
       <span key="d" className="small muted">
         {formatDate(driver.created_at)}
       </span>,
-      <Link className="btn btn-sm" key="a" href={`/drivers/${driver.id}`}>
-        View
-      </Link>,
     ];
   });
+  const actions = (data ?? []).map((driver) => (
+    <RecordActions
+      key={driver.id}
+      table="drivers"
+      id={driver.id}
+      viewHref={`/drivers/${driver.id}`}
+      label={`Actions for ${profiles.get(driver.id)?.full_name ?? 'driver'}`}
+      items={accountItems({
+        profileId: driver.id,
+        isActive: profiles.get(driver.id)?.is_active !== false,
+        driver: { suspended: driver.verification_status === 'suspended' },
+      })}
+    />
+  ));
 
   return (
     <>
@@ -70,9 +84,9 @@ export default async function DriversPage() {
             'Earnings',
             'Risk',
             'Joined',
-            'Actions',
           ]}
           rows={rows}
+          actions={actions}
           empty="No drivers found."
         />
       </div>

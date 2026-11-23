@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -45,6 +45,12 @@ function renderTable(overrides: Partial<React.ComponentProps<typeof Configuratio
   };
   const view = render(<ConfigurationTable {...props} />);
   return { ...view, props };
+}
+
+/** Opens a row's ⋮ menu (rendered in a portal) and returns queries scoped to it. */
+async function openMenu(user: { click: (el: Element) => Promise<void> }, row: HTMLElement) {
+  await user.click(within(row).getByRole('button', { name: /^Actions for/ }));
+  return within(screen.getByRole('menu'));
 }
 
 describe('ConfigurationTable', () => {
@@ -106,13 +112,13 @@ describe('ConfigurationTable', () => {
     const { props } = renderTable();
 
     const firstRow = screen.getByText('pickup_van').closest('tr') as HTMLElement;
-    await user.click(within(firstRow).getByRole('button', { name: 'Edit' }));
+    await user.click((await openMenu(user, firstRow)).getByRole('menuitem', { name: 'Edit' }));
     expect(props.onEdit).toHaveBeenCalledWith(rows[0]);
 
-    await user.click(within(firstRow).getByRole('button', { name: 'Deactivate' }));
+    await user.click((await openMenu(user, firstRow)).getByRole('menuitem', { name: 'Deactivate' }));
     expect(props.onDeactivate).toHaveBeenCalledWith(rows[0]);
 
-    await user.click(within(firstRow).getByRole('button', { name: 'Audit history' }));
+    await user.click((await openMenu(user, firstRow)).getByRole('menuitem', { name: 'Audit history' }));
     expect(props.onAudit).toHaveBeenCalledWith(rows[0]);
   });
 
@@ -122,7 +128,7 @@ describe('ConfigurationTable', () => {
     renderTable({ onActivate });
 
     const secondRow = screen.getByText('truck_7t').closest('tr') as HTMLElement;
-    await user.click(within(secondRow).getByRole('button', { name: 'Activate' }));
+    await user.click((await openMenu(user, secondRow)).getByRole('menuitem', { name: 'Activate' }));
 
     expect(onActivate).toHaveBeenCalledWith(rows[1]);
   });
@@ -130,8 +136,10 @@ describe('ConfigurationTable', () => {
   it('hides the actions an administrator may not use', () => {
     renderTable({ canAudit: false, canDeactivate: false, canEdit: false });
 
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Audit history' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /^Actions for/ })[0]);
+    const menu = screen.getByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: 'Deactivate' })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: 'Audit history' })).not.toBeInTheDocument();
   });
 });

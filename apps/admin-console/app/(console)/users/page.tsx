@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
+import { accountItems, RecordActions } from '@/components/record-actions';
 import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
@@ -74,6 +75,16 @@ export default async function UsersPage({
               {shortId(row.profile_id)}
             </span>,
           ])}
+          actions={rows.map((row) => (
+            <RecordActions
+              key={String(row.profile_id)}
+              table="profiles"
+              id={row.profile_id}
+              viewHref={`/users/${String(row.profile_id)}`}
+              label={`Actions for ${String(row.full_name ?? row.display_name ?? 'user')}`}
+              items={accountItems({ profileId: String(row.profile_id), isActive: row.is_active !== false })}
+            />
+          ))}
           empty={query ? 'No matching users.' : 'No users found.'}
         />
       </div>

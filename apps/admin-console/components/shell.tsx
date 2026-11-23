@@ -54,6 +54,7 @@ const groups: {
       { href: '/records/consent', label: 'Consent ledger', area: 'consent', glyph: '▤' },
       { href: '/governance', label: 'Regulatory reporting', area: 'governance', glyph: '▤' },
       { href: '/announcements', label: 'Announcements', area: 'announcements', glyph: '◉' },
+      { href: '/data', label: 'All data', area: 'data', glyph: '▦' },
       { href: '/audit', label: 'Audit log', area: 'audit', glyph: '▦' },
       { href: '/settings', label: 'Settings', area: 'settings', glyph: '⚙' },
     ],

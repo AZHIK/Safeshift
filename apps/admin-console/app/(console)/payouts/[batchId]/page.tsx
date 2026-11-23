@@ -12,6 +12,7 @@ import { requireArea } from '@/lib/guard';
 import { tone } from '@/lib/money/money';
 import { createClient } from '@/lib/supabase/server';
 
+import { RecordActions } from '@/components/record-actions';
 import {
   holdPayoutAction,
   payAllPendingAction,
@@ -98,6 +99,7 @@ export default async function PayoutBatchPage({
             <Link className="btn" href="/payouts">
               All batches
             </Link>
+            <RecordActions table="payout_batches" id={batch.id} label="Batch actions" />
             {counts.pending ? (
               <form action={payAllPendingAction}>
                 <input type="hidden" name="batch_id" value={batch.id} />
@@ -128,8 +130,37 @@ export default async function PayoutBatchPage({
 
       <div className="card">
         <DataTable
-          columns={['Driver', 'Gross', 'Commission', 'Tax', 'Net', 'Status', '']}
+          columns={['Driver', 'Gross', 'Commission', 'Tax', 'Net', 'Status']}
           empty="This batch has no payouts."
+          actions={payouts.map((p) => {
+            const who = names.get(p.driver_id);
+            const fields = { batch_id: batch.id, payout_id: p.id };
+            return (
+              <RecordActions
+                key={p.id}
+                table="payouts"
+                id={p.id}
+                label={`Actions for ${who?.name ?? 'payout'}`}
+                items={[
+                  ...(p.status === 'pending'
+                    ? [
+                        {
+                          kind: 'form' as const,
+                          label: 'Pay',
+                          action: payPayoutAction,
+                          fields: { ...fields, idempotency_key: `payout-${randomUUID()}` },
+                          confirm: `Send ${formatMoney(p.net_amount, p.currency_code)} to ${who?.name ?? 'this driver'}?`,
+                        },
+                        { kind: 'form' as const, label: 'Hold', action: holdPayoutAction, fields, reason: 'Reason to hold' },
+                      ]
+                    : []),
+                  ...(p.status === 'on_hold' ? [{ kind: 'form' as const, label: 'Release', action: releasePayoutAction, fields }] : []),
+                  ...(p.status === 'failed' ? [{ kind: 'form' as const, label: 'Retry', action: retryPayoutAction, fields }] : []),
+                  { kind: 'link' as const, label: 'Open driver', href: `/drivers/${p.driver_id}` },
+                ]}
+              />
+            );
+          })}
           rows={payouts.map((p) => {
             const who = names.get(p.driver_id);
             return [
@@ -146,42 +177,6 @@ export default async function PayoutBatchPage({
                 {p.hold_reason ? <div className="small muted">{p.hold_reason}</div> : null}
                 {p.failure_reason ? <div className="small muted">{p.failure_reason}</div> : null}
                 {p.provider_reference ? <div className="small muted mono">{p.provider_reference}</div> : null}
-              </div>,
-              <div key="a" className="section-stack">
-                {p.status === 'pending' ? (
-                  <>
-                    <form action={payPayoutAction}>
-                      <input type="hidden" name="batch_id" value={batch.id} />
-                      <input type="hidden" name="payout_id" value={p.id} />
-                      <input type="hidden" name="idempotency_key" value={`payout-${randomUUID()}`} />
-                      <ConfirmSubmit className="btn btn-sm btn-primary"
-                        message={`Send ${formatMoney(p.net_amount, p.currency_code)} to ${who?.name ?? 'this driver'}?`}>
-                        Pay
-                      </ConfirmSubmit>
-                    </form>
-                    <form action={holdPayoutAction} className="inline">
-                      <input type="hidden" name="batch_id" value={batch.id} />
-                      <input type="hidden" name="payout_id" value={p.id} />
-                      <input className="input input-sm" name="reason" placeholder="Reason" required minLength={3}
-                        aria-label="Reason to hold" />
-                      <button className="btn btn-sm" type="submit">Hold</button>
-                    </form>
-                  </>
-                ) : null}
-                {p.status === 'on_hold' ? (
-                  <form action={releasePayoutAction}>
-                    <input type="hidden" name="batch_id" value={batch.id} />
-                    <input type="hidden" name="payout_id" value={p.id} />
-                    <button className="btn btn-sm" type="submit">Release</button>
-                  </form>
-                ) : null}
-                {p.status === 'failed' ? (
-                  <form action={retryPayoutAction}>
-                    <input type="hidden" name="batch_id" value={batch.id} />
-                    <input type="hidden" name="payout_id" value={p.id} />
-                    <button className="btn btn-sm" type="submit">Retry</button>
-                  </form>
-                ) : null}
               </div>,
             ];
           })}

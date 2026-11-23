@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export default async function IncidentsPage({
             </p>
           </div>
           <DataTable
-            columns={['Alert', 'Job', 'Type', 'Status', 'Details', 'Raised', 'Action']}
+            columns={['Alert', 'Job', 'Type', 'Status', 'Details', 'Raised']}
             rows={(alerts ?? []).map((alert) => [
               <span className="mono" key="a">
                 {shortId(alert.id)}
@@ -70,27 +71,24 @@ export default async function IncidentsPage({
               <span className="small muted" key="t">
                 {formatDate(alert.created_at)}
               </span>,
-              <div key="x" style={{ display: 'flex', gap: 6 }}>
-                {alert.status === 'open' ? (
-                  <form action={acknowledgeAlertAction}>
-                    <input type="hidden" name="alert_id" value={alert.id} />
-                    <input type="hidden" name="status" value="acknowledged" />
-                    <button className="btn btn-sm" type="submit">
-                      Acknowledge
-                    </button>
-                  </form>
-                ) : null}
-                {alert.status !== 'resolved' ? (
-                  <form action={acknowledgeAlertAction}>
-                    <input type="hidden" name="alert_id" value={alert.id} />
-                    <input type="hidden" name="status" value="resolved" />
-                    <button className="btn btn-primary btn-sm" type="submit">
-                      Resolve
-                    </button>
-                  </form>
-                ) : null}
-              </div>,
             ])}
+            actions={(alerts ?? []).map((alert) => (
+              <RecordActions
+                key={alert.id}
+                table="trip_alerts"
+                id={alert.id}
+                viewHref={alert.job_id ? `/jobs/${alert.job_id}` : undefined}
+                items={[
+                  ...(alert.status === 'open'
+                    ? [{ kind: 'form' as const, label: 'Acknowledge', action: acknowledgeAlertAction, fields: { alert_id: alert.id, status: 'acknowledged' } }]
+                    : []),
+                  ...(alert.status !== 'resolved'
+                    ? [{ kind: 'form' as const, label: 'Resolve', action: acknowledgeAlertAction, fields: { alert_id: alert.id, status: 'resolved' }, confirm: 'Mark this alert resolved?' }]
+                    : []),
+                  ...(alert.profile_id ? [{ kind: 'link' as const, label: 'Open person', href: `/users/${alert.profile_id}` }] : []),
+                ]}
+              />
+            ))}
             empty="No SOS or trip alerts."
           />
         </div>
@@ -110,7 +108,6 @@ export default async function IncidentsPage({
               'Status',
               'Description',
               'Occurred',
-              'Action',
             ]}
             rows={(incidents ?? []).map((incident) => [
               <span className="mono" key="i">
@@ -128,25 +125,26 @@ export default async function IncidentsPage({
               <span className="small muted" key="o">
                 {formatDate(incident.occurred_at)}
               </span>,
-              <form
-                action={resolveIncidentAction}
-                className="form"
-                style={{ minWidth: 150, gap: 5 }}
-                key="a"
-              >
-                <input type="hidden" name="incident_id" value={incident.id} />
-                <select className="input" name="status" defaultValue={incident.status}>
-                  {['open', 'investigating', 'resolved', 'closed'].map((value) => (
-                    <option value={value} key={value}>
-                      {titleize(value)}
-                    </option>
-                  ))}
-                </select>
-                <button className="btn btn-primary btn-sm" type="submit">
-                  Save
-                </button>
-              </form>,
             ])}
+            actions={(incidents ?? []).map((incident) => (
+              <RecordActions
+                key={incident.id}
+                table="incidents"
+                id={incident.id}
+                viewHref={`/incidents/${incident.id}`}
+                items={[
+                  ...(incident.job_id ? [{ kind: 'link' as const, label: 'Open job', href: `/jobs/${incident.job_id}` }] : []),
+                  ...['open', 'investigating', 'resolved', 'closed']
+                    .filter((status) => status !== incident.status)
+                    .map((status) => ({
+                      kind: 'form' as const,
+                      label: `Mark ${status}`,
+                      action: resolveIncidentAction,
+                      fields: { incident_id: incident.id, status },
+                    })),
+                ]}
+              />
+            ))}
             empty="No reported incidents."
           />
         </div>

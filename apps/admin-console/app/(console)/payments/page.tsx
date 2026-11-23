@@ -7,6 +7,7 @@ import { formatDate, formatMoney, shortId, titleize } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
 import { tone } from '@/lib/money/money';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,17 +102,22 @@ export default async function PaymentsPage({
             </p>
           </div>
           <DataTable
-            columns={['Since', 'Amount', 'Reason', '']}
+            columns={['Since', 'Amount', 'Reason']}
             rows={open.map((r) => [
               formatDate(r.created_at),
               formatMoney(r.amount, r.currency_code),
               <span key="r" className="small truncate">
                 {r.reason}
               </span>,
-              <Link key="l" className="btn btn-sm" href={`/payments/${r.payment_id}`}>
-                Resolve
-              </Link>,
             ])}
+            actions={open.map((r) => (
+              <RecordActions
+                key={r.id}
+                table="refunds"
+                id={r.id}
+                items={[{ kind: 'link', label: 'Resolve', href: `/payments/${r.payment_id}` }]}
+              />
+            ))}
           />
         </div>
       ) : null}
@@ -143,6 +149,14 @@ export default async function PaymentsPage({
         <DataTable
           columns={['Payment', 'Type', 'Amount', 'Provider', 'Status', 'Date']}
           empty="No payments match these filters."
+          actions={rows.map((p) => (
+            <RecordActions
+              key={p.id}
+              table="payments"
+              id={p.id}
+              viewHref={`/payments/${p.payment_type === 'charge' ? p.id : (p.refund_of_payment_id ?? p.id)}`}
+            />
+          ))}
           rows={rows.map((p) => [
             <div key="id">
               <Link href={`/payments/${p.payment_type === 'charge' ? p.id : (p.refund_of_payment_id ?? p.id)}`} className="mono">

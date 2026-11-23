@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,13 +68,12 @@ export default async function SupportPage({
             'Priority',
             'Messages',
             'Response due', 'Updated',
-            '',
           ]}
           rows={(data ?? []).map((ticket) => {
             const category = ticket.support_categories as { name?: string } | null;
             return [
               <div key="t">
-                <span className="mono">{ticket.ticket_number}</span>
+                <Link className="mono" href={`/support/${ticket.id}`}>{ticket.ticket_number}</Link>
                 <div className="small muted">{shortId(ticket.opened_by)}</div>
               </div>,
               ticket.subject,
@@ -85,11 +85,17 @@ export default async function SupportPage({
               <span className="small muted" key="u">
                 {formatDate(ticket.updated_at)}
               </span>,
-              <Link className="btn btn-sm" href={`/support/${ticket.id}`} key="o">
-                Open
-              </Link>,
             ];
           })}
+          actions={(data ?? []).map((ticket) => (
+            <RecordActions
+              key={ticket.id}
+              table="support_tickets"
+              id={ticket.id}
+              viewHref={`/support/${ticket.id}`}
+              items={ticket.opened_by ? [{ kind: 'link', label: 'Open customer', href: `/users/${ticket.opened_by}` }] : []}
+            />
+          ))}
           empty="No support tickets match this filter."
         />
       </div>

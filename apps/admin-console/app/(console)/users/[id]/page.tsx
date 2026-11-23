@@ -2,12 +2,13 @@ import {ProfileOperations} from './profile-operations';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { AccountStatusPanel, DriverStatusPanel, StatusHistory, type HistoryRow } from '@/components/account-controls';
+import { AccountStatusPanel, DeleteAccountPanel, DriverStatusPanel, StatusHistory, type HistoryRow } from '@/components/account-controls';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
+import { getCallerPermissions } from '@/lib/configuration/guard';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +72,8 @@ export default async function UserDetailPage({
   const d = driver as Driver | null;
   const name = p.full_name?.trim() || p.display_name || 'this user';
   const back = `/users/${p.id}`;
+  const { permissions } = await getCallerPermissions();
+  const canDelete = permissions.has('suspend_user') && permissions.has('manage_records');
   const staffRoles = ((roles ?? []) as { role_name: string }[]).map((r) => titleize(r.role_name));
 
   return (
@@ -136,6 +139,7 @@ export default async function UserDetailPage({
               back={back}
             />
           ) : null}
+          {canDelete ? <DeleteAccountPanel profileId={p.id} name={name} /> : null}
         </div>
       </div>
     </>

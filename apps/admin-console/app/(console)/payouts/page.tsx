@@ -9,6 +9,7 @@ import { tone } from '@/lib/money/money';
 import { createClient } from '@/lib/supabase/server';
 
 import { createPayoutBatchAction } from './actions';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +88,7 @@ export default async function PayoutsPage({
                 <p className="card-sub">Held or failed payouts. Drivers are waiting for these.</p>
               </div>
               <DataTable
-                columns={['Status', 'Net', 'Why', '']}
+                columns={['Status', 'Net', 'Why']}
                 rows={needs.map((p) => [
                   <span key="s" className={`badge badge-${tone(p.status)}`}>
                     {titleize(p.status)}
@@ -96,14 +97,16 @@ export default async function PayoutsPage({
                   <span key="w" className="small">
                     {p.hold_reason ?? p.failure_reason ?? '—'}
                   </span>,
-                  p.batch_id ? (
-                    <Link key="l" className="btn btn-sm" href={`/payouts/${p.batch_id}`}>
-                      Open batch
-                    </Link>
-                  ) : (
-                    <span key="l" />
-                  ),
                 ])}
+                actions={needs.map((p) => (
+                  <RecordActions
+                    key={p.id}
+                    table="payouts"
+                    id={p.id}
+                    viewHref={p.batch_id ? `/payouts/${p.batch_id}` : undefined}
+                    items={p.driver_id ? [{ kind: 'link', label: 'Open driver', href: `/drivers/${p.driver_id}` }] : []}
+                  />
+                ))}
               />
             </div>
           ) : null}
@@ -115,6 +118,9 @@ export default async function PayoutsPage({
             <DataTable
               columns={['Period', 'Country', 'Status', 'Drivers', 'Total', 'Created']}
               empty="No payout batches yet."
+              actions={((batches ?? []) as unknown as Batch[]).map((b) => (
+                <RecordActions key={b.id} table="payout_batches" id={b.id} viewHref={`/payouts/${b.id}`} />
+              ))}
               rows={((batches ?? []) as unknown as Batch[]).map((b) => [
                 <Link key="p" href={`/payouts/${b.id}`} className="nowrap">
                   {formatDate(b.period_start)} – {formatDate(new Date(new Date(b.period_end).getTime() - 1).toISOString())}

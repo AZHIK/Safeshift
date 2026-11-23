@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { shortId } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,11 +59,11 @@ export default async function StuckJobsPage({
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       <div className="card">
         <DataTable
-          columns={['Job', 'Issue', 'Status', 'For', 'Customer', 'Driver', 'Action']}
+          columns={['Job', 'Issue', 'Status', 'For', 'Customer', 'Driver']}
           rows={rows.map((job) => [
-            <span className="mono" key="j">
+            <Link className="mono" key="j" href={`/jobs/${job.job_id}`}>
               {shortId(job.job_id)}
-            </span>,
+            </Link>,
             <span key="i">{job.issue}</span>,
             <StatusBadge key="s" value={job.status} />,
             <span className="small" key="f">
@@ -80,44 +81,38 @@ export default async function StuckJobsPage({
                 <span className="muted"> · GPS {duration(job.driver_gps_minutes)} ago</span>
               ) : null}
             </span>,
-            <div key="a" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {job.suggested_action === 'redispatch' ? (
-                <form action={redispatchJobAction}>
-                  <input type="hidden" name="job_id" value={job.job_id} />
-                  <button className="btn btn-primary btn-sm" type="submit">
-                    Search again
-                  </button>
-                </form>
-              ) : null}
-              {job.suggested_action === 'release' ? (
-                <form action={releaseDriverAction}>
-                  <input type="hidden" name="job_id" value={job.job_id} />
-                  <input
-                    type="hidden"
-                    name="reason"
-                    value={`Released by operations: ${job.issue}`}
-                  />
-                  <button className="btn btn-primary btn-sm" type="submit">
-                    Reassign driver
-                  </button>
-                </form>
-              ) : null}
-              <form action={cancelJobAsOpsAction} style={{ display: 'flex', gap: 4 }}>
-                <input type="hidden" name="job_id" value={job.job_id} />
-                <input
-                  className="input input-sm"
-                  name="reason"
-                  placeholder="Reason to cancel"
-                  aria-label="Reason to cancel"
-                  required
-                  minLength={3}
-                />
-                <button className="btn btn-sm" type="submit">
-                  Cancel
-                </button>
-              </form>
-            </div>,
           ])}
+          actions={rows.map((job) => (
+            <RecordActions
+              key={job.job_id}
+              table="jobs"
+              id={job.job_id}
+              viewHref={`/jobs/${job.job_id}`}
+              items={[
+                ...(job.suggested_action === 'redispatch'
+                  ? [{ kind: 'form' as const, label: 'Search again', action: redispatchJobAction, fields: { job_id: job.job_id } }]
+                  : []),
+                ...(job.suggested_action === 'release'
+                  ? [{
+                      kind: 'form' as const,
+                      label: 'Reassign driver',
+                      action: releaseDriverAction,
+                      fields: { job_id: job.job_id, reason: `Released by operations: ${job.issue}` },
+                      confirm: 'The driver is released and the job goes back to dispatch.',
+                    }]
+                  : []),
+                {
+                  kind: 'form',
+                  label: 'Cancel job',
+                  action: cancelJobAsOpsAction,
+                  fields: { job_id: job.job_id },
+                  reason: 'Reason to cancel',
+                  confirm: 'The customer and driver are told the job was cancelled by operations.',
+                  danger: true,
+                },
+              ]}
+            />
+          ))}
           empty="Nothing is stuck right now."
         />
       </div>

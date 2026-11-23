@@ -4,10 +4,12 @@ import {
   suspendAccountAction,
   suspendDriverAction,
 } from '@/app/(console)/users/actions';
+import { deleteAccountAction } from '@/app/(console)/data/actions';
 import { formatDate, titleize } from '@/lib/format';
 
 import { ConfirmSubmit } from './confirm-submit';
 import { DataTable } from './data-table';
+import { RowMenu } from '@/components/row-menu';
 
 export type HistoryRow = {
   occurred_at: string;
@@ -154,6 +156,9 @@ export function StatusHistory({ rows }: { rows: HistoryRow[] }) {
       <DataTable
         columns={['When', 'What', 'By', 'Details']}
         empty="No suspensions or reactivations."
+        actions={rows.map((_, i) => (
+          <RowMenu key={i} items={[{ kind: 'link', label: 'Open audit log', href: '/audit' }]} />
+        ))}
         rows={rows.map((r, i) => [
           <span key={`w${i}`} className="small nowrap">
             {formatDate(r.occurred_at)}
@@ -165,6 +170,27 @@ export function StatusHistory({ rows }: { rows: HistoryRow[] }) {
           </span>,
         ])}
       />
+    </section>
+  );
+}
+
+/** Permanently deletes the account (or erases it when it has history). */
+export function DeleteAccountPanel({ profileId, name }: { profileId: string; name: string }) {
+  return (
+    <section className="card card-pad" aria-label="Delete account">
+      <h2 className="card-title">Delete account</h2>
+      <p className="card-sub">
+        Accounts with no trips, payments or tickets are removed completely. Otherwise {name}&apos;s name, phone and email
+        are erased and sign-in is blocked for good, while trips and payments stay for the records. This cannot be undone.
+      </p>
+      <form action={deleteAccountAction} className="form" style={{ marginTop: 8 }}>
+        <input type="hidden" name="profile_id" value={profileId} />
+        <label className="field">
+          Reason (kept in the audit log)
+          <textarea className="input" name="reason" rows={2} required minLength={3} maxLength={500} />
+        </label>
+        <ConfirmSubmit message={`Delete ${name}'s account? This cannot be undone.`}>Delete account</ConfirmSubmit>
+      </form>
     </section>
   );
 }

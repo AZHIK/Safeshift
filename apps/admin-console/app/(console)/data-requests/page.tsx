@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ export default async function DataRequestsPage({
       {error ? <div className="notice notice-error">{error.message}</div> : null}
       <div className="card">
         <DataTable
-          columns={['Request', 'Requester', 'Type', 'Status', 'Requested', 'Assigned', 'Update']}
+          columns={['Request', 'Requester', 'Type', 'Status', 'Requested', 'Assigned']}
           rows={(data ?? []).map((request) => [
             <div key="r">
               <span className="mono">{request.request_number}</span>
@@ -52,25 +53,28 @@ export default async function DataRequestsPage({
             <span className="mono small" key="a">
               {request.assigned_to ? shortId(request.assigned_to) : 'Unassigned'}
             </span>,
-            <form
-              action={updateDataRequestAction}
-              className="form"
-              style={{ minWidth: 190, gap: 5 }}
-              key="u"
-            >
-              <input type="hidden" name="request_id" value={request.id} />
-              <select className="input" name="status" defaultValue={request.status}>
-                {['received', 'identity_verifying', 'in_progress', 'completed'].map((value) => (
-                  <option value={value} key={value}>
-                    {titleize(value)}
-                  </option>
-                ))}
-              </select>
-              <button className="btn btn-primary btn-sm" type="submit">
-                Save
-              </button>
-            </form>,
           ])}
+          actions={(data ?? []).map((request) => (
+            <RecordActions
+              key={request.id}
+              table="data_subject_requests"
+              id={request.id}
+              items={[
+                ...(request.requester_profile_id
+                  ? [{ kind: 'link' as const, label: 'Open requester', href: `/users/${request.requester_profile_id}` }]
+                  : []),
+                ...['received', 'identity_verifying', 'in_progress', 'completed']
+                  .filter((status) => status !== request.status)
+                  .map((status) => ({
+                    kind: 'form' as const,
+                    label: `Mark ${titleize(status).toLowerCase()}`,
+                    action: updateDataRequestAction,
+                    fields: { request_id: request.id, status },
+                    ...(status === 'completed' ? { confirm: 'Mark this request completed? The requester is told it is done.' } : {}),
+                  })),
+              ]}
+            />
+          ))}
           empty="No data requests found."
         />
       </div>

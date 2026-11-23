@@ -4,6 +4,9 @@ import { DataTable } from '@/components/data-table';
 import { MetricCard } from '@/components/metric-card';
 import { Notice } from '@/components/notice';
 import { PageHeader } from '@/components/page-header';
+import { RecordActions } from '@/components/record-actions';
+import { RowMenu } from '@/components/row-menu';
+import { entityHref } from '@/lib/entity-links';
 import { RealtimeDashboard } from '@/components/realtime-dashboard';
 import { StatusBadge } from '@/components/status-badge';
 import { getAdminSession } from '@/lib/auth';
@@ -34,9 +37,6 @@ export default async function DashboardPage({
       <StatusBadge key="v" value={fleet.verified_at ? 'verified' : 'pending'} />,
       `${fleet.fleet_vehicles?.length ?? 0}`,
       `${fleet.fleet_members?.length ?? 0}`,
-      <Link className="btn btn-sm" href="/fleets" key="l">
-        Open fleet
-      </Link>,
     ]);
     return (
       <>
@@ -47,8 +47,15 @@ export default async function DashboardPage({
         <Notice searchParams={params} />
         <div className="card card-pad">
           <DataTable
-            columns={['Fleet', 'Verification', 'Vehicles', 'Drivers', '']}
+            columns={['Fleet', 'Verification', 'Vehicles', 'Drivers']}
             rows={rows}
+            actions={(fleets ?? []).map((fleet) => (
+              <RowMenu
+                key={fleet.id}
+                label={`Actions for ${fleet.name}`}
+                items={[{ kind: 'link', label: 'Open fleet', href: '/fleets' }]}
+              />
+            ))}
             empty="No fleet is linked to your account yet. Contact SafeShift operations."
           />
         </div>
@@ -75,6 +82,14 @@ export default async function DashboardPage({
         .order('submitted_at', { ascending: true })
         .limit(5),
     ]);
+
+  const activityRows = (activity ?? []) as Array<{
+    actor_name?: string | null;
+    action?: string;
+    entity_type?: string | null;
+    entity_id?: string | null;
+    created_at?: string;
+  }>;
 
   return (
     <>
@@ -120,15 +135,7 @@ export default async function DashboardPage({
           </div>
           <DataTable
             columns={['Actor', 'Action', 'Entity', 'When']}
-            rows={(
-              (activity ?? []) as Array<{
-                actor_name?: string | null;
-                action?: string;
-                entity_type?: string | null;
-                entity_id?: string | null;
-                created_at?: string;
-              }>
-            ).map((row) => [
+            rows={activityRows.map((row) => [
               row.actor_name ?? 'System',
               <span key="a">{titleize(row.action)}</span>,
               <span className="mono" key="e">
@@ -138,6 +145,18 @@ export default async function DashboardPage({
                 {formatDate(row.created_at)}
               </span>,
             ])}
+            actions={activityRows.map((row, index) => {
+              const href = entityHref(row.entity_type, row.entity_id);
+              return (
+                <RowMenu
+                  key={index}
+                  items={[
+                    ...(href ? [{ kind: 'link' as const, label: 'Open record', href }] : []),
+                    { kind: 'link' as const, label: 'Open audit log', href: '/audit' },
+                  ]}
+                />
+              );
+            })}
             empty="No activity recorded yet."
           />
         </div>
@@ -156,6 +175,15 @@ export default async function DashboardPage({
                   {formatDate(row.created_at)}
                 </span>,
               ])}
+              actions={(alerts ?? []).map((row) => (
+                <RecordActions
+                  key={row.id}
+                  table="trip_alerts"
+                  id={row.id}
+                  viewHref={row.job_id ? `/jobs/${row.job_id}` : '/incidents'}
+                  items={[{ kind: 'link', label: 'Open safety desk', href: '/incidents' }]}
+                />
+              ))}
               empty="No open safety alerts."
             />
             <div className="card-pad" style={{ paddingTop: 0 }}>
@@ -178,6 +206,14 @@ export default async function DashboardPage({
                   {formatDate(row.submitted_at)}
                 </span>,
               ])}
+              actions={(queue ?? []).map((row) => (
+                <RecordActions
+                  key={row.id}
+                  table="verification_requests"
+                  id={row.id}
+                  items={[{ kind: 'link', label: 'Review queue', href: '/verifications' }]}
+                />
+              ))}
               empty="The verification queue is clear."
             />
             <div className="card-pad" style={{ paddingTop: 0 }}>

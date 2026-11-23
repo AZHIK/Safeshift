@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/page-header';
 import { requireArea } from '@/lib/guard';
 import { formatDate, formatMoney } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export default async function AnalyticsPage() {
   const { data, error } = await supabase
     .from('daily_metrics')
     .select(
-      'metric_date, jobs_created, jobs_completed, jobs_cancelled, gross_booking_value, net_revenue, active_customers, active_drivers, new_customers, new_drivers, avg_acceptance_rate, avg_completion_minutes, avg_cancellation_rate, avg_rating, currency_code',
+      'id, metric_date, jobs_created, jobs_completed, jobs_cancelled, gross_booking_value, net_revenue, active_customers, active_drivers, new_customers, new_drivers, avg_acceptance_rate, avg_completion_minutes, avg_cancellation_rate, avg_rating, currency_code',
     )
     .order('metric_date', { ascending: false })
     .limit(30);
@@ -88,6 +89,7 @@ export default async function AnalyticsPage() {
                 ].map((column) => (
                   <th key={column}>{column}</th>
                 ))}
+                <th className="col-actions" aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -117,11 +119,14 @@ export default async function AnalyticsPage() {
                   <td className="small">
                     {row.avg_rating == null ? '—' : Number(row.avg_rating).toFixed(2)}
                   </td>
+                  <td className="col-actions">
+                    <RecordActions table="daily_metrics" id={row.id} label={`Actions for ${row.metric_date}`} />
+                  </td>
                 </tr>
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="table-empty">
+                  <td colSpan={13} className="table-empty">
                     No daily metrics recorded yet.
                   </td>
                 </tr>

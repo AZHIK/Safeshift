@@ -8,7 +8,8 @@ import { requireArea } from '@/lib/guard';
 import { PROMO_STATUS, describeDiscount, promoStatus, type PromoStatus } from '@/lib/promos/promo';
 import { createClient } from '@/lib/supabase/server';
 
-import { setPromoActiveAction } from './actions';
+import { deletePromoAction, setPromoActiveAction } from './actions';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,8 +109,37 @@ export default async function PromosPage({
           </form>
         </div>
         <DataTable
-          columns={['Code', 'Discount', 'Valid', 'Used', 'Discount given', 'Status', '']}
+          columns={['Code', 'Discount', 'Valid', 'Used', 'Discount given', 'Status']}
           empty={query || statusFilter !== 'all' ? 'No promos match these filters.' : 'No promo codes yet.'}
+          actions={rows.map(({ promo, used }) => (
+            <RecordActions
+              key={promo.id}
+              table="promo_codes"
+              id={promo.id}
+              generic="view"
+              viewHref={`/promos/${promo.id}`}
+              label={`Actions for ${promo.code}`}
+              items={[
+                { kind: 'link', label: 'Edit', href: `/promos/${promo.id}` },
+                {
+                  kind: 'form',
+                  label: promo.is_active ? 'Pause' : 'Resume',
+                  action: setPromoActiveAction,
+                  fields: { promo_id: promo.id, active: promo.is_active ? 'false' : 'true' },
+                },
+                used > 0
+                  ? { kind: 'disabled', label: 'Delete', note: 'Redeemed promos are kept for the records; pause it instead.' }
+                  : {
+                      kind: 'form',
+                      label: 'Delete',
+                      action: deletePromoAction,
+                      fields: { promo_id: promo.id },
+                      confirm: `Delete ${promo.code}? This cannot be undone.`,
+                      danger: true,
+                    },
+              ]}
+            />
+          ))}
           rows={rows.map(({ promo, summary, used, status }) => [
             <div key="c">
               <Link href={`/promos/${promo.id}`} className="mono">
@@ -139,13 +169,6 @@ export default async function PromosPage({
             <span key="s" className={`badge badge-${PROMO_STATUS[status].tone}`}>
               {PROMO_STATUS[status].label}
             </span>,
-            <form action={setPromoActiveAction} key="a">
-              <input type="hidden" name="promo_id" value={promo.id} />
-              <input type="hidden" name="active" value={promo.is_active ? 'false' : 'true'} />
-              <button className="btn btn-sm" type="submit">
-                {promo.is_active ? 'Pause' : 'Resume'}
-              </button>
-            </form>,
           ])}
         />
       </div>

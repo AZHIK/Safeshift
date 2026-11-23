@@ -13,6 +13,8 @@ import { createClient } from '@/lib/supabase/server';
 import { deletePromoAction, setPromoActiveAction } from '../actions';
 import { loadPromoLookups } from '../lookups';
 import { PromoFormClient } from '../promo-form';
+import { RowMenu } from '@/components/row-menu';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +88,13 @@ export default async function PromoDetailPage({
             <Link className="btn" href="/promos">
               All promos
             </Link>
+            <RecordActions
+              table="promo_codes"
+              id={promo.id}
+              generic="view"
+              label="Promo actions"
+              items={used > 0 ? [] : [{ kind: 'form', label: 'Delete', action: deletePromoAction, fields: { promo_id: promo.id }, confirm: `Delete ${promo.code}? This cannot be undone.`, danger: true }]}
+            />
             <form action={setPromoActiveAction}>
               <input type="hidden" name="promo_id" value={promo.id} />
               <input type="hidden" name="back" value="detail" />
@@ -142,6 +151,12 @@ export default async function PromoDetailPage({
             <DataTable
               columns={['When', 'Customer', 'Discount', 'Job']}
               empty="Not redeemed yet."
+              actions={rows.map((r, i) => (
+                <RowMenu
+                  key={i}
+                  items={r.job_id ? [{ kind: 'link', label: 'Open job', href: `/jobs/${r.job_id}` }] : []}
+                />
+              ))}
               rows={rows.map((r) => [
                 <span key="w" className="nowrap small">
                   {formatDate(r.redeemed_at)}

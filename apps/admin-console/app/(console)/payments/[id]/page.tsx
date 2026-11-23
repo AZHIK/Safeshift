@@ -13,6 +13,7 @@ import { refundableAmount, tone, type RefundRow } from '@/lib/money/money';
 import { createClient } from '@/lib/supabase/server';
 
 import { completeRefundAction, failRefundAction, refundPaymentAction } from '../actions';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,9 +78,12 @@ export default async function PaymentDetailPage({
         title={`Payment ${shortId(payment.id)}`}
         description={`${titleize(payment.payment_type)} · ${formatMoney(payment.amount, currency)} · ${provider?.code ?? 'unknown provider'}`}
         actions={
-          <Link className="btn" href="/payments">
-            All payments
-          </Link>
+          <>
+            <Link className="btn" href="/payments">
+              All payments
+            </Link>
+            <RecordActions table="payments" id={payment.id} label="Payment actions" />
+          </>
         }
       />
       <Notice searchParams={query} />
@@ -118,6 +122,7 @@ export default async function PaymentDetailPage({
           <DataTable
             columns={['When', 'Amount', 'Status', 'Reason', 'By', '']}
             empty="No refunds."
+            actions={refunds.map((r) => <RecordActions key={r.id} table="refunds" id={r.id} />)}
             rows={refunds.map((r) => [
               <span key="w" className="small nowrap">
                 {formatDate(r.created_at)}

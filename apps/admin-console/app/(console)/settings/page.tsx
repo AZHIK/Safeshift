@@ -8,6 +8,7 @@ import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { loadProfileSummaries } from '@/lib/profile-summaries';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,6 +110,15 @@ export default async function SettingsPage({
                 <StatusBadge key="b" value={role.is_active ? 'active' : 'disabled'} />,
               ];
             })}
+            actions={(roles ?? []).map((role) => (
+              <RecordActions
+                key={role.id}
+                table="admin_roles"
+                id={role.id}
+                viewHref={`/users/${role.profile_id}`}
+                items={[{ kind: 'link', label: 'Manage roles and access', href: '/settings/configuration/admin-roles' }]}
+              />
+            ))}
             empty="No active role grants."
           />
         </div>
@@ -116,6 +126,9 @@ export default async function SettingsPage({
           <div className="card-pad" style={{ paddingBottom: 0 }}>
             <h2 className="card-title">Support categories</h2>
             <p className="card-sub">Shared taxonomy used by customer and driver apps.</p>
+            <Link className="btn btn-sm" href="/data/support_categories/new" style={{ marginTop: 8 }}>
+              Add category
+            </Link>
           </div>
           <DataTable
             columns={['Name', 'Code', 'Order', 'Status']}
@@ -127,6 +140,9 @@ export default async function SettingsPage({
               category.display_order,
               <StatusBadge key="b" value={category.is_active ? 'active' : 'disabled'} />,
             ])}
+            actions={(categories ?? []).map((category) => (
+              <RecordActions key={category.id} table="support_categories" id={category.id} label={`Actions for ${category.name}`} />
+            ))}
             empty="No support categories."
           />
         </div>

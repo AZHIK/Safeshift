@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Fragment } from 'react';
+import { RowMenu } from '@/components/row-menu';
 
 import { formatDate } from '@/lib/format';
 import type { ConfigColumn, ConfigRowAction } from '@/lib/configuration/types';
@@ -123,7 +123,7 @@ export function ConfigurationTable({
               {columns.map((column) => (
                 <th key={column.key}>{column.label}</th>
               ))}
-              <th aria-label="Actions" />
+              <th className="col-actions" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -175,41 +175,23 @@ export function ConfigurationTable({
             <ConfigCell column={column} row={row} />
           </td>
         ))}
-        <td>
-          <div className="table-actions">
-            {rowAction && row.id ? (
-              <Link className="btn btn-sm" href={rowAction.href.replace('{id}', String(row.id))}>
-                {rowAction.label}
-              </Link>
-            ) : null}
-            {canEdit ? (
-              <button className="btn btn-sm" onClick={() => onEdit(row)} type="button">
-                Edit
-              </button>
-            ) : null}
-            {canDeactivate ? (
-              isActive ? (
-                <button className="btn btn-sm" onClick={() => onDeactivate(row)} type="button">
-                  Deactivate
-                </button>
-              ) : onActivate ? (
-                <button className="btn btn-sm" onClick={() => onActivate(row)} type="button">
-                  Activate
-                </button>
-              ) : null
-            ) : null}
-            {canAudit ? (
-              <button
-                aria-label="Audit history"
-                className="btn btn-sm"
-                onClick={() => onAudit(row)}
-                title="Audit history"
-                type="button"
-              >
-                Audit
-              </button>
-            ) : null}
-          </div>
+        <td className="col-actions">
+          <RowMenu
+            label={`Actions for ${String(row.name ?? row.code ?? row.id ?? 'row')}`}
+            items={[
+              ...(rowAction && row.id
+                ? [{ kind: 'link' as const, label: rowAction.label, href: rowAction.href.replace('{id}', String(row.id)) }]
+                : []),
+              ...(canEdit ? [{ kind: 'button' as const, label: 'Edit', onSelect: () => onEdit(row) }] : []),
+              ...(canDeactivate && isActive
+                ? [{ kind: 'button' as const, label: 'Deactivate', onSelect: () => onDeactivate(row), danger: true }]
+                : []),
+              ...(canDeactivate && !isActive && onActivate
+                ? [{ kind: 'button' as const, label: 'Activate', onSelect: () => onActivate(row) }]
+                : []),
+              ...(canAudit ? [{ kind: 'button' as const, label: 'Audit history', onSelect: () => onAudit(row) }] : []),
+            ]}
+          />
         </td>
       </tr>
     );
@@ -223,7 +205,7 @@ export function ConfigurationTable({
             {columns.map((column) => (
               <th key={column.key}>{column.label}</th>
             ))}
-            <th aria-label="Actions" />
+            <th className="col-actions" aria-label="Actions" />
           </tr>
         </thead>
         <tbody>

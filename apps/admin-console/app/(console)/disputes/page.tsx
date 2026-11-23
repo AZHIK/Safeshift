@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,17 @@ export default async function DisputesPage({
               </button>
             </form>,
           ])}
+          actions={(data ?? []).map((dispute) => (
+            <RecordActions
+              key={dispute.id}
+              table="disputes"
+              id={dispute.id}
+              items={[
+                ...(dispute.job_id ? [{ kind: 'link' as const, label: 'Open job', href: `/jobs/${dispute.job_id}` }] : []),
+                ...(dispute.raised_by ? [{ kind: 'link' as const, label: 'Open person who raised it', href: `/users/${dispute.raised_by}` }] : []),
+              ]}
+            />
+          ))}
           empty="No disputes found."
         />
       </div>

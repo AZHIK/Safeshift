@@ -4,6 +4,8 @@ import { ConfirmSubmit } from '@/components/confirm-submit';
 import { Notice } from '@/components/notice';
 import { hasPermission } from '@/lib/configuration/guard';
 import { DataTable } from '@/components/data-table';
+import { RecordActions } from '@/components/record-actions';
+import { recordHref } from '@/lib/data-records';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
@@ -35,16 +37,16 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
         supabase
           .from('fleet_vehicles')
           .select(
-            'fleet_id, is_active, vehicles(registration_number, verification_status, capacity_kg, vehicle_types(name))',
+            'id, fleet_id, vehicle_id, is_active, vehicles(registration_number, verification_status, capacity_kg, vehicle_types(name))',
           )
           .in('fleet_id', fleetIds),
         supabase
           .from('fleet_members')
-          .select('fleet_id, driver_id, role, is_active')
+          .select('id, fleet_id, driver_id, role, is_active')
           .in('fleet_id', fleetIds),
         supabase
           .from('fleet_billing_events')
-          .select('fleet_id, job_id, fleet_commission_amount, currency_code, accrued_at')
+          .select('id, fleet_id, job_id, fleet_commission_amount, currency_code, accrued_at')
           .in('fleet_id', fleetIds)
           .order('created_at', { ascending: false })
           .limit(100),
@@ -110,6 +112,7 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
                   <div className="inline">
                     <StatusBadge value={fleet.verified_at ? 'verified' : 'pending'} />
                     <StatusBadge value={fleet.is_active ? 'active' : 'disabled'} />
+                    <RecordActions table="fleets" id={fleet.id} label={`Actions for ${fleet.name}`} />
                   </div>
                 </div>
                 {fleet.is_active && <FleetReview id={fleet.id} mayVerify={manage && !fleet.verified_at} mayBill={mayBill} rate={fleet.commission_rate_override}/>}
@@ -192,6 +195,14 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
                         <StatusBadge key="s" value={entry.is_active ? 'active' : 'paused'} />,
                       ];
                     })}
+                    actions={fleetVehicles.map((entry) => (
+                      <RecordActions
+                        key={entry.id}
+                        table="fleet_vehicles"
+                        id={entry.id}
+                        items={[{ kind: 'link', label: 'Open vehicle', href: recordHref('vehicles', entry.vehicle_id) }]}
+                      />
+                    ))}
                     empty="No vehicles assigned."
                   />
                 </div>
@@ -211,6 +222,14 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
                         <StatusBadge key="s" value={entry.is_active ? 'active' : 'paused'} />,
                       ];
                     })}
+                    actions={fleetMembers.map((entry) => (
+                      <RecordActions
+                        key={entry.id}
+                        table="fleet_members"
+                        id={entry.id}
+                        viewHref={`/drivers/${entry.driver_id}`}
+                      />
+                    ))}
                     empty="No drivers assigned."
                   />
                 </div>
@@ -228,6 +247,14 @@ export default async function FleetsPage({ searchParams }: { searchParams: Promi
                       {formatDate(event.accrued_at)}
                     </span>,
                   ])}
+                  actions={events.slice(0, 5).map((event) => (
+                    <RecordActions
+                      key={event.id}
+                      table="fleet_billing_events"
+                      id={event.id}
+                      viewHref={event.job_id ? `/jobs/${event.job_id}` : undefined}
+                    />
+                  ))}
                   empty="No billing events recorded."
                 />
               </div>

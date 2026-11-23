@@ -6,6 +6,7 @@ import { titleize } from '@/lib/format';
 import { requireArea } from '@/lib/guard';
 import { records,recordFilters,readRecords,PAGE_SIZE } from '@/lib/records';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export default async function RecordsPage({params,searchParams}:{params:Promise<{resource:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
   const {resource}=await params;
@@ -31,6 +32,6 @@ export default async function RecordsPage({params,searchParams}:{params:Promise<
       <label className="field">Sort by<select className="input" name="sort" defaultValue={filters.sort}>{options}</select></label>
       <label className="field">Order<select className="input" name="dir" defaultValue={filters.ascending?'asc':'desc'}><option value="desc">Descending</option><option value="asc">Ascending</option></select></label><button className="btn">Apply</button>
     </form>
-    <DataTable columns={list.columns.map(titleize)} rows={result.rows.map(r=>list.columns.map(c=>list.detail && c==='id'?<Link key={c} href={list.detail+r.id}>{String(r.id)}</Link>:String(r[c]??'—')))}/>
+    <DataTable columns={list.columns.map(titleize)} rows={result.rows.map(r=>list.columns.map(c=>list.detail && c==='id'?<Link key={c} href={list.detail+r.id}>{String(r.id)}</Link>:String(r[c]??'—')))} actions={result.rows.map(r=><RecordActions key={String(r.id)} table={list.table} id={r.id} viewHref={list.detail?list.detail+String(r.id):undefined}/>)}/>
     <nav className="inline">{filters.page>1 && <Link href={href(filters.page-1)}>Previous</Link>}<span>Page {filters.page} · {result.count} matching records</span>{filters.page*PAGE_SIZE<result.count && <Link href={href(filters.page+1)}>Next</Link>}</nav></>;
 }

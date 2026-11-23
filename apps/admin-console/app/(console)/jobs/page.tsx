@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { requireArea } from '@/lib/guard';
 import { formatDate, formatMoney, shortId, titleize } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +91,18 @@ export default async function JobsPage({
               {formatDate(job.completed_at)}
             </span>,
           ])}
+          actions={(data ?? []).map((job) => (
+            <RecordActions
+              key={job.id}
+              table="jobs"
+              id={job.id}
+              viewHref={`/jobs/${job.id}`}
+              items={[
+                ...(job.customer_id ? [{ kind: 'link' as const, label: 'Open customer', href: `/users/${job.customer_id}` }] : []),
+                ...(job.driver_id ? [{ kind: 'link' as const, label: 'Open driver', href: `/drivers/${job.driver_id}` }] : []),
+              ]}
+            />
+          ))}
           empty="No jobs match this filter."
         />
       </div>

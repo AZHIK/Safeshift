@@ -3,7 +3,9 @@ import { PageHeader } from '@/components/page-header';
 import { requireArea } from '@/lib/guard';
 import { formatDate, shortId, titleize } from '@/lib/format';
 import { loadProfileSummaries } from '@/lib/profile-summaries';
+import { entityHref } from '@/lib/entity-links';
 import { createClient } from '@/lib/supabase/server';
+import { RecordActions } from '@/components/record-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +68,20 @@ export default async function AuditPage() {
                 {entry.ip_address ?? '—'}
               </span>,
             ];
+          })}
+          actions={(data ?? []).map((entry) => {
+            const href = entityHref(entry.entity_type, entry.entity_id);
+            return (
+              <RecordActions
+                key={entry.id}
+                table="admin_actions_log"
+                id={entry.id}
+                items={[
+                  ...(href ? [{ kind: 'link' as const, label: 'Open changed record', href }] : []),
+                  ...(entry.admin_profile_id ? [{ kind: 'link' as const, label: 'Open admin', href: `/users/${entry.admin_profile_id}` }] : []),
+                ]}
+              />
+            );
           })}
           empty="No admin actions recorded yet."
         />

@@ -19,6 +19,7 @@ const areaPermissions: Record<string, readonly string[]> = {
   pricing: ['manage_pricing', 'manage_regulated_tariffs'],
   promos: ['view_promotions', 'manage_promotions'],
   'data-requests': ['manage_data_requests'],
+  data: ['manage_records'],
 };
 
 export function canSee(permissions: ReadonlySet<string>, area: string, role: string) {
