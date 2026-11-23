@@ -13,3 +13,19 @@ export async function secondFactorVerified(supabase: SupabaseClient): Promise<bo
   if (error) return false;
   return Boolean((data as { verified?: boolean } | null)?.verified);
 }
+
+export type SecondFactorMethod = 'authenticator' | 'sms' | 'email';
+
+/**
+ * Methods offered on /mfa, from CONSOLE_2FA_METHODS (comma-separated, e.g.
+ * "authenticator,sms,email"). Defaults to the authenticator app only: text
+ * message and email need MESEJI_API_KEY / BREVO_API_KEY on the project.
+ * The authenticator app is always offered so staff can never be locked out.
+ */
+export function enabledSecondFactorMethods(raw = process.env.CONSOLE_2FA_METHODS): SecondFactorMethod[] {
+  const wanted = new Set((raw ?? '').split(',').map((m) => m.trim().toLowerCase()));
+  const methods: SecondFactorMethod[] = ['authenticator'];
+  if (wanted.has('sms')) methods.push('sms');
+  if (wanted.has('email')) methods.push('email');
+  return methods;
+}

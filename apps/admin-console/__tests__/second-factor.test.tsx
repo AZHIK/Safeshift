@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { secondFactorVerified } from '@/lib/second-factor';
+import { enabledSecondFactorMethods, secondFactorVerified } from '@/lib/second-factor';
 
 const mfa = {
   listFactors: vi.fn(),
@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }));
 
 const { SecondFactorOptions } = await import('@/app/mfa/second-factor-options');
+const ALL = ['authenticator', 'sms', 'email'] as const;
 
 describe('secondFactorVerified', () => {
   it('trusts an aal2 session without asking the database', async () => {
@@ -46,13 +47,31 @@ describe('secondFactorVerified', () => {
   });
 });
 
+describe('enabledSecondFactorMethods', () => {
+  it('offers only the authenticator app until SMS and email are switched on', () => {
+    expect(enabledSecondFactorMethods(undefined)).toEqual(['authenticator']);
+    expect(enabledSecondFactorMethods('')).toEqual(['authenticator']);
+    expect(enabledSecondFactorMethods(' Email , sms ')).toEqual(['authenticator', 'sms', 'email']);
+    // The authenticator can never be switched off, so staff are not locked out.
+    expect(enabledSecondFactorMethods('sms')).toEqual(['authenticator', 'sms']);
+  });
+});
+
 describe('SecondFactorOptions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
+  it('shows only the authenticator, with no method tabs, by default', () => {
+    render(<SecondFactorOptions authenticators={[]} email="ka••••@example.com" phone="+255 •••• 678" />);
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText('Text message')).not.toBeInTheDocument();
+    expect(screen.queryByText('Email')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set up authenticator app' })).toBeInTheDocument();
+  });
+
   it('offers all three methods and explains a missing phone number', () => {
-    render(<SecondFactorOptions authenticators={[]} email="ka••••@example.com" phone={null} />);
+    render(<SecondFactorOptions methods={ALL} authenticators={[]} email="ka••••@example.com" phone={null} />);
     expect(screen.getByRole('tab', { name: 'Authenticator app' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Text message' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Email' })).toBeInTheDocument();
@@ -90,7 +109,7 @@ describe('SecondFactorOptions', () => {
     const replace = vi.fn();
     Object.defineProperty(window, 'location', { value: { replace }, writable: true });
 
-    render(<SecondFactorOptions authenticators={[]} email="ka••••@example.com" phone="+255 •••• 678" />);
+    render(<SecondFactorOptions methods={ALL} authenticators={[]} email="ka••••@example.com" phone="+255 •••• 678" />);
     fireEvent.click(screen.getByRole('tab', { name: 'Email' }));
     fireEvent.click(screen.getByRole('button', { name: 'Send code' }));
 
@@ -112,7 +131,7 @@ describe('SecondFactorOptions', () => {
         context: { json: async () => ({ error: { message: 'a code was sent less than a minute ago' } }) },
       },
     });
-    render(<SecondFactorOptions authenticators={[]} email={null} phone="+255 •••• 678" />);
+    render(<SecondFactorOptions methods={ALL} authenticators={[]} email={null} phone="+255 •••• 678" />);
     fireEvent.click(screen.getByRole('tab', { name: 'Text message' }));
     fireEvent.click(screen.getByRole('button', { name: 'Send code' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('a code was sent less than a minute ago');

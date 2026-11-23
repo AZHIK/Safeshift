@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { getBrowserClient } from '@/lib/supabase/client';
 
 type Method = 'authenticator' | 'sms' | 'email';
+const LABELS: Record<Method, string> = { authenticator: 'Authenticator app', sms: 'Text message', email: 'Email' };
 type Authenticator = { id: string; label: string };
 
 const CODE_RE = /^\d{6}$/;
@@ -44,37 +45,37 @@ function CodeField({ value, onChange, id }: { value: string; onChange: (v: strin
 }
 
 export function SecondFactorOptions({
+  methods = ['authenticator'],
   authenticators,
   email,
   phone,
 }: {
+  /** Methods to offer; the first is selected. */
+  methods?: readonly Method[];
   authenticators: Authenticator[];
   email: string | null;
   phone: string | null;
 }) {
-  const methods: { id: Method; label: string; available: boolean }[] = [
-    { id: 'authenticator', label: 'Authenticator app', available: true },
-    { id: 'sms', label: 'Text message', available: Boolean(phone) },
-    { id: 'email', label: 'Email', available: Boolean(email) },
-  ];
-  const [method, setMethod] = useState<Method>('authenticator');
+  const [method, setMethod] = useState<Method>(methods[0] ?? 'authenticator');
 
   return (
     <div className="section-stack" style={{ marginTop: 12 }}>
-      <div role="tablist" aria-label="Verification method" className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
-        {methods.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            role="tab"
-            aria-selected={method === m.id}
-            className={`btn btn-sm${method === m.id ? ' btn-primary' : ''}`}
-            onClick={() => setMethod(m.id)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {methods.length > 1 ? (
+        <div role="tablist" aria-label="Verification method" className="inline" style={{ gap: 8, flexWrap: 'wrap' }}>
+          {methods.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={method === m}
+              className={`btn btn-sm${method === m ? ' btn-primary' : ''}`}
+              onClick={() => setMethod(m)}
+            >
+              {LABELS[m]}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div role="tabpanel">
         {method === 'authenticator' ? <AuthenticatorMethod authenticators={authenticators} /> : null}
         {method === 'sms' ? (

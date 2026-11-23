@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { signOutAction } from '@/app/actions/auth';
-import { secondFactorVerified } from '@/lib/second-factor';
+import { enabledSecondFactorMethods, secondFactorVerified } from '@/lib/second-factor';
 import { createClient } from '@/lib/supabase/server';
 
 import { SecondFactorOptions } from './second-factor-options';
@@ -40,15 +40,14 @@ export default async function MfaPage() {
         <h1 className="login-title" id="mfa-title">
           Verify it&apos;s you
         </h1>
-        <p className="login-sub">
-          Console access needs a second step. Choose how you want to receive your code.
-        </p>
+        <p className="login-sub">Console access needs a second step.</p>
         {factors.error ? (
           <p className="notice notice-error" role="alert">
             Could not load your sign-in options. Refresh to try again.
           </p>
         ) : (
           <SecondFactorOptions
+            methods={enabledSecondFactorMethods()}
             authenticators={authenticators}
             email={maskEmail(info.email ?? user.email ?? null)}
             phone={maskPhone(info.phone ?? null)}
