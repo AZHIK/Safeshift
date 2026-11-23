@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../domain/entities/driver_status.dart';
 import '../../providers/home_provider.dart';
+import '../widgets/location_issue_banner.dart';
 import '../widgets/map_placeholder.dart';
 import '../widgets/sheets/arrived_at_destination_sheet.dart';
 import '../widgets/sheets/cargo_review_sheet.dart';
@@ -89,6 +90,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (previous == next || notice == null || notice.isEmpty) return;
       AppSnackbar.showInfo(context, notice);
     });
+    // Errors from going online (e.g. no verified vehicle) used to be set but
+    // never shown on this screen. Job sheets render their own errors inline.
+    ref.listen<String?>(homeProvider.select((s) => s.errorMessage), (
+      previous,
+      next,
+    ) {
+      final status = ref.read(homeProvider).driverStatus;
+      final idle =
+          status == DriverStatus.offline ||
+          status == DriverStatus.onlineIdle ||
+          status == DriverStatus.onlineSearching;
+      if (next == null || next == previous || !idle) return;
+      AppSnackbar.showError(context, next);
+    });
     final home = ref.watch(homeProvider);
     final status = home.driverStatus;
     final sizes = _sizesFor(status);
@@ -120,19 +135,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-            // Cargo stays reviewable at every stage of a job — before accepting
-            // and all the way through delivery.
-            if (job != null)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
-                right: 16,
-                child: FloatingActionButton.small(
-                  heroTag: 'cargo-review',
-                  tooltip: 'Review cargo',
-                  onPressed: () => showCargoReviewSheet(context, job, ref: ref),
-                  child: const Icon(Icons.inventory_2_outlined),
-                ),
+            // Top overlay: the location banner, then the cargo button. One
+            // column so they never overlap.
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 16,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    alignment: Alignment.topCenter,
+                    child: home.locationIssue == null
+                        ? const SizedBox(width: double.infinity)
+                        : Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: LocationIssueBanner(
+                              issue: home.locationIssue!,
+                              offline: status == DriverStatus.offline,
+                            ),
+                          ),
+                  ),
+                  // Cargo stays reviewable at every stage of a job — before
+                  // accepting and all the way through delivery.
+                  if (job != null)
+                    FloatingActionButton.small(
+                      heroTag: 'cargo-review',
+                      tooltip: 'Review cargo',
+                      onPressed: () =>
+                          showCargoReviewSheet(context, job, ref: ref),
+                      child: const Icon(Icons.inventory_2_outlined),
+                    ),
+                ],
               ),
+            ),
             DraggableScrollableSheet(
               key: ValueKey<DriverStatus>(status),
               initialChildSize: sizes.initial,

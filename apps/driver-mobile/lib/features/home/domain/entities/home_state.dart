@@ -1,6 +1,18 @@
 import 'driver_job.dart';
 import 'driver_status.dart';
 
+/// Why the driver's location cannot be used right now.
+enum LocationIssue {
+  /// Device location (GPS) is switched off.
+  serviceOff,
+
+  /// Permission not granted yet; the system prompt can still be shown.
+  permissionDenied,
+
+  /// Permission blocked; only the app's system settings can grant it.
+  permissionBlocked,
+}
+
 /// Local UI state for the single-screen driver home.
 class HomeState {
   const HomeState({
@@ -23,6 +35,7 @@ class HomeState {
     this.pickupFreeWaitEndsAt,
     this.notice,
     this.noticeSeq = 0,
+    this.locationIssue,
   });
 
   final DriverStatus driverStatus;
@@ -56,6 +69,10 @@ class HomeState {
   final String? notice;
   final int noticeSeq;
 
+  /// Set while location is unusable. Going online is blocked, and while
+  /// online or on a job the home screen shows a persistent banner.
+  final LocationIssue? locationIssue;
+
   HomeState copyWith({
     DriverStatus? driverStatus,
     int? todayEarnings,
@@ -79,6 +96,8 @@ class HomeState {
     DateTime? pickupFreeWaitEndsAt,
     bool clearPickupWait = false,
     String? notice,
+    LocationIssue? locationIssue,
+    bool clearLocationIssue = false,
   }) {
     return HomeState(
       driverStatus: driverStatus ?? this.driverStatus,
@@ -102,6 +121,9 @@ class HomeState {
           : (pickupFreeWaitEndsAt ?? this.pickupFreeWaitEndsAt),
       notice: notice ?? this.notice,
       noticeSeq: notice != null ? noticeSeq + 1 : noticeSeq,
+      locationIssue: clearLocationIssue
+          ? null
+          : (locationIssue ?? this.locationIssue),
     );
   }
 }

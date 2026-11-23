@@ -48,6 +48,11 @@ class HomeNotifier extends Notifier<HomeState> {
   Timer? _pollTimer;
   Timer? _locationTimer;
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<ServiceStatus>? _serviceStatusSubscription;
+
+  /// When going online was last blocked by a location problem. If the driver
+  /// fixes it soon after, they are taken online without tapping again.
+  DateTime? _onlineBlockedAt;
   AppLifecycleListener? _lifecycle;
   RealtimeChannel? _offersChannel;
   RealtimeChannel? _jobChannel;
@@ -64,8 +69,7 @@ class HomeNotifier extends Notifier<HomeState> {
       _lifecycle = AppLifecycleListener(
         onResume: () {
           if (_isMock) return;
-          if (state.driverStatus == DriverStatus.offline) return;
-          unawaited(_pushLocation(_activeJobId));
+          unawaited(_recheckLocationOnResume());
         },
       );
     } catch (_) {
@@ -161,6 +165,21 @@ class HomeNotifier extends Notifier<HomeState> {
       clearActive: true,
       clearError: true,
     );
+    // Dispatch finds drivers by location, so an online driver without a
+    // usable location would silently never get a job. Block until fixed.
+    final issue = await _locationIssue();
+    if (!ref.mounted) return;
+    if (issue != null) {
+      _onlineBlockedAt = DateTime.now();
+      state = state.copyWith(
+        driverStatus: DriverStatus.offline,
+        isLoading: false,
+        locationIssue: issue,
+      );
+      return;
+    }
+    _onlineBlockedAt = null;
+    state = state.copyWith(clearLocationIssue: true);
     try {
       // Dispatch matches on drivers.current_vehicle_id. Without it the driver
       // is invisible to every job, so make sure it is set before going online.
@@ -514,6 +533,19 @@ class HomeNotifier extends Notifier<HomeState> {
       _mockGoOnline();
       return;
     }
+    final issue = await _locationIssue();
+    if (!ref.mounted) return;
+    if (issue != null) {
+      _onlineBlockedAt = DateTime.now();
+      state = state.copyWith(
+        driverStatus: DriverStatus.offline,
+        clearIncoming: true,
+        clearActive: true,
+        locationIssue: issue,
+      );
+      return;
+    }
+    _onlineBlockedAt = null;
     try {
       if (!await _repo.ensureCurrentVehicle()) {
         state = state.copyWith(
@@ -850,21 +882,16 @@ class HomeNotifier extends Notifier<HomeState> {
     _positionSubscription = null;
     _gpsFilter.reset();
     _attachBroadcaster(jobId);
+    _watchServiceStatus();
 
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        return 'Turn on location services so customers can find you nearby.';
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return 'Allow location access so customers can find you nearby.';
-      }
-    } catch (error, stack) {
-      return ErrorHandler.map(error, stackTrace: stack).message;
+    final issue = await _locationIssue();
+    if (!ref.mounted) return null;
+    if (issue != null) {
+      state = state.copyWith(locationIssue: issue);
+      return locationIssueMessage(issue);
+    }
+    if (state.locationIssue != null) {
+      state = state.copyWith(clearLocationIssue: true);
     }
 
     // Publish a fix right away so the driver becomes dispatchable without
@@ -1013,20 +1040,18 @@ class HomeNotifier extends Notifier<HomeState> {
   Future<String?> _pushLocation(String? jobId) async {
     if (_isMock) return null;
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        return 'Turn on location services so customers can find you nearby.';
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return 'Allow location access so customers can find you nearby.';
+      // No prompt here: _startLocationUpdates already asked, and this also
+      // runs from timers and app resume where a dialog would be unexpected.
+      final issue = await _locationIssue(request: false);
+      if (issue != null) {
+        if (ref.mounted) state = state.copyWith(locationIssue: issue);
+        return locationIssueMessage(issue);
       }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
+          // Never hang on a fix the device cannot get (indoors, bad GPS).
+          timeLimit: Duration(seconds: 20),
         ),
       );
       final fix = _fixFrom(position);
@@ -1100,6 +1125,123 @@ class HomeNotifier extends Notifier<HomeState> {
     _countdownTimer = null;
   }
 
+  // ---------------------------------------------------------------------------
+  // Location availability
+  // ---------------------------------------------------------------------------
+
+  /// Returns why location is unusable, or null when it is ready. Shows the
+  /// system permission prompt only when [request] is true.
+  Future<LocationIssue?> _locationIssue({bool request = true}) async {
+    if (_isMock) return null;
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return LocationIssue.serviceOff;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied && request) {
+        permission = await Geolocator.requestPermission();
+      }
+      return switch (permission) {
+        LocationPermission.denied => LocationIssue.permissionDenied,
+        LocationPermission.deniedForever ||
+        LocationPermission.unableToDetermine => LocationIssue.permissionBlocked,
+        LocationPermission.whileInUse || LocationPermission.always => null,
+      };
+    } catch (_) {
+      // Plugin unavailable: let the fix attempt surface its own error.
+      return null;
+    }
+  }
+
+  /// Reacts to the driver switching device location off or on while online
+  /// or on a job, so dispatch and live tracking never fail silently.
+  void _watchServiceStatus() {
+    if (_serviceStatusSubscription != null) return;
+    try {
+      _serviceStatusSubscription = Geolocator.getServiceStatusStream().listen((
+        status,
+      ) {
+        if (!ref.mounted || state.driverStatus == DriverStatus.offline) {
+          return;
+        }
+        if (status == ServiceStatus.disabled) {
+          state = state.copyWith(locationIssue: LocationIssue.serviceOff);
+        } else if (state.locationIssue == LocationIssue.serviceOff) {
+          unawaited(_onLocationRestored());
+        }
+      }, onError: (_) {});
+    } catch (_) {
+      // Not supported on this platform; resume checks still cover it.
+    }
+  }
+
+  Future<void> _recheckLocationOnResume() async {
+    if (!ref.mounted) return;
+    final hadIssue = state.locationIssue != null;
+    if (!hadIssue) {
+      if (state.driverStatus != DriverStatus.offline) {
+        unawaited(_pushLocation(_activeJobId));
+      }
+      return;
+    }
+    final issue = await _locationIssue(request: false);
+    if (!ref.mounted) return;
+    if (issue == null) {
+      await _onLocationRestored();
+    } else if (issue != state.locationIssue) {
+      state = state.copyWith(locationIssue: issue);
+    }
+  }
+
+  /// Location works again: clear the banner and resume what was interrupted.
+  Future<void> _onLocationRestored() async {
+    if (!ref.mounted) return;
+    state = state.copyWith(clearLocationIssue: true);
+    if (state.driverStatus == DriverStatus.offline) {
+      final blockedAt = _onlineBlockedAt;
+      _onlineBlockedAt = null;
+      // The driver tried to go online moments ago; finish that for them.
+      if (blockedAt != null &&
+          DateTime.now().difference(blockedAt) < const Duration(minutes: 10)) {
+        await goOnline();
+      }
+      return;
+    }
+    await _startLocationUpdates(jobId: _activeJobId);
+  }
+
+  /// The banner's action: open location settings, show the permission
+  /// prompt again, or open the app's settings when permission is blocked.
+  Future<void> fixLocation() async {
+    switch (state.locationIssue) {
+      case null:
+        return;
+      case LocationIssue.serviceOff:
+        await Geolocator.openLocationSettings();
+      case LocationIssue.permissionBlocked:
+        await Geolocator.openAppSettings();
+      case LocationIssue.permissionDenied:
+        final permission = await Geolocator.requestPermission();
+        if (!ref.mounted) return;
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          await _onLocationRestored();
+        } else if (permission == LocationPermission.deniedForever) {
+          state = state.copyWith(
+            locationIssue: LocationIssue.permissionBlocked,
+          );
+        }
+    }
+    // Returning from settings is handled by the resume check.
+  }
+
+  /// Hides the offline banner when the driver does not want to go online.
+  void dismissLocationIssue() {
+    if (state.driverStatus != DriverStatus.offline) return;
+    _onlineBlockedAt = null;
+    state = state.copyWith(clearLocationIssue: true);
+  }
+
   void _cancelAll() {
     _idleTimer?.cancel();
     _incomingTimer?.cancel();
@@ -1107,6 +1249,8 @@ class HomeNotifier extends Notifier<HomeState> {
     _pollTimer?.cancel();
     _locationTimer?.cancel();
     _positionSubscription?.cancel();
+    _serviceStatusSubscription?.cancel();
+    _serviceStatusSubscription = null;
     _offersChannel?.unsubscribe();
     _jobChannel?.unsubscribe();
     _idleTimer = null;
@@ -1131,3 +1275,13 @@ final authProviderUserId = Provider<String?>((ref) {
 final homeProvider = NotifierProvider<HomeNotifier, HomeState>(
   HomeNotifier.new,
 );
+
+/// Short reason used where a location problem is reported as text.
+String locationIssueMessage(LocationIssue issue) => switch (issue) {
+  LocationIssue.serviceOff =>
+    'Turn on location so customers can find you nearby.',
+  LocationIssue.permissionDenied =>
+    'Allow location access so customers can find you nearby.',
+  LocationIssue.permissionBlocked =>
+    'Location access is blocked. Enable it in Settings.',
+};
