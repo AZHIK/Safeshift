@@ -8,8 +8,9 @@ afterEach(() => {
 });
 
 // The console pages are rendered in jsdom, which does not implement the
-// layout APIs the browser provides.
-if (!window.matchMedia) {
+// layout APIs the browser provides. Integration tests run in plain Node,
+// where there is no window at all.
+if (typeof window !== 'undefined' && !window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string) => ({
