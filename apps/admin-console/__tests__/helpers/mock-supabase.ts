@@ -9,7 +9,7 @@
 
 export type MockFilter = {
   column: string;
-  operator: 'eq' | 'neq' | 'is' | 'or';
+  operator: 'eq' | 'neq' | 'is' | 'or' | 'in' | 'ilike';
   value: unknown;
 };
 
@@ -37,9 +37,24 @@ export type MockRpcHandler = (
   args: Record<string, unknown>,
 ) => MockResult | Promise<MockResult>;
 
+export type MockFunctionCall = {
+  name: string;
+  body: unknown;
+  headers: Record<string, string>;
+};
+
+export type MockFunctionsHandler = (call: MockFunctionCall) => MockResult | Promise<MockResult>;
+
 export type MockClient = {
   from: (table: string) => MockBuilder;
   rpc: (name: string, args: Record<string, unknown>) => Promise<MockResult>;
+  functions: {
+    invoke: (
+      name: string,
+      options?: { body?: unknown; headers?: Record<string, string> },
+    ) => Promise<MockResult>;
+  };
+  functionCalls: MockFunctionCall[];
   auth: { getUser: () => Promise<{ data: { user: { id: string } | null }; error: null }> };
   requests: MockRequest[];
   rpcCalls: { name: string; args: Record<string, unknown> }[];
@@ -87,6 +102,16 @@ class MockBuilder implements PromiseLike<MockResult> {
 
   eq(column: string, value: unknown): MockBuilder {
     this.request.filters.push({ column, operator: 'eq', value });
+    return this;
+  }
+
+  in(column: string, value: unknown[]): MockBuilder {
+    this.request.filters.push({ column, operator: 'in', value });
+    return this;
+  }
+
+  ilike(column: string, value: unknown): MockBuilder {
+    this.request.filters.push({ column, operator: 'ilike', value });
     return this;
   }
 
@@ -144,9 +169,14 @@ class MockBuilder implements PromiseLike<MockResult> {
 }
 
 /** Builds a mock client that answers with the given handlers. */
-export function createMockClient(handler: MockHandler, rpcHandler?: MockRpcHandler): MockClient {
+export function createMockClient(
+  handler: MockHandler,
+  rpcHandler?: MockRpcHandler,
+  functionsHandler?: MockFunctionsHandler,
+): MockClient {
   const requests: MockRequest[] = [];
   const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
+  const functionCalls: MockFunctionCall[] = [];
 
   const client: MockClient = {
     from(table: string) {
@@ -159,6 +189,14 @@ export function createMockClient(handler: MockHandler, rpcHandler?: MockRpcHandl
       if (!rpcHandler) return { data: null, error: null };
       return rpcHandler(name, args);
     },
+    functions: {
+      async invoke(name, options = {}) {
+        const call = { name, body: options.body, headers: options.headers ?? {} };
+        functionCalls.push(call);
+        return functionsHandler ? functionsHandler(call) : { data: null, error: null };
+      },
+    },
+    functionCalls,
     auth: {
       async getUser() {
         return { data: { user: { id: '11111111-1111-4111-8111-111111111111' } }, error: null };

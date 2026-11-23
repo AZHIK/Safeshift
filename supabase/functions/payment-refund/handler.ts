@@ -1,7 +1,7 @@
 import { type AuthDeps, defaultAuthDeps, requireAdmin } from '../_shared/auth.ts';
 import { serviceClient, type SupabaseClient, userClient } from '../_shared/db.ts';
 import { recordDeadLetter } from '../_shared/dead_letter.ts';
-import { NotFoundError, ValidationError } from '../_shared/errors.ts';
+import { NotFoundError, ProviderError, ValidationError } from '../_shared/errors.ts';
 import {
   checkIdempotencyKey,
   getIdempotencyKey,
@@ -84,36 +84,52 @@ export async function handle(
   if (rowError) throw rowError;
   if (!refund) throw new NotFoundError('Refund row not found');
 
+  // Once the provider has accepted the refund the money is moving: a later
+  // database error must never reverse it. It stays 'processing' for follow-up.
+  let providerAccepted = false;
   try {
     const result = deps.refundProvider
       ? await deps.refundProvider(
-          provider.code,
-          original.provider_reference,
-          body.amount,
-          body.reason,
-        )
+        provider.code,
+        original.provider_reference,
+        body.amount,
+        body.reason,
+      )
       : provider.code === 'selcom'
-        ? await (
-            await selcomClient(ctx.requestId)
-          ).refundPayment(original.provider_reference, body.amount, body.reason)
-        : provider.code === 'flutterwave'
-          ? await (
-              await flutterwaveClient(ctx.requestId)
-            ).refundPayment(original.provider_reference, body.amount, body.reason)
-          : (() => {
-              throw new ValidationError(`Refunds are not implemented for ${provider.code}`);
-            })();
+      ? await (
+        await selcomClient(ctx.requestId)
+      ).refundPayment(original.provider_reference, body.amount, body.reason)
+      : provider.code === 'flutterwave'
+      ? await (
+        await flutterwaveClient(ctx.requestId)
+      ).refundPayment(original.provider_reference, body.amount, body.reason)
+      : (() => {
+        throw new ValidationError(`Refunds are not implemented for ${provider.code}`);
+      })();
 
-    const finalStatus = result.status === 'succeeded' ? 'succeeded' : 'pending';
-    const { error: refundUpdateError } = await service
-      .from('refunds')
-      .update({
-        provider_reference: result.refund_reference,
-        status: finalStatus,
-        completed_at: finalStatus === 'succeeded' ? new Date().toISOString() : null,
-      })
-      .eq('id', refund.id);
-    if (refundUpdateError) throw refundUpdateError;
+    // The provider said no: the catch below marks the refund failed.
+    if (result.status === 'failed') {
+      throw new ProviderError(provider.code, 'Provider rejected the refund');
+    }
+    providerAccepted = true;
+
+    // payment_refund recorded the refund as 'processing'. A settled refund is
+    // finished in the database (refund and refund payment both succeed); an
+    // accepted one stays processing with the provider reference recorded.
+    const finalStatus = result.status === 'succeeded' ? 'succeeded' : 'processing';
+    if (finalStatus === 'succeeded') {
+      const { error: completeError } = await service.rpc('complete_refund', {
+        p_refund_id: refund.id,
+        p_provider_reference: result.refund_reference,
+      });
+      if (completeError) throw completeError;
+    } else {
+      const { error: refundUpdateError } = await service
+        .from('refunds')
+        .update({ provider_reference: result.refund_reference })
+        .eq('id', refund.id);
+      if (refundUpdateError) throw refundUpdateError;
+    }
 
     const response = {
       refund_id: refund.id,
@@ -124,18 +140,24 @@ export async function handle(
     await storeIdempotencyKey(idempotencyKey, scope, response, await hashRequest(body), store);
     return success(response, 201);
   } catch (error) {
-    await service
-      .from('refunds')
-      .update({
-        status: 'failed',
-        failure_reason:
-          error instanceof Error ? error.message.slice(0, 1_000) : 'provider_refund_failed',
-      })
-      .eq('id', refund.id)
-      .then(
-        () => undefined,
-        () => undefined,
-      );
+    const reason = error instanceof Error
+      ? error.message.slice(0, 1_000)
+      : 'provider_refund_failed';
+    // The provider did not take the refund: return the reserved clawbacks and
+    // restore the job. Skipped when the provider accepted it (see above).
+    const { error: reverseError } = providerAccepted
+      ? { error: null }
+      : await service.rpc('reverse_failed_refund', { p_refund_id: refund.id, p_reason: reason });
+    if (reverseError) {
+      await service
+        .from('refunds')
+        .update({ status: 'failed', failure_reason: reason })
+        .eq('id', refund.id)
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+    }
     await recordDeadLetter(
       'payment-refund',
       { refund_id: refund.id, payment_id: body.payment_id },

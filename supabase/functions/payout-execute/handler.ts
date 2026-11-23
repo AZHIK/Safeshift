@@ -64,6 +64,11 @@ export async function handle(
   if (['failed', 'cancelled'].includes(payout.status)) {
     throw new ValidationError(`Payout is ${payout.status}`);
   }
+  // Checked before any money moves: the database also refuses on_hold →
+  // processing, but only after the provider transfer would have been sent.
+  if (payout.status === 'on_hold') {
+    throw new ValidationError('Payout is on hold; release it before paying');
+  }
 
   let providerCode = body.provider_code ?? null;
   if (!providerCode && payout.payment_provider_id) {
@@ -89,35 +94,35 @@ export async function handle(
   try {
     const result = deps.transfer
       ? await deps.transfer(
-          providerCode,
-          Number(payout.net_amount),
-          payout.currency_code,
-          profile.phone,
-          `payout:${payout.id}`,
-        )
+        providerCode,
+        Number(payout.net_amount),
+        payout.currency_code,
+        profile.phone,
+        `payout:${payout.id}`,
+      )
       : providerCode === 'selcom'
-        ? await (
-            await selcomClient(ctx.requestId)
-          ).initiatePayout(
-            Number(payout.net_amount),
-            payout.currency_code,
-            profile.phone,
-            `payout:${payout.id}`,
-            'SafeShift driver payout',
-          )
-        : providerCode === 'flutterwave'
-          ? await (
-              await flutterwaveClient(ctx.requestId)
-            ).initiateTransfer(
-              Number(payout.net_amount),
-              payout.currency_code,
-              profile.phone,
-              `payout:${payout.id}`,
-              'SafeShift driver payout',
-            )
-          : (() => {
-              throw new ValidationError(`Payouts are not implemented for ${providerCode}`);
-            })();
+      ? await (
+        await selcomClient(ctx.requestId)
+      ).initiatePayout(
+        Number(payout.net_amount),
+        payout.currency_code,
+        profile.phone,
+        `payout:${payout.id}`,
+        'SafeShift driver payout',
+      )
+      : providerCode === 'flutterwave'
+      ? await (
+        await flutterwaveClient(ctx.requestId)
+      ).initiateTransfer(
+        Number(payout.net_amount),
+        payout.currency_code,
+        profile.phone,
+        `payout:${payout.id}`,
+        'SafeShift driver payout',
+      )
+      : (() => {
+        throw new ValidationError(`Payouts are not implemented for ${providerCode}`);
+      })();
 
     providerAccepted = result.status !== 'failed';
     const { error: processingError } = await service
@@ -151,8 +156,9 @@ export async function handle(
         .from('payouts')
         .update({
           status: 'failed',
-          failure_reason:
-            error instanceof Error ? error.message.slice(0, 1_000) : 'provider_payout_failed',
+          failure_reason: error instanceof Error
+            ? error.message.slice(0, 1_000)
+            : 'provider_payout_failed',
         })
         .eq('id', payout.id)
         .then(
