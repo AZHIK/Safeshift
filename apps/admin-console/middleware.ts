@@ -34,6 +34,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user && !isPublic && path !== '/mfa') {
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance?.currentLevel !== 'aal2') {
+      const target = NextResponse.redirect(new URL('/mfa', request.url));
+      for (const cookie of response.cookies.getAll()) target.cookies.set(cookie);
+      return target;
+    }
+  }
   return response;
 }
 

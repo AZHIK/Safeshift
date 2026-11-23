@@ -4,6 +4,7 @@
 // the public API like the console. Skipped unless SAFESHIFT_IT_CONFIG is set
 // (see scripts/provision-integration-users.mjs).
 
+import { verifiedAdmin } from '../helpers/verified-admin';
 import { existsSync, readFileSync } from 'node:fs';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -32,7 +33,7 @@ describe.skipIf(!config)('promo management against Supabase', () => {
   const code = `IT${Date.now().toString(36).toUpperCase()}`;
 
   beforeAll(async () => {
-    admin = await signIn(config!.admin);
+    admin = verifiedAdmin(config!);
     user = await signIn(config!.user);
   }, 30_000);
 

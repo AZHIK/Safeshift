@@ -9,6 +9,7 @@
 //
 //   SAFESHIFT_IT_CONFIG=~/.config/safeshift/integration-users.json pnpm test:integration
 
+import { verifiedAdmin } from '../helpers/verified-admin';
 import { existsSync, readFileSync } from 'node:fs';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -43,7 +44,7 @@ describe.skipIf(!config)('pricing editor against Supabase', () => {
   let planId: string | null = null;
 
   beforeAll(async () => {
-    admin = await signIn(config!.admin);
+    admin = verifiedAdmin(config!);
     user = await signIn(config!.user);
   }, 30_000);
 

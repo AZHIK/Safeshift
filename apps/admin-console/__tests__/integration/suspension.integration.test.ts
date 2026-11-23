@@ -4,6 +4,7 @@
 // a suspended user cannot sign in, a reactivated one can. Skipped unless
 // SAFESHIFT_IT_CONFIG is set (see scripts/provision-integration-users.mjs).
 
+import { verifiedAdmin } from '../helpers/verified-admin';
 import { existsSync, readFileSync } from 'node:fs';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -30,9 +31,7 @@ describe.skipIf(!config)('account suspension against Supabase Auth', () => {
   let admin: SupabaseClient;
 
   beforeAll(async () => {
-    const result = await signIn(config!.admin);
-    if (result.error) throw new Error(result.error);
-    admin = result.client;
+    admin = verifiedAdmin(config!);
   }, 30_000);
 
   // Never leave the integration user suspended, whatever happens above.

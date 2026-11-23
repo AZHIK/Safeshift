@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { redirect } from 'next/navigation';
 
 import { createClient } from './supabase/server';
 
@@ -25,6 +26,8 @@ export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
       .maybeSingle(),
   ]);
   if (error || !role) return null;
+  const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assurance?.currentLevel !== 'aal2') redirect('/mfa');
 
   return {
     userId: user.id,

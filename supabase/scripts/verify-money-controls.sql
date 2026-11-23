@@ -57,7 +57,7 @@ end $$;
 -- ---------------------------------------------------------------------------
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 
 do $$
 begin
@@ -134,7 +134,7 @@ end $$;
 -- A retry refunds again and claws back once, not twice.
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 do $$ begin
   perform set_config('t.refund_payment2',
     public.payment_refund(current_setting('t.payment')::uuid, 20000, 'partial', 'verify-money-controls retry')::text, true);
@@ -201,7 +201,7 @@ end $$;
 
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 
 do $$
 declare
@@ -238,7 +238,7 @@ end $$;
 
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 do $$ begin
   perform public.admin_release_payout(current_setting('t.payout')::uuid);
 end $$;
@@ -248,7 +248,7 @@ update public.payouts set status = 'failed', failure_reason = 'provider down' wh
 
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 do $$
 declare v_failed boolean := false;
 begin

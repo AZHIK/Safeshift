@@ -36,7 +36,7 @@ end $$;
 
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 
 do $$
 declare
@@ -103,7 +103,7 @@ end $$;
 
 set local role authenticated;
 select null from set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('t.admin'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('t.admin'), 'aal', 'aal2', 'role', 'authenticated')::text, true);
 
 do $$
 declare

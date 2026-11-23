@@ -32,7 +32,6 @@ export default async function LoginPage({
         </p>
         {params.error ? <div className="notice notice-error">{params.error}</div> : null}
         <form action={loginAction} className="form">
-          <input type="hidden" name="next" value={params.next ?? '/dashboard'} />
           <div className="field">
             <label htmlFor="email">Email</label>
             <input
@@ -59,13 +58,6 @@ export default async function LoginPage({
             Sign in
           </button>
         </form>
-        <div className="login-hint">
-          Seeded local admin: <strong>superadmin@safeshift.local</strong> /{' '}
-          <strong>SafeshiftDev!2026</strong>
-          <br />
-          Fleet owner: <strong>fleet.owner@safeshift.local</strong> /{' '}
-          <strong>SafeshiftDev!2026</strong>
-        </div>
       </div>
     </div>
   );

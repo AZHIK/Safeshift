@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/server';
 export async function loginAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
-  const next = String(formData.get('next') ?? '/dashboard');
 
   if (!email || !password) {
     redirect('/login?error=Enter your email and password.');
@@ -25,7 +24,7 @@ export async function loginAction(formData: FormData) {
     redirect('/login?error=This account has no active admin or fleet-owner role.');
   }
 
-  redirect(next.startsWith('/') ? next : '/dashboard');
+  redirect('/mfa');
 }
 
 export async function signOutAction() {

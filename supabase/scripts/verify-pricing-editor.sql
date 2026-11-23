@@ -44,7 +44,7 @@ end $$;
 set local role authenticated;
 select null from set_config(
   'request.jwt.claims',
-  json_build_object('sub', current_setting('test.admin'), 'role', 'authenticated')::text,
+  json_build_object('sub', current_setting('test.admin'), 'aal', 'aal2', 'role', 'authenticated')::text,
   true
 );
 
