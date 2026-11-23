@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,10 +171,12 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Signs in with Google. Native sign-in completes here; the in-app browser
   /// fallback completes through the deep link and the auth-state subscription.
   /// A cancelled account picker is not an error.
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle({VoidCallback? onAccountSelected}) async {
     state = state.copyWith(isLoading: true, clearFailure: true);
     try {
-      final outcome = await _service.signInWithGoogle();
+      final outcome = await _service.signInWithGoogle(
+        onAccountSelected: onAccountSelected,
+      );
       if (!ref.mounted) return;
       if (outcome == GoogleSignInOutcome.signedIn) {
         // Stay in the loading state until the profile is ready.

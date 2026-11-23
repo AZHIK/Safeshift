@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:safeshift_customer/core/router/app_router.dart';
 import 'package:safeshift_customer/core/theme/app_theme.dart';
 import 'package:safeshift_customer/features/auth/domain/entities/auth_state.dart';
 import 'package:safeshift_customer/features/auth/presentation/screens/login_screen.dart';
@@ -16,8 +19,11 @@ class _FakeAuthNotifier extends AuthNotifier {
   @override
   AuthState build() => const AuthState(isInitialized: true);
 
+  void setLoading(bool value) => state = state.copyWith(isLoading: value);
+
   @override
-  Future<void> signInWithGoogle() async => googleCalls++;
+  Future<void> signInWithGoogle({VoidCallback? onAccountSelected}) async =>
+      googleCalls++;
 }
 
 void main() {
@@ -139,4 +145,63 @@ void main() {
     expect(outline(), AppTheme.lightTheme.colorScheme.outline);
     expect(width(), 1.5);
   });
+
+  testWidgets('Choosing a Google account shows a signing-in overlay', (
+    tester,
+  ) async {
+    final finish = Completer<void>();
+    final notifier = _PendingGoogleNotifier(finish.future);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authProvider.overrideWith(() => notifier)],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    expect(find.text('Signing you in…'), findsNothing);
+
+    await tester.tap(find.byType(GoogleSignInButton));
+    // The spinner never settles, so pump past the 200ms fade instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Signing you in…'), findsOneWidget);
+
+    finish.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    // Not authenticated in this fake, so the overlay clears again.
+    expect(find.text('Signing you in…'), findsNothing);
+  });
+
+  test('auth state changes do not rebuild the router', () async {
+    final container = ProviderContainer(
+      overrides: [
+        authProvider.overrideWith(_FakeAuthNotifier.new),
+        routerInitialLocationProvider.overrideWithValue('/onboarding'),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final router = container.read(routerProvider);
+    final notifier = container.read(authProvider.notifier) as _FakeAuthNotifier;
+    notifier.setLoading(true);
+    notifier.setLoading(false);
+
+    // A new GoRouter would restart at /onboarding mid sign-in.
+    expect(identical(container.read(routerProvider), router), isTrue);
+  });
+}
+
+class _PendingGoogleNotifier extends _FakeAuthNotifier {
+  _PendingGoogleNotifier(this._done);
+
+  final Future<void> _done;
+
+  @override
+  Future<void> signInWithGoogle({VoidCallback? onAccountSelected}) async {
+    onAccountSelected?.call();
+    await _done;
+  }
 }

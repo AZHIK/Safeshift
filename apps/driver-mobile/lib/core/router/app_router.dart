@@ -24,19 +24,32 @@ import 'route_guards.dart';
 /// NO /trip-summary route — every job-flow state lives inside /home.
 final routerInitialLocationProvider = Provider<String>((ref) => '/login');
 
+///
+/// One GoRouter lives for the whole app. Rebuilding it on auth changes would
+/// restart navigation at [routerInitialLocationProvider] (e.g. /onboarding)
+/// every time sign-in toggles a loading flag. Instead the redirect reads the
+/// latest auth state and [refreshListenable] re-runs it when the fields that
+/// matter for routing change.
 final routerProvider = Provider<GoRouter>((ref) {
-  final initialLocation = ref.watch(routerInitialLocationProvider);
-  // Rebuild the router when auth or profile-completion state changes so the
-  // redirect below always sees the latest gate values.
-  final auth = ref.watch(authProvider);
-  return GoRouter(
-    initialLocation: initialLocation,
-    redirect: (context, state) => authRedirect(
-      isAuthenticated: auth.isAuthenticated,
-      isInitialized: auth.isInitialized,
-      isDriverRegistered: auth.driverRegistered == true,
-      location: state.uri.path,
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(
+    authProvider.select(
+      (s) => (s.isAuthenticated, s.isInitialized, s.driverRegistered == true),
     ),
+    (_, _) => refresh.value++,
+  );
+  final router = GoRouter(
+    initialLocation: ref.read(routerInitialLocationProvider),
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final auth = ref.read(authProvider);
+      return authRedirect(
+        isAuthenticated: auth.isAuthenticated,
+        isInitialized: auth.isInitialized,
+        isDriverRegistered: auth.driverRegistered == true,
+        location: state.uri.path,
+      );
+    },
     routes: <RouteBase>[
       GoRoute(
         path: '/onboarding',
@@ -134,6 +147,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(() {
+    router.dispose();
+    refresh.dispose();
+  });
+  return router;
 });
 
 /// Bottom-navigation shell with FOUR tabs. The bar is hidden while the

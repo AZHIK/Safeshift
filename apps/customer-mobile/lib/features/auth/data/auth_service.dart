@@ -86,7 +86,12 @@ class AuthService {
   /// browser opens. When the client IDs are not configured for this build it
   /// falls back to OAuth in an in-app browser tab, which returns through
   /// `safeshift://login-callback`.
-  Future<GoogleSignInOutcome> signInWithGoogle() async {
+  ///
+  /// [onAccountSelected] fires after the user picks an account, while the
+  /// token exchange and profile load are still running.
+  Future<GoogleSignInOutcome> signInWithGoogle({
+    VoidCallback? onAccountSelected,
+  }) async {
     if (!_nativeGoogleConfigured) {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -105,6 +110,15 @@ class AuthService {
       switch (error.code) {
         case GoogleSignInExceptionCode.canceled:
         case GoogleSignInExceptionCode.interrupted:
+          if (kDebugMode) {
+            // Credential Manager also reports configuration errors as a user
+            // cancel. If the picker closes right after choosing an account,
+            // check logcat for UNREGISTERED_ON_API_CONSOLE: this package
+            // name + signing SHA-1 has no Android OAuth client.
+            debugPrint(
+              'Google sign-in ended as ${error.code}: ${error.description}',
+            );
+          }
           return GoogleSignInOutcome.canceled;
         case GoogleSignInExceptionCode.uiUnavailable:
           throw const AuthFailure(
@@ -117,6 +131,7 @@ class AuthService {
       }
     }
 
+    onAccountSelected?.call();
     final idToken = account.authentication.idToken;
     if (idToken == null) {
       throw const AuthFailure('Google did not return a sign-in token.');
