@@ -9,7 +9,7 @@ import {
   loadNotification,
   type NotificationLogRow,
 } from '../_shared/notifications.ts';
-import { fcmClient, mesejiClient, resendClient } from '../_shared/provider_factory.ts';
+import { brevoClient, fcmClient, mesejiClient } from '../_shared/provider_factory.ts';
 import { success } from '../_shared/response.ts';
 import { notificationDispatchSchema, parseJsonBody } from '../_shared/validation.ts';
 import type { RequestContext } from '../_shared/types/index.ts';
@@ -92,11 +92,11 @@ async function buildClients(requestId: string): Promise<DeliveryClients> {
   const clients: DeliveryClients = {};
   const results = await Promise.allSettled([
     mesejiClient(requestId),
-    resendClient(requestId),
+    brevoClient(requestId),
     fcmClient(requestId),
   ]);
   if (results[0].status === 'fulfilled') clients.meseji = results[0].value;
-  if (results[1].status === 'fulfilled') clients.resend = results[1].value;
+  if (results[1].status === 'fulfilled') clients.brevo = results[1].value;
   if (results[2].status === 'fulfilled') clients.fcm = results[2].value;
   return clients;
 }

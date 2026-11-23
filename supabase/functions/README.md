@@ -34,7 +34,7 @@ apps must never hold provider credentials or call provider APIs directly.
 | `quote-calculate`              | JWT (customer)        | Phase 4 quote RPC.                                  |
 | `sms-send`                     | permission / internal | Meseji SMS.                                         |
 | `auth-sms-hook`                | Standard Webhooks sig | Supabase Auth Send SMS hook: OTPs via Meseji.       |
-| `email-send`                   | permission / internal | Resend transactional email.                         |
+| `email-send`                   | permission / internal | Brevo transactional email.                          |
 | `push-send`                    | permission / internal | FCM push to active devices.                         |
 | `notification-dispatch`        | permission            | Fan out template notifications.                     |
 | `payment-selcom-initiate`      | JWT (customer)        | Create and start a Selcom charge.                   |
@@ -60,7 +60,7 @@ live in `handler.ts` and are exported without starting a server; `index.ts` only
   request IDs, CORS, and structured request logs.
 - `_shared/db.ts`, `vault.ts` — service/user Supabase clients and Vault reads.
 - `_shared/idempotency.ts`, `retry.ts`, `dead_letter.ts` — retry and replay controls.
-- `_shared/providers/` — Selcom, Flutterwave, Meseji, Resend, FCM, and Google Maps
+- `_shared/providers/` — Selcom, Flutterwave, Meseji, Brevo, FCM, and Google Maps
   clients.
 - `_shared/notifications.ts`, `notification_request.ts` — template/preference lookup,
   `notification_log`, provider fallback, and token deactivation.

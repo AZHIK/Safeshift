@@ -636,7 +636,8 @@ Add provider secrets only for the integrations you are testing:
 npx --yes supabase secrets set --project-ref "$TEST_PROJECT_REF" \
   MESEJI_API_KEY="<meseji-api-key>" \
   MESEJI_SENDER_ID="<approved-sender-id>" \
-  RESEND_API_KEY="<sandbox>" \
+  BREVO_API_KEY="<brevo-api-key>" \
+  BREVO_SENDER="SafeShift <noreply@your-domain>" \
   FCM_SERVICE_ACCOUNT_JSON='<one-line-service-account-json>' \
   SELCOM_API_KEY="<sandbox>" \
   SELCOM_API_SECRET="<sandbox>" \

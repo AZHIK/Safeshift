@@ -8,7 +8,7 @@ import { serviceClient, type SupabaseClient } from '../_shared/db.ts';
 import { ValidationError } from '../_shared/errors.ts';
 import { deliverEmail, type DeliveryClients, loadNotification } from '../_shared/notifications.ts';
 import { insertNotificationLog, resolveProfileId } from '../_shared/notification_request.ts';
-import { resendClient } from '../_shared/provider_factory.ts';
+import { brevoClient } from '../_shared/provider_factory.ts';
 import { success } from '../_shared/response.ts';
 import { emailSchema, parseJsonBody } from '../_shared/validation.ts';
 import type { RequestContext } from '../_shared/types/index.ts';
@@ -53,7 +53,7 @@ export async function handle(
     }
 
     const row = await loadNotification(service, String(publicId));
-    const clients = deps.clients ?? { resend: await resendClient(ctx.requestId) };
+    const clients = deps.clients ?? { brevo: await brevoClient(ctx.requestId) };
     return success(await deliverEmail(service, row, clients));
   }
 
@@ -71,11 +71,11 @@ export async function handle(
     subject: body.subject,
     body: body.html ?? body.text ?? '',
     templateCode: null,
-    provider: 'resend',
+    provider: 'brevo',
     referenceType: body.reference_type ?? null,
     referenceId: body.reference_id ?? null,
   });
   const row = await loadNotification(service, publicId);
-  const clients = deps.clients ?? { resend: await resendClient(ctx.requestId) };
+  const clients = deps.clients ?? { brevo: await brevoClient(ctx.requestId) };
   return success(await deliverEmail(service, row, clients));
 }

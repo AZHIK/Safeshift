@@ -1,7 +1,7 @@
 import { InternalError, NotFoundError, ProviderError } from './errors.ts';
 import type { SupabaseClient } from './db.ts';
 import type { MesejiClient } from './providers/meseji.ts';
-import type { ResendClient } from './providers/resend.ts';
+import type { BrevoClient } from './providers/brevo.ts';
 import type { FcmClient } from './providers/fcm.ts';
 
 export interface NotificationLogRow {
@@ -19,7 +19,7 @@ export interface NotificationLogRow {
 
 export interface DeliveryClients {
   meseji?: MesejiClient;
-  resend?: ResendClient;
+  brevo?: BrevoClient;
   fcm?: FcmClient;
 }
 
@@ -85,9 +85,9 @@ export async function deliverEmail(
   clients: DeliveryClients,
 ): Promise<{ notification_id: string; status: string; provider_used: string }> {
   try {
-    if (!clients.resend) throw new ProviderError('resend', 'Resend client is not configured');
+    if (!clients.brevo) throw new ProviderError('brevo', 'Brevo client is not configured');
     const subject = row.subject ?? 'SafeShift notification';
-    const result = await clients.resend.sendEmail(
+    const result = await clients.brevo.sendEmail(
       row.recipient,
       '',
       subject,
@@ -97,17 +97,17 @@ export async function deliverEmail(
     );
     await updateNotification(service, row.public_id, {
       status: 'sent',
-      provider: 'resend',
+      provider: 'brevo',
       provider_message_id: result.provider_message_id,
       provider_response: { status: result.status },
       sent_at: new Date().toISOString(),
     });
-    return { notification_id: row.public_id, status: 'sent', provider_used: 'resend' };
+    return { notification_id: row.public_id, status: 'sent', provider_used: 'brevo' };
   } catch (error) {
     await updateNotification(service, row.public_id, {
       status: 'failed',
-      provider: 'resend',
-      failure_reason: 'resend_failed',
+      provider: 'brevo',
+      failure_reason: 'brevo_failed',
     });
     throw error;
   }

@@ -39,7 +39,7 @@ Pilot: Stage 1 corridor, Dar es Salaam — 50–100 verified vehicles.
 | Backend       | Supabase — Postgres/PostGIS, Auth, Storage, Realtime, Edge Functions |
 | Maps          | Google Maps Platform                                                 |
 | Payments      | Selcom / Flutterwave, cards via Flutterwave / Stripe                 |
-| Messaging     | Firebase Cloud Messaging, Meseji (SMS), Resend                       |
+| Messaging     | Firebase Cloud Messaging, Meseji (SMS), Brevo (email)               |
 | Jobs          | Supabase pg_cron, Upstash QStash                                     |
 | Observability | Sentry, BetterStack, PostHog                                         |
 | CI/CD         | GitHub Actions, Vercel, Codemagic + Fastlane                         |
@@ -468,7 +468,7 @@ flutter run --dart-define-from-file=dart_defines.local.json
 - Browser-safe values only use `NEXT_PUBLIC_*`.
 - The Supabase `service_role` key is server-only and belongs in Supabase Vault or
   Edge Function secrets.
-- Provider keys for FCM, Meseji, Resend, Selcom, and Flutterwave remain server
+- Provider keys for FCM, Meseji, Brevo, Selcom, and Flutterwave remain server
   secrets. Mobile builds receive only public Supabase/Firebase client values
   through `--dart-define`.
 - Staging is a separate Supabase project seeded with configuration only; see

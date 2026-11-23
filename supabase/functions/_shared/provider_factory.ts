@@ -3,7 +3,7 @@ import { readOptionalSecret, readSecret } from './vault.ts';
 import { SelcomClient } from './providers/selcom.ts';
 import { FlutterwaveClient } from './providers/flutterwave.ts';
 import { MesejiClient } from './providers/meseji.ts';
-import { ResendClient } from './providers/resend.ts';
+import { BrevoClient } from './providers/brevo.ts';
 import { FcmClient, parseServiceAccount } from './providers/fcm.ts';
 import { GoogleMapsClient } from './providers/google_maps.ts';
 import type { FetchLike } from './providers/base.ts';
@@ -65,17 +65,18 @@ export async function mesejiClient(
   });
 }
 
-export async function resendClient(
+export async function brevoClient(
   requestId?: string,
   fetchImpl?: FetchLike,
-): Promise<ResendClient> {
-  const apiKey = await readOptionalSecret('RESEND_API_KEY');
+): Promise<BrevoClient> {
+  const apiKey = await readOptionalSecret('BREVO_API_KEY');
   if (!apiKey) {
-    throw new ProviderUnavailableError('resend', 'Resend credentials are not configured');
+    throw new ProviderUnavailableError('brevo', 'Brevo API key is not configured');
   }
-  return new ResendClient({
+  return new BrevoClient({
     apiKey,
-    from: Deno.env.get('RESEND_FROM_EMAIL') ?? 'SafeShift <noreply@safeshift.app>',
+    from: Deno.env.get('BREVO_SENDER') ?? 'SafeShift <noreply@safeshift.app>',
+    baseUrl: Deno.env.get('BREVO_BASE_URL') ?? undefined,
     requestId,
     fetchImpl,
   });
