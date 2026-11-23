@@ -72,9 +72,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/tracking',
-        builder: (context, state) => TrackingScreen(
-          jobId: state.uri.queryParameters['jobId'],
-        ),
+        builder: (context, state) =>
+            TrackingScreen(jobId: state.uri.queryParameters['jobId']),
       ),
       GoRoute(
         path: '/delivery',
@@ -178,10 +177,7 @@ class MainScaffold extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.colors.surface,
           border: Border(
-            top: BorderSide(
-              color: context.colors.outlineVariant,
-              width: 0.8,
-            ),
+            top: BorderSide(color: context.colors.outlineVariant, width: 0.8),
           ),
           boxShadow: const [
             BoxShadow(
@@ -199,8 +195,7 @@ class MainScaffold extends StatelessWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             height: 58,
-            labelBehavior:
-                NavigationDestinationLabelBehavior.alwaysShow,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             destinations: const <NavigationDestination>[
               NavigationDestination(
                 icon: Icon(Icons.bolt_outlined, size: 20),

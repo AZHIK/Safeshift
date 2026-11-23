@@ -62,8 +62,7 @@ class QuoteScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              const Text('Your route',
-                                  style: TextStyles.title),
+                              const Text('Your route', style: TextStyles.title),
                               const SizedBox(height: AppSizes.md),
                               _RouteLine(
                                 icon: Icons.trip_origin_rounded,
@@ -96,8 +95,9 @@ class QuoteScreen extends ConsumerWidget {
                                 width: 46,
                                 height: 46,
                                 decoration: BoxDecoration(
-                                  color:
-                                      context.colors.primary.withValues(alpha: 0.1),
+                                  color: context.colors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: CatalogIcon(
@@ -140,8 +140,10 @@ class QuoteScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              const Text('Price breakdown',
-                                  style: TextStyles.title),
+                              const Text(
+                                'Price breakdown',
+                                style: TextStyles.title,
+                              ),
                               const SizedBox(height: AppSizes.md),
                               _PriceRow(
                                 label: 'Base fee',
@@ -285,7 +287,9 @@ class _PriceRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: isTotal ? 16 : 13,
-              color: isTotal ? context.colors.onSurface : context.colors.onSurfaceVariant,
+              color: isTotal
+                  ? context.colors.onSurface
+                  : context.colors.onSurfaceVariant,
               fontWeight: isTotal ? FontWeight.w700 : FontWeight.w400,
             ),
           ),

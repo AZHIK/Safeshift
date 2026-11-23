@@ -20,8 +20,9 @@ class DeliveryEvidenceModel {
     return DeliveryEvidenceModel(
       id: json['id'] as String? ?? '',
       jobId: json['job_id'] as String? ?? '',
-      photoUrls:
-          (json['photo_urls'] as List<dynamic>? ?? []).map((e) => '$e').toList(),
+      photoUrls: (json['photo_urls'] as List<dynamic>? ?? [])
+          .map((e) => '$e')
+          .toList(),
       otpVerified: json['otp_verified'] as bool? ?? false,
     );
   }

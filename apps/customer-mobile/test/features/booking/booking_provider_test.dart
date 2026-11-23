@@ -40,7 +40,8 @@ void main() {
         capacityKgMin: 500,
         capacityKgMax: 1000,
         displayOrder: 1,
-      ),      scheduledTime: null,
+      ),
+      scheduledTime: null,
     );
     container.read(bookingProvider.notifier).save(draft);
 

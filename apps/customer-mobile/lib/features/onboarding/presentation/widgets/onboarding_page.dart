@@ -9,11 +9,7 @@ import 'animated_text_reveal.dart';
 
 /// [pageOffset] drives the illustration and badge parallax.
 class OnboardingPage extends StatelessWidget {
-  const OnboardingPage({
-    super.key,
-    required this.slide,
-    this.pageOffset = 0,
-  });
+  const OnboardingPage({super.key, required this.slide, this.pageOffset = 0});
 
   final OnboardingSlide slide;
   final double pageOffset;
@@ -58,44 +54,37 @@ class OnboardingPage extends StatelessWidget {
           // Badge pill with guaranteed clearance below the animation.
           Transform.translate(
             offset: Offset(-parallax * 0.5, 0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDeep,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x224E5E73),
-                            blurRadius: 14,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            slide.badgeIcon,
-                            size: 15,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            slide.badgeLabel,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: AppColors.primaryDeep,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x224E5E73),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(slide.badgeIcon, size: 15, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    slide.badgeLabel,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: AppSizes.lg),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
           AnimatedTextReveal(
             child: Text(
               slide.title,

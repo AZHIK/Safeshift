@@ -14,7 +14,11 @@ abstract final class ErrorHandler {
   );
 
   static Failure map(Object error, {StackTrace? stackTrace}) {
-    _logger.e('SafeShift operation failed', error: error, stackTrace: stackTrace);
+    _logger.e(
+      'SafeShift operation failed',
+      error: error,
+      stackTrace: stackTrace,
+    );
 
     if (error is Failure) return error;
 
@@ -87,7 +91,9 @@ abstract final class ErrorHandler {
       }
     }
     if (error.status == 401 || error.status == 403) {
-      return const AuthFailure('Your session has expired. Please sign in again.');
+      return const AuthFailure(
+        'Your session has expired. Please sign in again.',
+      );
     }
     if (error.status == 429) {
       return const ServerFailure('Too many requests. Please wait and retry.');

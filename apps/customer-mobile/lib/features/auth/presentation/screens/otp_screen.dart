@@ -15,13 +15,9 @@ import '../../../../core/widgets/feedback/app_snackbar.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/phone_input_field.dart';
 
-// OTP verification screen with 6 digit boxes and a resend timer.
-// Supports both phone SMS OTP and email OTP verification.
+// SMS OTP verification screen with 6 digit boxes and a resend timer.
 class OtpScreen extends ConsumerStatefulWidget {
-  const OtpScreen({super.key, this.phoneNumber});
-
-  /// Optional: pre-fill the phone number if coming from phone auth flow
-  final String? phoneNumber;
+  const OtpScreen({super.key});
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -37,7 +33,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Timer? _autoSubmit;
   String _code = '';
   int _secondsLeft = _resendSeconds;
-  String? _verifiedMethod; // 'phone' or 'email'
 
   @override
   void initState() {
@@ -49,8 +44,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         setState(() => _secondsLeft--);
       }
     });
-    // If coming from phone auth, pre-fill the phone number display
-    _verifiedMethod = widget.phoneNumber != null ? 'phone' : null;
   }
 
   @override
@@ -93,33 +86,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (ref.read(authProvider).isLoading) {
       return;
     }
+    final phone = ref.read(authProvider).phoneNumber;
+    if (phone == null || phone.isEmpty) {
+      AppSnackbar.showError(
+        context,
+        'No phone number found. Request an OTP first.',
+      );
+      return;
+    }
     try {
-      // Determine which method to verify based on _verifiedMethod
-      if (_verifiedMethod == 'email') {
-        // For email OTP, we need the email from the auth state
-        final email = ref.read(authProvider).currentUser?.email;
-        if (email != null && email.isNotEmpty) {
-          await ref.read(authProvider.notifier).verifyEmailOtp(email, value);
-        } else {
-          AppSnackbar.showError(
-            context,
-            'No email found. Request an email OTP first.',
-          );
-          return;
-        }
-      } else {
-        // Phone OTP - use the phone number from auth state
-        final phone = ref.read(authProvider).phoneNumber;
-        if (phone != null && phone.isNotEmpty) {
-          await ref.read(authProvider.notifier).verifyOtp(value);
-        } else {
-          AppSnackbar.showError(
-            context,
-            'No phone number found. Request an OTP first.',
-          );
-          return;
-        }
-      }
+      await ref.read(authProvider.notifier).verifyOtp(value);
       if (mounted) {
         context.go('/home');
       }
@@ -135,44 +111,24 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   Future<void> _resend() async {
-    // Determine which method to resend based on _verifiedMethod
-    if (_verifiedMethod == 'email') {
-      final email = ref.read(authProvider).currentUser?.email;
-      if (email != null && email.isNotEmpty) {
-        setState(() => _secondsLeft = _resendSeconds);
-        try {
-          await ref.read(authProvider.notifier).sendEmailOtp(email);
-          if (mounted) {
-            AppSnackbar.showInfo(context, 'A new code is on its way.');
-            _focusNode.requestFocus();
-          }
-        } catch (e) {
-          if (mounted) AppSnackbar.showError(context, e.toString());
-        }
+    final phone = ref.read(authProvider).phoneNumber;
+    if (phone == null || phone.isEmpty) return;
+    setState(() => _secondsLeft = _resendSeconds);
+    try {
+      await ref.read(authProvider.notifier).sendOtp(phone);
+      if (mounted) {
+        AppSnackbar.showInfo(context, 'A new code is on its way.');
+        _focusNode.requestFocus();
       }
-    } else {
-      final phone = ref.read(authProvider).phoneNumber;
-      if (phone != null && phone.isNotEmpty) {
-        setState(() => _secondsLeft = _resendSeconds);
-        try {
-          await ref.read(authProvider.notifier).sendOtp(phone);
-          if (mounted) {
-            AppSnackbar.showInfo(context, 'A new code is on its way.');
-            _focusNode.requestFocus();
-          }
-        } catch (e) {
-          if (mounted) AppSnackbar.showError(context, e.toString());
-        }
-      }
+    } on Failure catch (e) {
+      if (mounted) AppSnackbar.showError(context, e.message);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final phoneLabel = _verifiedMethod == 'email'
-        ? 'your email'
-        : authState.phoneNumber != null
+    final phoneLabel = authState.phoneNumber != null
         ? formatPhoneDisplay(authState.phoneNumber!)
         : 'your number';
     final isComplete = _code.length == _codeLength;
@@ -358,7 +314,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
-                            'Check your ${_verifiedMethod == 'email' ? 'email inbox' : 'SMS inbox'}',
+                            'Check your SMS inbox',
                             textAlign: TextAlign.center,
                             style: TextStyles.caption.copyWith(
                               color: context.colors.onSurfaceVariant,

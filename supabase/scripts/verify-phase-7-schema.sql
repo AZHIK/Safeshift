@@ -8,7 +8,7 @@
 -- Run after migrations 0001–0118 and after all Phase 1–6 seeds.
 --
 -- This gate verifies the contract Phase 7 depends on. It does not call FCM,
--- Beem, Resend, Selcom, or Flutterwave, and it does not require provider
+-- Meseji, Resend, Selcom, or Flutterwave, and it does not require provider
 -- credentials. It reports a single PASS/FAIL summary.
 -- ============================================================================
 

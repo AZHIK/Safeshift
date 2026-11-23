@@ -26,7 +26,6 @@ final cargoTypesProvider = FutureProvider<List<CargoTypeOption>>((ref) {
 /// every active row.
 final vehicleTypesForCountryProvider =
     FutureProvider.family<List<VehicleTypeOption>, String>((ref, countryId) {
-  return CatalogRepository(ref.watch(supabaseProvider)).getVehicleTypes(
-    countryId: countryId,
-  );
-});
+      return CatalogRepository(ref.watch(supabaseProvider))
+          .getVehicleTypes(countryId: countryId);
+    });

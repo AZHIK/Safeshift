@@ -119,32 +119,6 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> sendEmailOtp(String email) async {
-    state = state.copyWith(
-      status: AuthStatus.authenticating,
-      isLoading: true,
-      clearFailure: true,
-    );
-    try {
-      await _service.sendEmailOtp(email);
-      if (!ref.mounted) return;
-      state = state.copyWith(
-        status: AuthStatus.unauthenticated,
-        isLoading: false,
-        clearFailure: true,
-      );
-    } catch (error, stack) {
-      final failure = ErrorHandler.map(error, stackTrace: stack);
-      if (!ref.mounted) return;
-      state = state.copyWith(
-        status: AuthStatus.error,
-        isLoading: false,
-        failureMessage: failure.message,
-      );
-      throw failure;
-    }
-  }
-
   Future<User> verifyOtp(String code) async {
     final phone = state.phoneNumber;
     if (phone == null || phone.isEmpty) {
@@ -192,57 +166,23 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<User> verifyEmailOtp(String email, String code) async {
-    state = state.copyWith(
-      status: AuthStatus.authenticating,
-      isLoading: true,
-      clearFailure: true,
-    );
+  /// Signs in with Google. Native sign-in completes here; the in-app browser
+  /// fallback completes through the deep link and the auth-state subscription.
+  /// A cancelled account picker is not an error.
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, clearFailure: true);
     try {
-      final user = await _service.verifyEmailOtp(email, code);
-      final driverRegistered = appRole == 'driver'
-          ? await _service.hasDriverProfile(userId: user.id)
-          : null;
-      if (!ref.mounted) return user;
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        currentUser: user,
-        driverRegistered: driverRegistered,
-        isInitialized: true,
-      );
-      unawaited(
-        ref
-            .read(pushServiceProvider)
-            .registerForUser(user.id, ref.read(supabaseProvider)),
-      );
-      return user;
+      final outcome = await _service.signInWithGoogle();
+      if (!ref.mounted) return;
+      if (outcome == GoogleSignInOutcome.signedIn) {
+        // Stay in the loading state until the profile is ready.
+        await _loadProfile(showLoading: false);
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (error, stack) {
       final failure = ErrorHandler.map(error, stackTrace: stack);
       if (!ref.mounted) throw failure;
-      state = state.copyWith(
-        status: AuthStatus.error,
-        isLoading: false,
-        failureMessage: failure.message,
-      );
-      throw failure;
-    }
-  }
-
-  Future<void> signInWithGoogle() async {
-    state = state.copyWith(
-      status: AuthStatus.authenticating,
-      isLoading: true,
-      clearFailure: true,
-    );
-    try {
-      await _service.signInWithGoogle();
-      // OAuth completes via browser redirect + deep link; the auth state
-      // subscription (_onAuthEvent) will load the profile and update state.
-      if (!ref.mounted) return;
-      state = state.copyWith(isLoading: false);
-    } catch (error, stack) {
-      final failure = ErrorHandler.map(error, stackTrace: stack);
-      if (!ref.mounted) return;
       state = state.copyWith(
         status: AuthStatus.error,
         isLoading: false,
@@ -269,9 +209,8 @@ class AuthNotifier extends Notifier<AuthState> {
           'Your session has expired. Please sign in again.',
         );
       }
-      // Google OAuth never calls verifyOtp, so the profile bootstrap that the
-      // OTP paths run is skipped. Call it here so a first-time Google sign-in
-      // has a profile row before fetchUserProfile reads it.
+      // Google sign-in and session recovery never call verifyOtp, so make
+      // sure the profile row exists before fetchUserProfile reads it.
       await _service.ensureProfile(
         authUser.userMetadata?['full_name'] as String?,
       );

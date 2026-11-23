@@ -8,7 +8,7 @@ import { serviceClient, type SupabaseClient } from '../_shared/db.ts';
 import { ValidationError } from '../_shared/errors.ts';
 import { deliverSms, type DeliveryClients, loadNotification } from '../_shared/notifications.ts';
 import { insertNotificationLog, resolveProfileId } from '../_shared/notification_request.ts';
-import { africaSTalkingClient, beemClient } from '../_shared/provider_factory.ts';
+import { mesejiClient } from '../_shared/provider_factory.ts';
 import { success } from '../_shared/response.ts';
 import { parseJsonBody, smsSchema } from '../_shared/validation.ts';
 import type { RequestContext } from '../_shared/types/index.ts';
@@ -68,7 +68,7 @@ export async function handle(
     recipient: body.to,
     body: body.body,
     templateCode: body.template_code ?? null,
-    provider: 'beem',
+    provider: 'meseji',
     referenceType: body.reference_type ?? null,
     referenceId: body.reference_id ?? null,
   });
@@ -80,14 +80,9 @@ export async function handle(
 async function buildClients(requestId: string): Promise<DeliveryClients> {
   const clients: DeliveryClients = {};
   try {
-    clients.beem = await beemClient(requestId);
+    clients.meseji = await mesejiClient(requestId);
   } catch {
-    // Fallback provider is still attempted.
-  }
-  try {
-    clients.africaSTalking = await africaSTalkingClient(requestId);
-  } catch {
-    // deliverSms reports both-provider failure.
+    // deliverSms records the failure and reports it.
   }
   return clients;
 }

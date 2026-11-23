@@ -229,8 +229,9 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = true
+# Customers and drivers sign in with phone OTP only. Email sign-up is off; the
+# admin console's pre-provisioned staff accounts still use email + password.
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -299,6 +300,9 @@ max_frequency = "5s"
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token_hook"
 
+# SMS delivery: Meseji (https://meseji.co.tz) is the only SMS provider.
+# Hosted projects point the Send SMS hook at the `auth-sms-hook` Edge Function
+# (HTTPS, secret SEND_SMS_HOOK_SECRET), which delivers every OTP via Meseji.
 # Local sandbox only: write OTPs to public.local_sms_outbox instead of sending
 # SMS. The hook function is installed by ./seed-local-sms.sql. Do not push this
 # hook config to a hosted project.
@@ -306,10 +310,10 @@ uri = "pg-functions://postgres/public/custom_access_token_hook"
 enabled = true
 uri = "pg-functions://postgres/public/send_sms_hook"
 
-# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
-# Local sandbox: the CLI only enables phone auth when an SMS provider is
-# configured. These are dummy Twilio values; the send_sms hook above intercepts
-# every message before Twilio is called. Do not use these values in production.
+# Local sandbox placeholder, NOT an SMS provider: the CLI only enables phone
+# auth when a built-in provider block exists. These are dummy values; the
+# send_sms hook above intercepts every message, so Twilio is never called.
+# All real SMS goes through Meseji.
 [auth.sms.twilio]
 enabled = true
 account_sid = "AC00000000000000000000000000000000"
@@ -466,6 +470,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.sms-send]
+verify_jwt = false
+
+[functions.auth-sms-hook]
 verify_jwt = false
 
 [functions.email-send]

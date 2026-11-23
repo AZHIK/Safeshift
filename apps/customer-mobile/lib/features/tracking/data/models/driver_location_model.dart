@@ -21,7 +21,8 @@ class DriverLocationModel {
       driverId: json['driver_id'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
-      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }

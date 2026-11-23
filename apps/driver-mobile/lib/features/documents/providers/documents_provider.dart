@@ -22,26 +22,26 @@ class DocumentsNotifier extends AsyncNotifier<List<DriverDocumentSnapshot>> {
   }
 
   Future<List<DriverDocumentSnapshot>> _refresh(String userId) async {
-    final docs = await DriverRepository(
-      ref.read(supabaseProvider),
-    ).documents();
-    await ref.read(cacheServiceProvider).putJson(
-      userId,
-      'driver_documents',
-      docs
-          .map(
-            (doc) => {
-              'id': doc.id,
-              'document_type_id': doc.documentTypeId,
-              'title': doc.title,
-              'status': doc.status,
-              'expires_at': doc.expiresAt?.toIso8601String(),
-              'file_path': doc.filePath,
-              'rejection_reason': doc.rejectionReason,
-            },
-          )
-          .toList(growable: false),
-    );
+    final docs = await DriverRepository(ref.read(supabaseProvider)).documents();
+    await ref
+        .read(cacheServiceProvider)
+        .putJson(
+          userId,
+          'driver_documents',
+          docs
+              .map(
+                (doc) => {
+                  'id': doc.id,
+                  'document_type_id': doc.documentTypeId,
+                  'title': doc.title,
+                  'status': doc.status,
+                  'expires_at': doc.expiresAt?.toIso8601String(),
+                  'file_path': doc.filePath,
+                  'rejection_reason': doc.rejectionReason,
+                },
+              )
+              .toList(growable: false),
+        );
     return docs;
   }
 

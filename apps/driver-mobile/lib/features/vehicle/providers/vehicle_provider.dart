@@ -22,29 +22,24 @@ class VehicleNotifier extends AsyncNotifier<DriverVehicleSnapshot?> {
   }
 
   Future<DriverVehicleSnapshot?> _refresh(String userId) async {
-    final vehicle = await DriverRepository(
-      ref.read(supabaseProvider),
-    ).vehicle();
+    final vehicle = await DriverRepository(ref.read(supabaseProvider))
+        .vehicle();
     if (vehicle != null) {
-      await ref.read(cacheServiceProvider).putJson(
-        userId,
-        'driver_vehicle',
-        {
-          'id': vehicle.id,
-          'registration_number': vehicle.registrationNumber,
-          'vehicle_type': vehicle.vehicleType,
-          'vehicle_type_id': vehicle.vehicleTypeId,
-          'vehicle_type_code': vehicle.vehicleTypeCode,
-          'vehicle_type_icon_url': vehicle.vehicleTypeIconUrl,
-          'verification_status': vehicle.verificationStatus,
-          'make': vehicle.make,
-          'model': vehicle.model,
-          'year': vehicle.year,
-          'color': vehicle.color,
-          'capacity_kg': vehicle.capacityKg,
-          'photo_urls': vehicle.photoUrls,
-        },
-      );
+      await ref.read(cacheServiceProvider).putJson(userId, 'driver_vehicle', {
+        'id': vehicle.id,
+        'registration_number': vehicle.registrationNumber,
+        'vehicle_type': vehicle.vehicleType,
+        'vehicle_type_id': vehicle.vehicleTypeId,
+        'vehicle_type_code': vehicle.vehicleTypeCode,
+        'vehicle_type_icon_url': vehicle.vehicleTypeIconUrl,
+        'verification_status': vehicle.verificationStatus,
+        'make': vehicle.make,
+        'model': vehicle.model,
+        'year': vehicle.year,
+        'color': vehicle.color,
+        'capacity_kg': vehicle.capacityKg,
+        'photo_urls': vehicle.photoUrls,
+      });
     }
     return vehicle;
   }
@@ -77,7 +72,9 @@ class VehicleNotifier extends AsyncNotifier<DriverVehicleSnapshot?> {
       year: (map['year'] as num?)?.toInt(),
       color: map['color'] as String?,
       capacityKg: (map['capacity_kg'] as num?)?.toInt(),
-      photoUrls: photos is List ? photos.whereType<String>().toList() : const [],
+      photoUrls: photos is List
+          ? photos.whereType<String>().toList()
+          : const [],
     );
   }
 }

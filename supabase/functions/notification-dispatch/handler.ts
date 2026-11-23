@@ -9,12 +9,7 @@ import {
   loadNotification,
   type NotificationLogRow,
 } from '../_shared/notifications.ts';
-import {
-  africaSTalkingClient,
-  beemClient,
-  fcmClient,
-  resendClient,
-} from '../_shared/provider_factory.ts';
+import { fcmClient, mesejiClient, resendClient } from '../_shared/provider_factory.ts';
 import { success } from '../_shared/response.ts';
 import { notificationDispatchSchema, parseJsonBody } from '../_shared/validation.ts';
 import type { RequestContext } from '../_shared/types/index.ts';
@@ -96,14 +91,12 @@ export async function handle(
 async function buildClients(requestId: string): Promise<DeliveryClients> {
   const clients: DeliveryClients = {};
   const results = await Promise.allSettled([
-    beemClient(requestId),
-    africaSTalkingClient(requestId),
+    mesejiClient(requestId),
     resendClient(requestId),
     fcmClient(requestId),
   ]);
-  if (results[0].status === 'fulfilled') clients.beem = results[0].value;
-  if (results[1].status === 'fulfilled') clients.africaSTalking = results[1].value;
-  if (results[2].status === 'fulfilled') clients.resend = results[2].value;
-  if (results[3].status === 'fulfilled') clients.fcm = results[3].value;
+  if (results[0].status === 'fulfilled') clients.meseji = results[0].value;
+  if (results[1].status === 'fulfilled') clients.resend = results[1].value;
+  if (results[2].status === 'fulfilled') clients.fcm = results[2].value;
   return clients;
 }

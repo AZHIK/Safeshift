@@ -8,7 +8,7 @@ import {
   loadNotification,
 } from '../_shared/notifications.ts';
 import { insertNotificationLog } from '../_shared/notification_request.ts';
-import { beemClient, africaSTalkingClient, fcmClient } from '../_shared/provider_factory.ts';
+import { fcmClient, mesejiClient } from '../_shared/provider_factory.ts';
 import { success } from '../_shared/response.ts';
 import { parseJsonBody, sosAlertSchema } from '../_shared/validation.ts';
 import type { RequestContext } from '../_shared/types/index.ts';
@@ -64,14 +64,9 @@ function firstQuoteRequest(value: unknown): QuoteRequestAddresses | null {
 async function optionalClients(): Promise<DeliveryClients> {
   const clients: DeliveryClients = {};
   try {
-    clients.beem = await beemClient();
+    clients.meseji = await mesejiClient();
   } catch {
     // Provider credentials are optional in local development.
-  }
-  try {
-    clients.africaSTalking = await africaSTalkingClient();
-  } catch {
-    // Fallback provider is optional too.
   }
   try {
     clients.fcm = await fcmClient();
@@ -126,7 +121,9 @@ export async function handle(
   if (contactsError) throw contactsError;
   const contacts = (contactsData ?? []) as ContactRow[];
 
-  const smsBody = `SafeShift SAFETY ALERT: ${alert.details ?? 'SOS raised'} on ${route}. Open the app or contact the person immediately.`;
+  const smsBody = `SafeShift SAFETY ALERT: ${
+    alert.details ?? 'SOS raised'
+  } on ${route}. Open the app or contact the person immediately.`;
   let smsSent = 0;
   const smsFailures: string[] = [];
 
@@ -138,7 +135,7 @@ export async function handle(
       body: smsBody,
       subject: 'SafeShift safety alert',
       templateCode: 'sos_emergency_contact',
-      provider: 'beem',
+      provider: 'meseji',
       referenceType: 'trip_alert',
       referenceId: alert.id,
     });

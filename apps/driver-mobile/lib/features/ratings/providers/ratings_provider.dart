@@ -22,25 +22,26 @@ class RatingsNotifier extends AsyncNotifier<List<DriverRatingSnapshot>> {
   }
 
   Future<List<DriverRatingSnapshot>> _refresh(String userId) async {
-    final ratings = await DriverRepository(
-      ref.read(supabaseProvider),
-    ).ratings();
-    await ref.read(cacheServiceProvider).putJson(
-      userId,
-      'driver_ratings',
-      ratings
-          .map(
-            (rating) => {
-              'id': rating.id,
-              'score': rating.score,
-              'rater_name': rating.raterName,
-              'comment': rating.comment,
-              'created_at': rating.createdAt?.toIso8601String(),
-              'job_id': rating.jobId,
-            },
-          )
-          .toList(growable: false),
-    );
+    final ratings = await DriverRepository(ref.read(supabaseProvider))
+        .ratings();
+    await ref
+        .read(cacheServiceProvider)
+        .putJson(
+          userId,
+          'driver_ratings',
+          ratings
+              .map(
+                (rating) => {
+                  'id': rating.id,
+                  'score': rating.score,
+                  'rater_name': rating.raterName,
+                  'comment': rating.comment,
+                  'created_at': rating.createdAt?.toIso8601String(),
+                  'job_id': rating.jobId,
+                },
+              )
+              .toList(growable: false),
+        );
     return ratings;
   }
 

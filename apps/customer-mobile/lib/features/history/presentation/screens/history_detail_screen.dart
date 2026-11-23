@@ -12,6 +12,7 @@ import '../../../../core/widgets/cards/driver_avatar_card.dart';
 import '../../../../core/widgets/cards/receipt_card.dart';
 import '../../../booking/domain/entities/job.dart';
 import '../../../ride/data/ride_repository.dart';
+import '../../../ride/presentation/widgets/move_rating_card.dart';
 import '../../../ride/providers/ride_provider.dart';
 import '../../../tracking/domain/entities/driver.dart';
 import '../../providers/history_provider.dart';
@@ -73,6 +74,14 @@ class HistoryDetailScreen extends ConsumerWidget {
               _RouteSummary(job: job),
               const SizedBox(height: AppSizes.md),
               ReceiptCard.fromJob(job: job, driverName: driver.name),
+              // Rate (or change a rating) for up to 7 days after delivery.
+              if (snapshot.isDelivered && snapshot.driverName != null) ...[
+                const SizedBox(height: AppSizes.md),
+                MoveRatingCard(
+                  jobId: snapshot.id,
+                  driverName: snapshot.driverName,
+                ),
+              ],
             ],
           );
         },

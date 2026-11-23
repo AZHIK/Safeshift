@@ -52,22 +52,23 @@ void main() {
       ).thenAnswer((_) => builder);
       // The postgrest builder is Future-like: awaiting it calls `then`, so the
       // stub has to invoke the callback for the await to complete.
-      when(
-        () => builder.then<dynamic>(any(), onError: any(named: 'onError')),
-      ).thenAnswer((invocation) {
-        final onValue = invocation.positionalArguments.first as Function;
-        onValue(null);
-        return Future<dynamic>.value(null);
-      });
+      when(() => builder.then<dynamic>(any(), onError: any(named: 'onError')))
+          .thenAnswer((invocation) {
+            final onValue = invocation.positionalArguments.first as Function;
+            onValue(null);
+            return Future<dynamic>.value(null);
+          });
 
       await DriverRepository(client).setCurrentVehicle('vehicle-7');
 
-      final captured = verify(
-        () => client.rpc<void>(
-          'driver_set_current_vehicle',
-          params: captureAny(named: 'params'),
-        ),
-      ).captured.single as Map<String, dynamic>;
+      final captured =
+          verify(
+                () => client.rpc<void>(
+                  'driver_set_current_vehicle',
+                  params: captureAny(named: 'params'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
       expect(captured['p_vehicle_id'], 'vehicle-7');
     });
   });

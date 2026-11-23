@@ -634,8 +634,8 @@ Add provider secrets only for the integrations you are testing:
 ```bash
 # SMS / email / push / payments — optional for a first UI test
 npx --yes supabase secrets set --project-ref "$TEST_PROJECT_REF" \
-  BEEM_API_KEY="<sandbox>" \
-  BEEM_SECRET_KEY="<sandbox>" \
+  MESEJI_API_KEY="<meseji-api-key>" \
+  MESEJI_SENDER_ID="<approved-sender-id>" \
   RESEND_API_KEY="<sandbox>" \
   FCM_SERVICE_ACCOUNT_JSON='<one-line-service-account-json>' \
   SELCOM_API_KEY="<sandbox>" \

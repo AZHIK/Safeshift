@@ -82,7 +82,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [context.colors.primaryContainer, context.colors.surface],
+                  colors: [
+                    context.colors.primaryContainer,
+                    context.colors.surface,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: [0.0, 0.45],
@@ -132,7 +135,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: context.colors.outlineVariant),
+                          border: Border.all(
+                            color: context.colors.outlineVariant,
+                          ),
                         ),
                         child: Text(
                           '${_currentIndex + 1} of ${onboardingSlides.length}',
@@ -155,7 +160,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             decoration: BoxDecoration(
                               color: context.colors.surface,
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: context.colors.outlineVariant),
+                              border: Border.all(
+                                color: context.colors.outlineVariant,
+                              ),
                             ),
                             child: Text(
                               'Skip',
@@ -175,7 +182,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     borderRadius: BorderRadius.circular(99),
                     child: Container(
                       height: 5,
-                      color: context.colors.outlineVariant.withValues(alpha: 0.7),
+                      color: context.colors.outlineVariant.withValues(
+                        alpha: 0.7,
+                      ),
                       child: AnimatedFractionallySizedBox(
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeInOut,
@@ -201,8 +210,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       itemBuilder: (context, index) => OnboardingPage(
                         key: ValueKey<int>(index),
                         slide: onboardingSlides[index],
-                        pageOffset:
-                            index == _currentIndex ? _pageOffset : 0,
+                        pageOffset: index == _currentIndex ? _pageOffset : 0,
                       ),
                     ),
                   ),
@@ -247,19 +255,13 @@ class _OutlineIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: context.colors.surface,
-    shape: CircleBorder(
-      side: BorderSide(color: context.colors.outlineVariant),
-    ),
+    shape: CircleBorder(side: BorderSide(color: context.colors.outlineVariant)),
     child: InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: Icon(
-          icon,
-          size: 18,
-          color: context.colors.onSurface,
-        ),
+        child: Icon(icon, size: 18, color: context.colors.onSurface),
       ),
     ),
   );

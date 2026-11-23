@@ -26,7 +26,8 @@ class JobHistoryModel {
       status: json['status'] as String? ?? '',
       pickupAddress: json['pickup_address'] as String? ?? '',
       destinationAddress: json['destination_address'] as String? ?? '',
-      completedAt: DateTime.tryParse(json['completed_at'] as String? ?? '') ??
+      completedAt:
+          DateTime.tryParse(json['completed_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
     );

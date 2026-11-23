@@ -78,6 +78,18 @@
 				<string>safeshift</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>app.safeshift.googleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Reversed iOS client ID (com.googleusercontent.apps.XXXX),
+				     set in ios/Flutter/Secrets.xcconfig. -->
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

@@ -2,8 +2,7 @@ import { ProviderUnavailableError } from './errors.ts';
 import { readOptionalSecret, readSecret } from './vault.ts';
 import { SelcomClient } from './providers/selcom.ts';
 import { FlutterwaveClient } from './providers/flutterwave.ts';
-import { BeemClient } from './providers/beem.ts';
-import { AfricaSTalkingClient } from './providers/africastalking.ts';
+import { MesejiClient } from './providers/meseji.ts';
 import { ResendClient } from './providers/resend.ts';
 import { FcmClient, parseServiceAccount } from './providers/fcm.ts';
 import { GoogleMapsClient } from './providers/google_maps.ts';
@@ -39,8 +38,7 @@ export async function flutterwaveClient(
   }
   return new FlutterwaveClient({
     secretKey,
-    secretHash:
-      (await readOptionalSecret('FLUTTERWAVE_WEBHOOK_SECRET')) ??
+    secretHash: (await readOptionalSecret('FLUTTERWAVE_WEBHOOK_SECRET')) ??
       (await readOptionalSecret('FLUTTERWAVE_SECRET_HASH')) ??
       undefined,
     baseUrl: Deno.env.get('FLUTTERWAVE_BASE_URL') ?? undefined,
@@ -50,40 +48,18 @@ export async function flutterwaveClient(
   });
 }
 
-export async function beemClient(requestId?: string, fetchImpl?: FetchLike): Promise<BeemClient> {
-  const apiKey = await readOptionalSecret('BEEM_API_KEY');
-  const apiSecret =
-    (await readOptionalSecret('BEEM_SECRET_KEY')) ?? (await readOptionalSecret('BEEM_API_SECRET'));
-  if (!apiKey || !apiSecret) {
-    throw new ProviderUnavailableError('beem', 'Beem credentials are not configured');
-  }
-  return new BeemClient({
-    apiKey,
-    apiSecret,
-    senderId: Deno.env.get('BEEM_SENDER_ID') ?? 'SAFESHIFT',
-    baseUrl: Deno.env.get('BEEM_BASE_URL') ?? undefined,
-    requestId,
-    fetchImpl,
-  });
-}
-
-export async function africaSTalkingClient(
+export async function mesejiClient(
   requestId?: string,
   fetchImpl?: FetchLike,
-): Promise<AfricaSTalkingClient> {
-  const username = await readOptionalSecret('AFRICASTALKING_USERNAME');
-  const apiKey = await readOptionalSecret('AFRICASTALKING_API_KEY');
-  if (!username || !apiKey) {
-    throw new ProviderUnavailableError(
-      'africastalking',
-      "Africa's Talking credentials are not configured",
-    );
+): Promise<MesejiClient> {
+  const apiKey = await readOptionalSecret('MESEJI_API_KEY');
+  if (!apiKey) {
+    throw new ProviderUnavailableError('meseji', 'Meseji API key is not configured');
   }
-  return new AfricaSTalkingClient({
-    username,
+  return new MesejiClient({
     apiKey,
-    senderId: Deno.env.get('AFRICASTALKING_SENDER_ID') ?? undefined,
-    baseUrl: Deno.env.get('AFRICASTALKING_BASE_URL') ?? undefined,
+    senderId: Deno.env.get('MESEJI_SENDER_ID') ?? 'SAFESHIFT',
+    baseUrl: Deno.env.get('MESEJI_BASE_URL') ?? undefined,
     requestId,
     fetchImpl,
   });
@@ -124,8 +100,7 @@ export async function googleMapsClient(
   // Prefer a dedicated server key. GOOGLE_MAPS_API_KEY is shared with the
   // mobile clients and may be restricted to an Android bundle id, which the
   // Routes API calls from the Edge Function would then be rejected by.
-  const apiKey =
-    (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY')) ??
+  const apiKey = (await readOptionalSecret('GOOGLE_MAPS_SERVER_API_KEY')) ??
     (await readOptionalSecret('GOOGLE_MAPS_API_KEY'));
   if (!apiKey) {
     throw new ProviderUnavailableError('google_maps', 'Google Maps API key is not configured');

@@ -29,6 +29,16 @@ class EnvConfig {
     'GOOGLE_MAPS_API_KEY',
   );
 
+  /// Google OAuth client IDs for native Google sign-in. These are public
+  /// identifiers, not secrets. The Web client ID is the one configured in the
+  /// Supabase Google provider; the iOS client ID is only needed on iOS.
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+  );
+  static const String googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
+
   /// Local Supabase CLI defaults. The anon key is public by design and is
   /// only used when ENV=dev and no explicit value was supplied.
   static const String localSupabaseUrl = 'http://127.0.0.1:54321';

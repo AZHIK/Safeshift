@@ -9,6 +9,7 @@ import '../../../../../core/theme/text_styles.dart';
 import '../../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../../core/widgets/cards/info_card.dart';
 import '../../../providers/home_provider.dart';
+import '../customer_rating_card.dart';
 import 'sheet_handle.dart';
 
 String _tzs(num amount) => 'TZS ${NumberFormat('#,##0').format(amount)}';
@@ -22,8 +23,6 @@ class TripCompletedSheet extends ConsumerStatefulWidget {
 }
 
 class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
-  int _stars = 5;
-
   @override
   Widget build(BuildContext context) {
     final job = ref.watch(homeProvider).activeJob;
@@ -67,24 +66,7 @@ class _TripCompletedSheetState extends ConsumerState<TripCompletedSheet> {
           ),
         ),
         const SizedBox(height: AppSizes.md),
-        Center(
-          child: Text('Rate ${job.customerName}', style: TextStyles.title),
-        ),
-        const SizedBox(height: AppSizes.xs),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            5,
-            (i) => IconButton(
-              onPressed: () => setState(() => _stars = i + 1),
-              icon: const Icon(Icons.star_rounded),
-              iconSize: 32,
-              color: _stars > i
-                  ? context.colors.tertiary
-                  : context.colors.outlineVariant,
-            ),
-          ),
-        ),
+        CustomerRatingCard(jobId: job.id, customerName: job.customerName),
         const SizedBox(height: AppSizes.sm),
         PrimaryButton(
           label: 'Go back online',

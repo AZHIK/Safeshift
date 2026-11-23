@@ -123,9 +123,8 @@ class RatingsScreen extends ConsumerWidget {
                         Text(
                           rating.createdAt == null
                               ? ''
-                              : DateFormat(
-                                  'd MMM yyyy',
-                                ).format(rating.createdAt!),
+                              : DateFormat('d MMM yyyy')
+                                    .format(rating.createdAt!),
                           style: TextStyles.caption.copyWith(
                             color: context.colors.onSurfaceVariant,
                           ),

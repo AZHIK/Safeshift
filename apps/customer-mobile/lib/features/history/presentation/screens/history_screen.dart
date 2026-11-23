@@ -46,7 +46,9 @@ class HistoryScreen extends ConsumerWidget {
                   showCheckmark: false,
                   selectedColor: context.colors.primary,
                   labelStyle: TextStyle(
-                    color: isSelected ? context.colors.onPrimary : context.colors.onSurface,
+                    color: isSelected
+                        ? context.colors.onPrimary
+                        : context.colors.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                   onSelected: (_) =>
@@ -80,9 +82,8 @@ class HistoryScreen extends ConsumerWidget {
                         const SizedBox(height: AppSizes.md),
                         PrimaryButton(
                           label: 'Try again',
-                          onPressed: () => ref
-                              .read(historyProvider.notifier)
-                              .refresh(),
+                          onPressed: () =>
+                              ref.read(historyProvider.notifier).refresh(),
                         ),
                       ],
                     ),

@@ -108,7 +108,9 @@ abstract final class ErrorHandler {
   /// them as the generic "server could not complete that request" message.
   static String? _friendlyDomainMessage(String raw) {
     final lower = raw.toLowerCase();
-    if (lower.contains('destination point is outside every active service city')) {
+    if (lower.contains(
+      'destination point is outside every active service city',
+    )) {
       return 'That destination is outside our service area. Choose a drop-off '
           'inside Dar es Salaam and try again.';
     }

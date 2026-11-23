@@ -46,9 +46,7 @@ class _AddressSuggestionSheetState extends State<AddressSuggestionSheet> {
         ),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(24),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

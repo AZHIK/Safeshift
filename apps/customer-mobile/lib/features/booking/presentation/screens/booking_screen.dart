@@ -209,7 +209,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: categories.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: AppSizes.sm),
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(width: AppSizes.sm),
                       itemBuilder: (context, index) {
                         final category = categories[index];
                         final selected = category.id == _cargo?.id;
@@ -219,14 +220,18 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                             supabaseUrl: _iconBaseUrl,
                             fallbackIcon: Icons.category_rounded,
                             size: 17,
-                            color: selected ? context.colors.onPrimary : context.colors.onSurfaceVariant,
+                            color: selected
+                                ? context.colors.onPrimary
+                                : context.colors.onSurfaceVariant,
                           ),
                           label: Text(category.name),
                           selected: selected,
                           showCheckmark: false,
                           selectedColor: context.colors.primary,
                           labelStyle: TextStyle(
-                            color: selected ? context.colors.onPrimary : context.colors.onSurface,
+                            color: selected
+                                ? context.colors.onPrimary
+                                : context.colors.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                           onSelected: (_) => setState(() => _cargo = category),
@@ -332,7 +337,9 @@ class _SectionTitle extends StatelessWidget {
       const SizedBox(height: 3),
       Text(
         subtitle,
-        style: TextStyles.caption.copyWith(color: context.colors.onSurfaceVariant),
+        style: TextStyles.caption.copyWith(
+          color: context.colors.onSurfaceVariant,
+        ),
       ),
     ],
   );
@@ -425,7 +432,9 @@ class _VehicleOption extends StatelessWidget {
             : context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? context.colors.primary : context.colors.outlineVariant,
+          color: selected
+              ? context.colors.primary
+              : context.colors.outlineVariant,
           width: selected ? 1.5 : 1,
         ),
       ),
@@ -477,7 +486,9 @@ class _VehicleOption extends StatelessWidget {
             selected
                 ? Icons.radio_button_checked_rounded
                 : Icons.radio_button_off_rounded,
-            color: selected ? context.colors.primary : context.colors.onSurfaceVariant,
+            color: selected
+                ? context.colors.primary
+                : context.colors.onSurfaceVariant,
             size: 20,
           ),
         ],

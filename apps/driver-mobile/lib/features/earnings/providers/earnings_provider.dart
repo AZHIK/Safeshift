@@ -34,14 +34,11 @@ class EarningsNotifier extends AsyncNotifier<DriverEarningsSnapshot> {
   }
 
   Future<DriverEarningsSnapshot> _refresh(String userId) async {
-    final snapshot = await DriverRepository(
-      ref.read(supabaseProvider),
-    ).earnings();
-    await ref.read(cacheServiceProvider).putJson(
-      userId,
-      'driver_earnings',
-      _toJson(snapshot),
-    );
+    final snapshot = await DriverRepository(ref.read(supabaseProvider))
+        .earnings();
+    await ref
+        .read(cacheServiceProvider)
+        .putJson(userId, 'driver_earnings', _toJson(snapshot));
     return snapshot;
   }
 

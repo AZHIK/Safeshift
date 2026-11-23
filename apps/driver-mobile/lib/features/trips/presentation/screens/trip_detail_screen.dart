@@ -11,6 +11,7 @@ import '../../../../core/widgets/cards/info_card.dart';
 import '../../../../core/widgets/cards/status_pill.dart';
 import '../../../../core/widgets/feedback/app_empty_state.dart';
 import '../../../home/domain/entities/driver_job.dart';
+import '../../../home/presentation/widgets/customer_rating_card.dart';
 import '../../providers/trips_provider.dart';
 
 String _tzs(num amount) => 'TZS ${NumberFormat('#,##0').format(amount)}';
@@ -120,6 +121,11 @@ class _TripDetails extends StatelessWidget {
             ],
           ),
         ),
+        // Rate the customer, or change the rating, for 7 days after delivery.
+        if (trip.status == 'completed' || trip.status == 'delivered') ...[
+          const SizedBox(height: AppSizes.md),
+          CustomerRatingCard(jobId: trip.id, customerName: trip.customerName),
+        ],
       ],
     );
   }

@@ -22,36 +22,39 @@ void main() {
 
   void stubSignedOut(supa.GoTrueClient auth) {
     when(() => auth.currentSession).thenReturn(null);
-    when(() => auth.onAuthStateChange).thenAnswer(
-      (_) => const Stream<supa.AuthState>.empty(),
-    );
+    when(() => auth.onAuthStateChange)
+        .thenAnswer((_) => const Stream<supa.AuthState>.empty());
   }
 
   group('AuthNotifier session restore', () {
-    test('building the provider does not read state before it is initialised',
-        () async {
-      final auth = _MockGoTrueClient();
-      stubSignedOut(auth);
-      final container = buildContainer(auth);
+    test(
+      'building the provider does not read state before it is initialised',
+      () async {
+        final auth = _MockGoTrueClient();
+        stubSignedOut(auth);
+        final container = buildContainer(auth);
 
-      // Riverpod 3 throws "Tried to read the state of an uninitialized
-      // provider" when `state` is read while build() is still running.
-      expect(() => container.read(authProvider), returnsNormally);
-    });
+        // Riverpod 3 throws "Tried to read the state of an uninitialized
+        // provider" when `state` is read while build() is still running.
+        expect(() => container.read(authProvider), returnsNormally);
+      },
+    );
 
-    test('a signed-out user still reaches isInitialized so the router works',
-        () async {
-      final auth = _MockGoTrueClient();
-      stubSignedOut(auth);
-      final container = buildContainer(auth);
+    test(
+      'a signed-out user still reaches isInitialized so the router works',
+      () async {
+        final auth = _MockGoTrueClient();
+        stubSignedOut(auth);
+        final container = buildContainer(auth);
 
-      container.read(authProvider);
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+        container.read(authProvider);
+        await Future<void>.delayed(const Duration(milliseconds: 900));
 
-      // Without this the auth guard never redirects and the app is stuck on
-      // its initial route.
-      expect(container.read(authProvider).isInitialized, isTrue);
-    });
+        // Without this the auth guard never redirects and the app is stuck on
+        // its initial route.
+        expect(container.read(authProvider).isInitialized, isTrue);
+      },
+    );
 
     test('an already-restored session is not treated as signed out', () async {
       final auth = _MockGoTrueClient();
@@ -69,9 +72,8 @@ void main() {
         ),
       );
       when(() => auth.currentSession).thenReturn(session);
-      when(() => auth.onAuthStateChange).thenAnswer(
-        (_) => const Stream<supa.AuthState>.empty(),
-      );
+      when(() => auth.onAuthStateChange)
+          .thenAnswer((_) => const Stream<supa.AuthState>.empty());
 
       final container = buildContainer(auth);
       container.read(authProvider);

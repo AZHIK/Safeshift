@@ -1,3 +1,4 @@
+export 'src/auth/google_sign_in_button.dart';
 export 'src/catalog/catalog_empty_notice.dart';
 export 'src/catalog/catalog_icon.dart';
 export 'src/catalog/catalog_option.dart';
@@ -14,4 +15,6 @@ export 'src/geo/route_geometry.dart';
 export 'src/geo/vehicle_marker.dart';
 export 'src/phone/phone_number_field.dart';
 export 'src/phone/phone_validation.dart';
+export 'src/rating/job_rating.dart';
+export 'src/rating/rating_panel.dart';
 export 'src/models/job_status.dart';

@@ -158,7 +158,6 @@ function headerSignature(req: Request, provider: string): string | null {
   const names: Record<string, string[]> = {
     selcom: ['x-selcom-signature', 'x-signature', 'x-webhook-signature'],
     flutterwave: ['verif-hash', 'x-flutterwave-signature'],
-    beem: ['x-beem-signature', 'x-signature'],
   };
   for (const name of names[provider] ?? ['x-signature']) {
     const value = req.headers.get(name);

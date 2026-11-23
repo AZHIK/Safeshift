@@ -16,6 +16,7 @@ import '../../data/ride_repository.dart';
 import '../../providers/ride_provider.dart';
 import '../../../phase9/presentation/phase9_screens.dart';
 import 'parcel_dialog.dart';
+import 'move_rating_card.dart';
 import 'payment_dialog.dart';
 
 final _tzs = NumberFormat('#,##0');
@@ -1741,7 +1742,7 @@ class _TrackingView extends ConsumerWidget {
                       ],
                     ),
                     Text(
-                      '${(driver?.rating ?? 0).toStringAsFixed(1)} · ${driver?.vehicleClass ?? ride.vehicleClass?.name ?? 'Vehicle'} · ${_formatTzs(_totalFor(ride, ride.vehicleClass?.id))}',
+                      '${(driver?.rating ?? 0) > 0 ? driver!.rating.toStringAsFixed(1) : 'New'} · ${driver?.vehicleClass ?? ride.vehicleClass?.name ?? 'Vehicle'} · ${_formatTzs(_totalFor(ride, ride.vehicleClass?.id))}',
                       style: TextStyles.caption.copyWith(
                         color: context.colors.onSurfaceVariant,
                       ),
@@ -2288,6 +2289,10 @@ class _DoneView extends ConsumerWidget {
             color: context.colors.onSurfaceVariant,
           ),
         ),
+        if (ride.jobId != null) ...[
+          const SizedBox(height: 14),
+          MoveRatingCard(jobId: ride.jobId!, driverName: ride.driver?.name),
+        ],
         const SizedBox(height: 12),
         PrimaryButton(
           label: 'Book another move',

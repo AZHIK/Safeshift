@@ -168,6 +168,32 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// Signs in with Google. Native sign-in completes here; the in-app browser
+  /// fallback completes through the deep link and the auth-state subscription.
+  /// A cancelled account picker is not an error.
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, clearFailure: true);
+    try {
+      final outcome = await _service.signInWithGoogle();
+      if (!ref.mounted) return;
+      if (outcome == GoogleSignInOutcome.signedIn) {
+        // Stay in the loading state until the profile is ready.
+        await _loadProfile(showLoading: false);
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
+    } catch (error, stack) {
+      final failure = ErrorHandler.map(error, stackTrace: stack);
+      if (!ref.mounted) throw failure;
+      state = state.copyWith(
+        status: AuthStatus.error,
+        isLoading: false,
+        failureMessage: failure.message,
+      );
+      throw failure;
+    }
+  }
+
   Future<void> refreshProfile() => _loadProfile(showLoading: false);
 
   Future<void> _loadProfile({bool showLoading = true}) async {
@@ -241,30 +267,6 @@ class AuthNotifier extends Notifier<AuthState> {
         }
       }
       if (ref.mounted) state = const AuthState(isInitialized: true);
-    }
-  }
-
-  Future<void> signInWithGoogle() async {
-    state = state.copyWith(
-      status: AuthStatus.authenticating,
-      isLoading: true,
-      clearFailure: true,
-    );
-    try {
-      await _service.signInWithGoogle();
-      // OAuth completes via browser redirect + deep link; the auth state
-      // subscription (_onAuthEvent) will load the profile and update state.
-      if (!ref.mounted) return;
-      state = state.copyWith(isLoading: false);
-    } catch (error, stack) {
-      final failure = ErrorHandler.map(error, stackTrace: stack);
-      if (!ref.mounted) return;
-      state = state.copyWith(
-        status: AuthStatus.error,
-        isLoading: false,
-        failureMessage: failure.message,
-      );
-      throw failure;
     }
   }
 

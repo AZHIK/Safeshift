@@ -365,9 +365,7 @@ class _AddressSuggestionSheetState extends ConsumerState<AddressSuggestionSheet>
           height: height,
           decoration: BoxDecoration(
             color: context.colors.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: ListenableBuilder(
             listenable: _search,

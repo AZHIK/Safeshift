@@ -3,14 +3,18 @@ import 'package:safeshift_driver/features/home/data/live_location.dart';
 
 void main() {
   final t0 = DateTime.utc(2026, 11, 20, 12);
-  LiveFix fix(double lng, int seconds, {double accuracy = 8, double? heading}) =>
-      LiveFix(
-        lat: -6.8,
-        lng: lng,
-        at: t0.add(Duration(seconds: seconds)),
-        accuracyM: accuracy,
-        heading: heading,
-      );
+  LiveFix fix(
+    double lng,
+    int seconds, {
+    double accuracy = 8,
+    double? heading,
+  }) => LiveFix(
+    lat: -6.8,
+    lng: lng,
+    at: t0.add(Duration(seconds: seconds)),
+    accuracyM: accuracy,
+    heading: heading,
+  );
 
   test('keeps normal driving and drops bad fixes', () {
     final filter = GpsFilter();

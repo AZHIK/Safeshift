@@ -4,7 +4,10 @@ import 'package:safeshift_driver/core/utils/reference_number.dart';
 void main() {
   group('generateReferenceNumber', () {
     test('formats the prefix and UTC date components', () {
-      final value = generateReferenceNumber(' dsr ', DateTime(2026, 10, 29, 12));
+      final value = generateReferenceNumber(
+        ' dsr ',
+        DateTime(2026, 10, 29, 12),
+      );
 
       expect(value, startsWith('DSR-20261029-'));
       expect(value, isNot(contains(' ')));

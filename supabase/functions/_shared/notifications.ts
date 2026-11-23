@@ -1,7 +1,6 @@
 import { InternalError, NotFoundError, ProviderError } from './errors.ts';
 import type { SupabaseClient } from './db.ts';
-import type { BeemClient } from './providers/beem.ts';
-import type { AfricaSTalkingClient } from './providers/africastalking.ts';
+import type { MesejiClient } from './providers/meseji.ts';
 import type { ResendClient } from './providers/resend.ts';
 import type { FcmClient } from './providers/fcm.ts';
 
@@ -19,8 +18,7 @@ export interface NotificationLogRow {
 }
 
 export interface DeliveryClients {
-  beem?: BeemClient;
-  africaSTalking?: AfricaSTalkingClient;
+  meseji?: MesejiClient;
   resend?: ResendClient;
   fcm?: FcmClient;
 }
@@ -56,65 +54,29 @@ export async function deliverSms(
   row: NotificationLogRow,
   clients: DeliveryClients,
 ): Promise<{ notification_id: string; status: string; provider_used: string }> {
-  let beemResult;
-  let beemError: unknown;
+  let result;
   try {
-    if (!clients.beem) throw new ProviderError('beem', 'Beem client is not configured');
-    beemResult = await clients.beem.sendSms(row.recipient, '', row.body, row.public_id);
+    if (!clients.meseji) throw new ProviderError('meseji', 'Meseji client is not configured');
+    result = await clients.meseji.sendSms(row.recipient, '', row.body, row.public_id);
   } catch (error) {
-    beemError = error;
-  }
-
-  if (beemResult) {
-    // Persisting the result is separate from the send so a database failure
-    // cannot trigger a duplicate SMS through the fallback provider.
     await updateNotification(service, row.public_id, {
-      status: 'sent',
-      provider: 'beem',
-      provider_message_id: beemResult.provider_message_id,
-      provider_response: { status: beemResult.status },
-      sent_at: new Date().toISOString(),
+      status: 'failed',
+      provider: 'meseji',
+      failure_reason: 'meseji_failed',
     });
-    return { notification_id: row.public_id, status: 'sent', provider_used: 'beem' };
+    throw error;
   }
 
-  let fallbackResult;
-  let fallbackError: unknown;
-  try {
-    if (!clients.africaSTalking) {
-      throw new ProviderError('africastalking', "Africa's Talking client is not configured");
-    }
-    fallbackResult = await clients.africaSTalking.sendSms(
-      row.recipient,
-      '',
-      row.body,
-      row.public_id,
-    );
-  } catch (error) {
-    fallbackError = error;
-  }
-
-  if (fallbackResult) {
-    await updateNotification(service, row.public_id, {
-      status: 'sent',
-      provider: 'africastalking',
-      provider_message_id: fallbackResult.provider_message_id,
-      provider_response: { status: fallbackResult.status, failover: true },
-      sent_at: new Date().toISOString(),
-    });
-    return { notification_id: row.public_id, status: 'sent', provider_used: 'africastalking' };
-  }
-
+  // Persisting the result is separate from the send so a database failure is
+  // not reported as a failed (and therefore retried) SMS.
   await updateNotification(service, row.public_id, {
-    status: 'failed',
-    provider: 'africastalking',
-    failure_reason: 'beem_and_africastalking_failed',
-    provider_response: { failover: true },
+    status: 'sent',
+    provider: 'meseji',
+    provider_message_id: result.provider_message_id,
+    provider_response: { status: result.status },
+    sent_at: new Date().toISOString(),
   });
-  throw new ProviderError('sms', 'Both SMS providers failed', {
-    beem: beemError instanceof Error ? beemError.name : 'unknown',
-    africastalking: fallbackError instanceof Error ? fallbackError.name : 'unknown',
-  });
+  return { notification_id: row.public_id, status: 'sent', provider_used: 'meseji' };
 }
 
 export async function deliverEmail(

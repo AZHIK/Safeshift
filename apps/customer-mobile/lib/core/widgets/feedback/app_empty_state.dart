@@ -41,15 +41,14 @@ class AppEmptyState extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: TextStyles.body.copyWith(color: context.colors.onSurfaceVariant),
+                style: TextStyles.body.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
               ),
             ],
             if (actionLabel != null && onAction != null) ...<Widget>[
               const SizedBox(height: AppSizes.md),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),

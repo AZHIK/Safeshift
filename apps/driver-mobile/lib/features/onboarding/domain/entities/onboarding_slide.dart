@@ -19,6 +19,7 @@ class OnboardingSlide {
   final String badgeLabel;
   final IconData badgeIcon;
   final Color glow;
+
   /// Per-artwork scale. The truck file has wide transparent margins in its
   /// 1200x1200 canvas, so it renders small — bump it to match the others.
   final double artScale;

@@ -65,7 +65,7 @@ class DriverAvatarCard extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        ' ${driver.rating.toStringAsFixed(1)}  ·  ${driver.vehicleClass}',
+                        ' ${driver.rating > 0 ? driver.rating.toStringAsFixed(1) : 'New'}  ·  ${driver.vehicleClass}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyles.caption.copyWith(

@@ -45,8 +45,7 @@ class DriverProfile {
   /// True when the minimum fields required to drive are filled.
   /// Real completeness rules (documents, vehicle, verification) will be
   /// enforced by the backend later.
-  bool get isComplete =>
-      fullName.trim().isNotEmpty && phone.trim().isNotEmpty;
+  bool get isComplete => fullName.trim().isNotEmpty && phone.trim().isNotEmpty;
 
   DriverProfile copyWith({
     String? id,

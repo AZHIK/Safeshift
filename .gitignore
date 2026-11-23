@@ -55,6 +55,7 @@ google-services.json
 GoogleService-Info.plist
 service-account*.json
 secrets/
+**/ios/Flutter/Secrets.xcconfig
 
 # ── Supabase local data ──
 supabase/.branches/

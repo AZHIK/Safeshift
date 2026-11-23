@@ -6,8 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 const List<OnboardingSlide> onboardingSlides = <OnboardingSlide>[
   OnboardingSlide(
     title: 'Drive with SafeShift',
-    description:
-        "Join verified drivers moving people's property safely.",
+    description: "Join verified drivers moving people's property safely.",
     lottieAsset: 'assets/lottie/onboarding_drive.json',
     accentColor: AppColors.primary,
     badgeLabel: 'Verified drivers',

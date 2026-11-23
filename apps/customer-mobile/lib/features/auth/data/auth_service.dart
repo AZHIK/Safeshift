@@ -1,8 +1,26 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
+import '../../../core/config/env_config.dart';
 import '../../../core/errors/failures.dart';
 import '../domain/entities/user.dart';
+
+/// Result of [AuthService.signInWithGoogle].
+enum GoogleSignInOutcome {
+  /// Native sign-in finished; a Supabase session now exists.
+  signedIn,
+
+  /// The in-app browser opened; the session arrives via the deep link.
+  openedBrowser,
+
+  /// The user closed the account picker.
+  canceled,
+}
 
 /// Thin, testable wrapper around Supabase Auth and the profile bootstrap.
 class AuthService {
@@ -34,14 +52,6 @@ class AuthService {
     await _client.auth.signInWithOtp(phone: normalized, shouldCreateUser: true);
   }
 
-  Future<void> sendEmailOtp(String email) async {
-    final normalized = email.trim().toLowerCase();
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(normalized)) {
-      throw const ValidationFailure('Enter a valid email address');
-    }
-    await _client.auth.signInWithOtp(email: normalized, shouldCreateUser: true);
-  }
-
   Future<User> verifyOtp(String phone, String otp) async {
     final code = otp.replaceAll(RegExp(r'\D'), '');
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
@@ -69,50 +79,109 @@ class AuthService {
     return profile;
   }
 
-  Future<User> verifyEmailOtp(String email, String otp) async {
-    final code = otp.replaceAll(RegExp(r'\D'), '');
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      throw const ValidationFailure('Enter the 6-digit code');
-    }
-
-    final normalized = email.trim().toLowerCase();
-    final response = await _client.auth.verifyOTP(
-      email: normalized,
-      token: code,
-      type: OtpType.email,
-    );
-
-    final authUser = response.user;
-    if (authUser == null) {
-      throw const AuthFailure('Sign-in failed. Please request a new code.');
-    }
-
-    await ensureProfile(authUser.userMetadata?['full_name'] as String?);
-    final profile = await fetchUserProfile(userId: authUser.id);
-    if (profile == null) {
-      throw const AuthFailure(
-        'Your account was created but the profile is still syncing. Try again.',
+  /// Signs in with Google.
+  ///
+  /// Uses the native account picker (Android Credential Manager bottom sheet,
+  /// iOS Google sheet) and exchanges the Google ID token with Supabase, so no
+  /// browser opens. When the client IDs are not configured for this build it
+  /// falls back to OAuth in an in-app browser tab, which returns through
+  /// `safeshift://login-callback`.
+  Future<GoogleSignInOutcome> signInWithGoogle() async {
+    if (!_nativeGoogleConfigured) {
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'safeshift://login-callback',
+        authScreenLaunchMode: LaunchMode.inAppBrowserView,
       );
+      return GoogleSignInOutcome.openedBrowser;
     }
-    return profile;
-  }
 
-  Future<void> signInWithGoogle() async {
-    // Initiate the Google OAuth flow. The browser/webview will open and the user
-    // will be redirected back to the app via the deep link (safeshift://login-callback).
-    // The session will be stored by the deep‑link handler (see DeepLinkService).
-    await _client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: kIsWeb ? null : 'safeshift://login-callback',
-      // authScreenLaunchMode defaults to LaunchMode.platformDefault; on mobile we
-      // want externalApplication so the browser opens fully.
-      authScreenLaunchMode: LaunchMode.externalApplication,
+    final google = GoogleSignIn.instance;
+    await _initGoogle(google);
+    final GoogleSignInAccount account;
+    try {
+      account = await google.authenticate();
+    } on GoogleSignInException catch (error) {
+      switch (error.code) {
+        case GoogleSignInExceptionCode.canceled:
+        case GoogleSignInExceptionCode.interrupted:
+          return GoogleSignInOutcome.canceled;
+        case GoogleSignInExceptionCode.uiUnavailable:
+          throw const AuthFailure(
+            'Google sign-in is not available right now. Use your phone number.',
+          );
+        default:
+          throw const AuthFailure(
+            'Google sign-in failed. Please try again or use your phone number.',
+          );
+      }
+    }
+
+    final idToken = account.authentication.idToken;
+    if (idToken == null) {
+      throw const AuthFailure('Google did not return a sign-in token.');
+    }
+    await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      nonce: _googleRawNonce,
     );
-    // The method itself does not throw; the result is observed via
-    // onAuthStateChange (AuthChangeEvent.signedIn) after the deep link is processed.
+    return GoogleSignInOutcome.signedIn;
   }
 
-  Future<void> signOut() => _client.auth.signOut();
+  static bool get _nativeGoogleConfigured {
+    if (kIsWeb || EnvConfig.googleWebClientId.isEmpty) return false;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => true,
+      TargetPlatform.iOS => EnvConfig.googleIosClientId.isNotEmpty,
+      _ => false,
+    };
+  }
+
+  // GoogleSignIn.initialize may run only once per process, so the nonce is
+  // generated once per app run. Google embeds its SHA-256 in the ID token and
+  // Supabase checks it against the raw value, which never leaves this device
+  // except in the token exchange.
+  static final String _googleRawNonce = _randomNonce();
+  static Future<void>? _googleInit;
+
+  static Future<void> _initGoogle(GoogleSignIn google) {
+    return _googleInit ??= google
+        .initialize(
+          clientId: defaultTargetPlatform == TargetPlatform.iOS
+              ? EnvConfig.googleIosClientId
+              : null,
+          serverClientId: EnvConfig.googleWebClientId,
+          nonce: sha256.convert(utf8.encode(_googleRawNonce)).toString(),
+        )
+        .catchError((Object error) {
+          _googleInit = null;
+          throw error;
+        });
+  }
+
+  static String _randomNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  Future<void> signOut() async {
+    if (_googleInit != null) {
+      try {
+        // Next Google sign-in shows the account picker instead of silently
+        // reusing the previous account.
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {
+        // Never block sign-out on Google cleanup.
+      }
+    }
+    await _client.auth.signOut();
+  }
 
   User? currentUser() {
     final authUser = _client.auth.currentUser;

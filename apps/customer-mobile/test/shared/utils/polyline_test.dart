@@ -39,33 +39,36 @@ void main() {
       expect(points.first, isA<LatLng>());
     });
 
-    test('decodes a live TRAFFIC_AWARE route between two Dar es Salaam points', () {
-      // Captured from Google Routes API `directions/v2:computeRoutes` for a
-      // driving route in Dar es Salaam. Guards the decoder against a change
-      // in the provider's polyline encoding.
-      const encoded =
-          'jsmh@qzhnFQCyAYA?eAMc@Ea@EOCw@CkBGc@AG?[Cc@Cc@A_@CoAOmDw@OGSK]QA?UOi@]]Y]Y_AeAw@'
-          '_AY_@GGUYKKe@i@e@k@w@}@GIe@k@w@_AMOy@aAEEaAiAWYCEUWEEQSY]UUs@q@ECSSg@a@QKWQaAo@'
-          'WOOM{@k@y@i@IGq@c@WOkBoAw@i@_@W]UoA{@_Am@y@k@uBsAu@g@_@WOKZe@X_@Ze@PUFIDG@?DEJIDElAkB'
-          '\\g@FKlAmBLUJUFKDM?CFUH]D]DY@U@gA?q@@[@Y@OHi@F_@BKFUHSJSd@u@JQZc@FKU]S]Og@uAmC]m@wAq'
-          'CeAoBs@uASa@We@cAmBOY[m@GIc@}@e@{@a@w@MWMWU[[g@[a@MO]_@AAYWMMsAiAgAw@a@YKGeAy@uAgAII'
-          'IGUUMOKQMUQc@I]G[Ea@A[?Y?SDu@@I?w@Di@Dy@@M?UCg@AWG[GSGSKUMSMSQSSUQMEEk@c@gAw@_BkAy@o@'
-          'u@k@[Uw@k@cBiACC?ACIQMc@a@~@iAxA{B\\i@r@cAR[xAoBxCgElAeBJM`@a@`AcAl@q@T[`@u@^s@b@{@h@m@P'
-          'U^m@Nq@Xg@^s@\\{AHOFOv@sBn@aCH[\\qAl@iDVuALo@f@}BLe@Ja@Nw@Jm@Ny@f@uCB]BM?A@MFYFc@D[D]D[D'
-          'u@@YDi@Do@BY?IDq@B_A@U?m@S{EKgCUkCWcCGi@e@sG[uFK_AKw@Cy@UyBCSUyBIa@CYAi@CkAAs@C_AAM?a@AS?_'
-          '@?]?_@@]?IBoABcABaABk@Bk@@c@Dk@BQBa@Fk@Fu@Hm@Fc@?AHm@Fa@Hi@Lw@Ha@F[Lg@Jc@Lg@Pk@b@uAJWJ[Ri'
-          '@DK\\u@DKRc@b@}@Xi@JSZk@R[t@gABCPYJQFIDGP[RYZg@R[FIb@m@V[LOv@cAVYn@u@TUFGSMUOi@W[OQGMCSK'
-          'MKKGGG]e@CEGIKSKOSWKMIGIG]MYKWIOEc@Mo@Um@Q_AWIEa@MA?e@QUIMCQGKCE?QEOCOCC?OCA?SCUA_AAs@?Q'
-          '?]A[@[@W@E?Q@O@wAR}Cb@wATK@WF}@N_@LGBg@Nk@VKDuAn@E@a@LeBl@wA\\e@LI@kB^wAV]F_C`@{AP]B{@BkA'
-          'Dc@@eAD[@iA@C?W?i@AQ?cAAAA_@A[EaAOCAk@Oe@Km@Qg@OkA]eAa@_@O_@OOGeB{@_BaAi@a@WQqAeAq@g@w@q@'
-          'MIw@\\wBbAd@bA@@DLR`@@BBHBT?FAFCD';
+    test(
+      'decodes a live TRAFFIC_AWARE route between two Dar es Salaam points',
+      () {
+        // Captured from Google Routes API `directions/v2:computeRoutes` for a
+        // driving route in Dar es Salaam. Guards the decoder against a change
+        // in the provider's polyline encoding.
+        const encoded =
+            'jsmh@qzhnFQCyAYA?eAMc@Ea@EOCw@CkBGc@AG?[Cc@Cc@A_@CoAOmDw@OGSK]QA?UOi@]]Y]Y_AeAw@'
+            '_AY_@GGUYKKe@i@e@k@w@}@GIe@k@w@_AMOy@aAEEaAiAWYCEUWEEQSY]UUs@q@ECSSg@a@QKWQaAo@'
+            'WOOM{@k@y@i@IGq@c@WOkBoAw@i@_@W]UoA{@_Am@y@k@uBsAu@g@_@WOKZe@X_@Ze@PUFIDG@?DEJIDElAkB'
+            '\\g@FKlAmBLUJUFKDM?CFUH]D]DY@U@gA?q@@[@Y@OHi@F_@BKFUHSJSd@u@JQZc@FKU]S]Og@uAmC]m@wAq'
+            'CeAoBs@uASa@We@cAmBOY[m@GIc@}@e@{@a@w@MWMWU[[g@[a@MO]_@AAYWMMsAiAgAw@a@YKGeAy@uAgAII'
+            'IGUUMOKQMUQc@I]G[Ea@A[?Y?SDu@@I?w@Di@Dy@@M?UCg@AWG[GSGSKUMSMSQSSUQMEEk@c@gAw@_BkAy@o@'
+            'u@k@[Uw@k@cBiACC?ACIQMc@a@~@iAxA{B\\i@r@cAR[xAoBxCgElAeBJM`@a@`AcAl@q@T[`@u@^s@b@{@h@m@P'
+            'U^m@Nq@Xg@^s@\\{AHOFOv@sBn@aCH[\\qAl@iDVuALo@f@}BLe@Ja@Nw@Jm@Ny@f@uCB]BM?A@MFYFc@D[D]D[D'
+            'u@@YDi@Do@BY?IDq@B_A@U?m@S{EKgCUkCWcCGi@e@sG[uFK_AKw@Cy@UyBCSUyBIa@CYAi@CkAAs@C_AAM?a@AS?_'
+            '@?]?_@@]?IBoABcABaABk@Bk@@c@Dk@BQBa@Fk@Fu@Hm@Fc@?AHm@Fa@Hi@Lw@Ha@F[Lg@Jc@Lg@Pk@b@uAJWJ[Ri'
+            '@DK\\u@DKRc@b@}@Xi@JSZk@R[t@gABCPYJQFIDGP[RYZg@R[FIb@m@V[LOv@cAVYn@u@TUFGSMUOi@W[OQGMCSK'
+            'MKKGGG]e@CEGIKSKOSWKMIGIG]MYKWIOEc@Mo@Um@Q_AWIEa@MA?e@QUIMCQGKCE?QEOCOCC?OCA?SCUA_AAs@?Q'
+            '?]A[@[@W@E?Q@O@wAR}Cb@wATK@WF}@N_@LGBg@Nk@VKDuAn@E@a@LeBl@wA\\e@LI@kB^wAV]F_C`@{AP]B{@BkA'
+            'Dc@@eAD[@iA@C?W?i@AQ?cAAAA_@A[EaAOCAk@Oe@Km@Qg@OkA]eAa@_@O_@OOGeB{@_BaAi@a@WQqAeAq@g@w@q@'
+            'MIw@\\wBbAd@bA@@DLR`@@BBHBT?FAFCD';
 
-      final points = decodePolyline(encoded);
-      expect(points.length, greaterThan(400));
-      expect(points.first.latitude, closeTo(-6.79238, 1e-4));
-      expect(points.first.longitude, closeTo(39.20825, 1e-4));
-      expect(points.last.latitude, closeTo(-6.76075, 1e-4));
-      expect(points.last.longitude, closeTo(39.27623, 1e-4));
-    });
+        final points = decodePolyline(encoded);
+        expect(points.length, greaterThan(400));
+        expect(points.first.latitude, closeTo(-6.79238, 1e-4));
+        expect(points.first.longitude, closeTo(39.20825, 1e-4));
+        expect(points.last.latitude, closeTo(-6.76075, 1e-4));
+        expect(points.last.longitude, closeTo(39.27623, 1e-4));
+      },
+    );
   });
 }

@@ -2113,6 +2113,18 @@ final vehicleAvailabilityProvider = FutureProvider.autoDispose
       }
     });
 
+/// The customer's rating state for a finished move; null when it cannot be
+/// loaded (the rating card is then simply not shown).
+final jobRatingProvider = FutureProvider.autoDispose
+    .family<JobRatingStatus?, String>((ref, jobId) async {
+      try {
+        return await RatingRepository(ref.watch(supabaseProvider))
+            .status(jobId);
+      } catch (_) {
+        return null;
+      }
+    });
+
 final rideCargoTypesProvider = FutureProvider<List<CargoTypeOption>>((ref) {
   return CatalogRepository(ref.watch(supabaseProvider)).getCargoTypes();
 });

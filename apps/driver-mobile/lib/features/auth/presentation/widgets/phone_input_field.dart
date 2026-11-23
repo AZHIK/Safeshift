@@ -1,5 +1,3 @@
-// Planned: add country-code picker and error-text support when the Driver app
-// reuses this field. Mock UI phase version: fixed +255 prefix only.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,73 +22,138 @@ String formatPhoneDisplay(String digits) {
   return '+255 ${formatPhoneGroups(digits)}';
 }
 
-/// Reusable Tanzanian phone number field with a fixed +255 prefix.
-/// Exposes raw digits (no spaces, no prefix) via [onChanged].
-class PhoneInputField extends StatelessWidget {
+/// Tanzanian phone number field with a fixed +255 prefix.
+///
+/// Outlined on all sides with a divider between the country code and the
+/// number. The outline stays grey (thicker on focus) and turns error-coloured
+/// when [hasError]. Exposes raw digits (no spaces, no prefix) via [onChanged].
+class PhoneInputField extends StatefulWidget {
   const PhoneInputField({
     super.key,
     required this.controller,
     this.onChanged,
+    this.onSubmitted,
     this.autofocus = false,
+    this.hasError = false,
   });
 
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
+  final VoidCallback? onSubmitted;
   final bool autofocus;
+  final bool hasError;
+
+  @override
+  State<PhoneInputField> createState() => _PhoneInputFieldState();
+}
+
+class _PhoneInputFieldState extends State<PhoneInputField> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() => setState(() {});
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChange)
+      ..dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-      borderSide: BorderSide(color: context.colors.outlineVariant),
+    final focused = _focusNode.hasFocus;
+    // Grey in both states; focus is shown by the thicker stroke.
+    final borderColor = widget.hasError
+        ? context.colors.error
+        : context.colors.outline;
+    final borderWidth = focused || widget.hasError ? 1.5 : 1.0;
+    final textStyle = TextStyles.title.copyWith(
+      color: context.colors.onSurface,
+      fontSize: 18,
+      letterSpacing: 0.5,
     );
-    return SizedBox(
-      height: AppSizes.inputHeight,
-      child: TextField(
-        controller: controller,
-        autofocus: autofocus,
-        keyboardType: TextInputType.phone,
-        inputFormatters: <TextInputFormatter>[_PhoneGroupsFormatter()],
-        style: TextStyles.title.copyWith(color: context.colors.onSurface),
-        decoration: InputDecoration(
-          hintText: '712 345 678',
-          hintStyle: TextStyles.title.copyWith(
-            color: context.colors.onSurfaceVariant,
-          ),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: AppSizes.md),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '+255',
-                style: TextStyle(
-                  color: context.colors.onSurfaceVariant,
-                  fontFamily: TextStyles.fontFamily,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+
+    return GestureDetector(
+      // Tapping the +255 side still focuses the number.
+      onTap: _focusNode.requestFocus,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 56,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+          border: Border.all(color: borderColor, width: borderWidth),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+              child: Center(
+                child: Text(
+                  '+255',
+                  style: textStyle.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
-          ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 64,
-            maxWidth: 64,
-          ),
-          filled: true,
-          fillColor: context.colors.surface,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 0,
-            vertical: AppSizes.sm,
-          ),
-          border: border,
-          enabledBorder: border,
-          focusedBorder: border.copyWith(
-            borderSide: BorderSide(color: context.colors.primary, width: 1.6),
-          ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: borderWidth,
+              color: borderColor,
+            ),
+            Expanded(
+              child: Center(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focusNode,
+                  autofocus: widget.autofocus,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const <String>[
+                    AutofillHints.telephoneNumberNational,
+                  ],
+                  inputFormatters: <TextInputFormatter>[
+                    _PhoneGroupsFormatter(),
+                  ],
+                  style: textStyle,
+                  cursorColor: context.colors.primary,
+                  decoration: InputDecoration(
+                    hintText: '712 345 678',
+                    hintStyle: textStyle.copyWith(
+                      color: context.colors.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    filled: false,
+                    isDense: true,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.md,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    widget.onChanged?.call(value.replaceAll(RegExp(r'\D'), ''));
+                  },
+                  onSubmitted: (_) => widget.onSubmitted?.call(),
+                ),
+              ),
+            ),
+          ],
         ),
-        onChanged: (value) {
-          onChanged?.call(value.replaceAll(RegExp(r'\D'), ''));
-        },
       ),
     );
   }

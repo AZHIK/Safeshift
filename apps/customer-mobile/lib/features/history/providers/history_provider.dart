@@ -42,11 +42,13 @@ class HistoryNotifier extends AsyncNotifier<List<Job>> {
     final repo = RideRepository(ref.read(supabaseProvider));
     final snapshots = await repo.getJobs();
     final jobs = snapshots.map(_toJob).toList(growable: false);
-    await ref.read(cacheServiceProvider).putJson(
-      userId,
-      'customer_jobs',
-      snapshots.map(_toJson).toList(growable: false),
-    );
+    await ref
+        .read(cacheServiceProvider)
+        .putJson(
+          userId,
+          'customer_jobs',
+          snapshots.map(_toJson).toList(growable: false),
+        );
     return jobs;
   }
 
@@ -142,14 +144,11 @@ final filteredHistoryProvider = Provider<AsyncValue<List<Job>>>((ref) {
           )
           .toList(growable: false);
     }
-    return items
-        .where((job) => job.status == status)
-        .toList(growable: false);
+    return items.where((job) => job.status == status).toList(growable: false);
   });
 });
 
-final historyDetailProvider = FutureProvider.family<CustomerJobSnapshot?, String>(
-  (ref, jobId) {
-    return RideRepository(ref.watch(supabaseProvider)).getJob(jobId);
-  },
-);
+final historyDetailProvider =
+    FutureProvider.family<CustomerJobSnapshot?, String>((ref, jobId) {
+      return RideRepository(ref.watch(supabaseProvider)).getJob(jobId);
+    });

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:safeshift_shared/safeshift_shared.dart' show SafeShiftThemeContext, safeShiftDarkMapStyle;
+import 'package:safeshift_shared/safeshift_shared.dart'
+    show SafeShiftThemeContext, safeShiftDarkMapStyle;
 
 import '../../../ride/providers/ride_provider.dart';
 
@@ -25,8 +26,9 @@ class _MapViewState extends ConsumerState<MapView> {
         Marker(
           markerId: const MarkerId('pickup'),
           position: LatLng(pickup.latitude, pickup.longitude),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
           infoWindow: InfoWindow(title: pickup.name),
         ),
       );
@@ -47,8 +49,9 @@ class _MapViewState extends ConsumerState<MapView> {
         Marker(
           markerId: const MarkerId('driver'),
           position: LatLng(state.driverLatitude!, state.driverLongitude!),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
           infoWindow: InfoWindow(title: state.driver?.name ?? 'Driver'),
         ),
       );
@@ -98,8 +101,11 @@ class _MapViewState extends ConsumerState<MapView> {
         ? LatLng(state.pickup!.latitude, state.pickup!.longitude)
         : _defaultCenter;
     return GoogleMap(
-      style: Theme.of(context).brightness == Brightness.dark ? safeShiftDarkMapStyle : null,
-      onMapCreated: (GoogleMapController controller) => _controller = controller,
+      style: Theme.of(context).brightness == Brightness.dark
+          ? safeShiftDarkMapStyle
+          : null,
+      onMapCreated: (GoogleMapController controller) =>
+          _controller = controller,
       initialCameraPosition: CameraPosition(target: target, zoom: 13),
       markers: _markers(state),
       polylines: _polylines(state),
